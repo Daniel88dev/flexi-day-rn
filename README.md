@@ -9,18 +9,20 @@ Expo SDK 57, Expo Router, TypeScript, NativeWind v5. It talks to
 
 - Node 24 (`.nvmrc`)
 - Xcode with the iOS platform installed, for the native build
+- CocoaPods (`brew install cocoapods`)
 
 ## Commands
 
-| Command             | What it does                                              |
-| ------------------- | --------------------------------------------------------- |
-| `npm start`         | Metro for the dev client                                  |
-| `npm run ios`       | generate `ios/` if needed, build and run the dev client   |
-| `npm run prebuild`  | regenerate `ios/` from `app.json` (continuous native gen) |
-| `npm run lint`      | eslint                                                    |
-| `npm run typecheck` | `tsc --noEmit`                                            |
-| `npm run format`    | prettier over the repo                                    |
-| `npm run test`      | jest                                                      |
+| Command              | What it does                                                      |
+| -------------------- | ----------------------------------------------------------------- |
+| `npm start`          | Metro for the dev client                                          |
+| `npm run ios`        | generate `ios/` if needed, build and run the dev client           |
+| `npm run ios:device` | the same, on a plugged-in iPhone ([docs](docs/device-testing.md)) |
+| `npm run prebuild`   | regenerate `ios/` from `app.json` (continuous native gen)         |
+| `npm run lint`       | eslint                                                            |
+| `npm run typecheck`  | `tsc --noEmit`                                                    |
+| `npm run format`     | prettier over the repo                                            |
+| `npm run test`       | jest                                                              |
 
 `ios/` is generated and gitignored. Native configuration goes into `app.json` or a config plugin.
 

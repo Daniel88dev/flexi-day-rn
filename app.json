@@ -9,9 +9,20 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.flexiday.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "appleTeamId": "7DD5F92WWS"
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }
