@@ -6,6 +6,7 @@
   "scripts": {
     "start": "expo start --dev-client",
     "ios": "expo run:ios",
+    "ios:device": "expo run:ios --device",
     "prebuild": "expo prebuild --platform ios",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -18,6 +19,7 @@
   "dependencies": {
     "@tailwindcss/postcss": "4.1.12",
     "expo": "57.0.23",
+    "expo-build-properties": "~57.0.20",
     "expo-constants": "~57.0.18",
     "expo-dev-client": "~57.0.19",
     "expo-linking": "~57.0.10",

@@ -28,6 +28,15 @@ stays cross-platform, but nothing is configured or tested there.
 
 Bundle id `com.flexiday.app`, URL scheme `flexiday`, display name "Flexi Day". Device testing uses
 a free Apple ID through Xcode (seven-day signing); there is no EAS, TestFlight or paid program.
+The personal team id sits in `app.json` so prebuild signs without Xcode clicks; the phone setup,
+the re-sign loop and how the app finds the backend are in
+[`docs/device-testing.md`](docs/device-testing.md). `npm run ios` targets the simulator,
+`npm run ios:device` the phone.
+Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 27 kills an app
+built with Xcode 27 that lacks it, and only a real phone shows that.
+
+The backend base URL comes from `src/lib/api.ts`: `EXPO_PUBLIC_API_URL` when set, otherwise the
+Metro host on port 8080. Never hardcode `localhost`; a phone cannot reach it.
 
 ## Styling is NativeWind v5, on a release candidate
 
@@ -48,6 +57,9 @@ v4 with Tailwind v3 and rejects OKLCH, so never install `nativewind` without the
   `elevation-*` and `shadow-*` utilities, not the web's `--shadow-*` strings.
 - Fonts are not embedded yet. The first screen prototype adds them through the `expo-font` config
   plugin.
+- `className` only works on React Native core components. Third-party ones, including
+  `SafeAreaView` from `react-native-safe-area-context`, silently drop it; use a `View` with the
+  `pt-safe` / `pb-safe` utilities for safe areas instead.
 
 ## Testing
 
