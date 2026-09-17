@@ -1,0 +1,36 @@
+name: codeql
+
+on:
+  # Every PR, whatever its base, so a stacked PR is checked before it retargets main.
+  pull_request:
+  push:
+    branches: [main]
+  # Catches newly-published queries against unchanged code.
+  schedule:
+    - cron: "0 3 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      # No build step: javascript-typescript is analysed from source, so CodeQL
+      # builds its database without invoking the project's own toolchain.
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4

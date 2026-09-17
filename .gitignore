@@ -1,0 +1,50 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Continuous native generation: `npm run prebuild` regenerates these, never commit them.
+/ios
+/android
+
+# Native signing material
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# testing
+coverage/
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# env files
+.env
+.env.*
+
+# typescript
+*.tsbuildinfo
+
+# editor
+.idea/
+
+# Claude Code: share config, keep machine-local permissions out
+.claude/settings.local.json
+.claude/worktrees/

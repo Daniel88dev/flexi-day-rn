@@ -1,0 +1,161 @@
+/*
+ * Design tokens, ported by hand from flexi-day/app/globals.css.
+ * Keep the OKLCH strings identical to the web so the two :root blocks diff by eye.
+ * Differences from the web file, all forced by native:
+ *   - var(--accent-c) / var(--accent-h) are inlined (0.165 / 285); the engine cannot resolve
+ *     var() inside oklch() at runtime.
+ *   - the dark block sits under prefers-color-scheme, not a .dark class.
+ *   - font-size: 16px pins rem to the web's base (native defaults to 14).
+ *   - radii are px (the web derives them from --radius: 1rem); shadows and web-only slots are gone.
+ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-strong: var(--primary-strong);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-tint: var(--bg-tint);
+  --color-warm: var(--warm);
+  --color-warm-soft: var(--warm-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-leave-vacation: var(--c-vacation);
+  --color-leave-home: var(--c-home);
+  --color-leave-sick: var(--c-sick);
+  --color-leave-bank: var(--c-bank);
+  --color-leave-pto: var(--c-pto);
+  --color-leave-nonpaid: var(--c-nonpaid);
+  --color-leave-study: var(--c-study);
+  --color-leave-other: var(--c-other);
+  --color-leave-sickday: var(--c-sickday);
+  --radius-sm: 9.6px;
+  --radius-md: 12.8px;
+  --radius-lg: 16px;
+  --radius-xl: 22.4px;
+  --radius-2xl: 28.8px;
+  --radius-3xl: 35.2px;
+  --radius-4xl: 41.6px;
+}
+
+/* Light (warm paper) */
+:root {
+  font-size: 16px;
+
+  /* Leave-type hues (light) */
+  --c-vacation: oklch(0.6 0.16 285);
+  --c-home: oklch(0.6 0.12 158);
+  --c-sick: oklch(0.62 0.16 18);
+  --c-bank: oklch(0.7 0.13 70);
+  --c-pto: oklch(0.6 0.11 232);
+  --c-nonpaid: oklch(0.6 0.1 200);
+  --c-study: oklch(0.66 0.14 110);
+  --c-other: oklch(0.55 0.03 270);
+  --c-sickday: oklch(0.62 0.14 350);
+
+  /* Surfaces & text (light = warm paper) */
+  --bg: oklch(0.985 0.008 78);
+  --bg-tint: oklch(0.965 0.012 78);
+  --surface: oklch(0.998 0.004 80);
+  --surface-2: oklch(0.972 0.009 78);
+  --border-soft: oklch(0.915 0.01 80);
+  --border-strong: oklch(0.86 0.012 80);
+  --text: oklch(0.26 0.018 290);
+  --text-muted: oklch(0.52 0.014 288);
+  --text-faint: oklch(0.66 0.012 288);
+
+  --primary-strong: oklch(0.48 0.165 285);
+  --primary-fg: oklch(0.99 0.01 285);
+  --primary-soft: oklch(0.55 0.165 285 / 0.1);
+  --warm: oklch(0.66 0.14 42);
+  --warm-soft: oklch(0.66 0.14 42 / 0.12);
+  --danger: oklch(0.58 0.18 25);
+  --danger-soft: oklch(0.58 0.18 25 / 0.12);
+  --ok: oklch(0.58 0.13 155);
+  --ok-soft: oklch(0.58 0.13 155 / 0.14);
+
+  /* shadcn slots, mapped onto warm-paper tokens */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --primary: oklch(0.55 0.165 285);
+  --primary-foreground: var(--primary-fg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--text);
+  --destructive: oklch(0.6 0.18 22);
+  --border: var(--border-soft);
+  --input: var(--border-strong);
+  --ring: oklch(0.55 0.165 285 / 0.5);
+}
+
+/* Dark (warm charcoal) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(0.165 0.013 288);
+    --bg-tint: oklch(0.195 0.014 288);
+    --surface: oklch(0.205 0.015 288);
+    --surface-2: oklch(0.245 0.016 288);
+    --border-soft: oklch(0.295 0.016 288);
+    --border-strong: oklch(0.36 0.018 288);
+    --text: oklch(0.96 0.006 288);
+    --text-muted: oklch(0.72 0.012 288);
+    --text-faint: oklch(0.58 0.012 288);
+
+    --primary-strong: oklch(0.74 0.165 285);
+    --primary-fg: oklch(0.16 0.02 285);
+    --primary-soft: oklch(0.68 0.165 285 / 0.16);
+    --warm: oklch(0.74 0.13 44);
+    --warm-soft: oklch(0.74 0.13 44 / 0.16);
+    --danger: oklch(0.7 0.16 25);
+    --danger-soft: oklch(0.7 0.16 25 / 0.16);
+    --ok: oklch(0.72 0.13 155);
+    --ok-soft: oklch(0.72 0.13 155 / 0.16);
+
+    --c-vacation: oklch(0.7 0.15 285);
+    --c-home: oklch(0.72 0.13 158);
+    --c-sick: oklch(0.7 0.15 20);
+    --c-bank: oklch(0.78 0.13 72);
+    --c-pto: oklch(0.7 0.11 232);
+    --c-nonpaid: oklch(0.72 0.1 200);
+    --c-study: oklch(0.75 0.14 110);
+    --c-other: oklch(0.72 0.04 270);
+    --c-sickday: oklch(0.72 0.14 350);
+
+    --background: var(--bg);
+    --foreground: var(--text);
+    --card: var(--surface);
+    --card-foreground: var(--text);
+    --primary: oklch(0.68 0.165 285);
+    --primary-foreground: var(--primary-fg);
+    --secondary: var(--surface-2);
+    --secondary-foreground: var(--text);
+    --muted: var(--surface-2);
+    --muted-foreground: var(--text-muted);
+    --accent: var(--primary-soft);
+    --accent-foreground: var(--text);
+    --destructive: oklch(0.7 0.18 22);
+    --border: var(--border-soft);
+    --input: var(--border-strong);
+    --ring: oklch(0.68 0.165 285 / 0.55);
+  }
+}
