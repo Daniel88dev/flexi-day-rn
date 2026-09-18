@@ -106,16 +106,19 @@ function Tab({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} className="flex-1 items-center gap-1 pt-2">
+    <Pressable
+      onPress={onPress}
+      className="h-[50px] flex-1 items-center justify-center gap-0.5 pt-1"
+    >
       <Ic
         icon={icon}
         tone={active ? "primary" : "muted"}
-        size={22}
+        size={25}
         weight={active ? "fill" : "regular"}
       />
       <T
         className={cn(
-          "text-[10.5px] font-semibold",
+          "text-[10px] font-semibold",
           active ? "text-primary" : "text-muted-foreground"
         )}
         numberOfLines={1}
@@ -199,15 +202,20 @@ export function ShellA({
           active={active === bar[1]?.key}
           onPress={() => go(bar[1]!.key)}
         />
-        <View className="flex-1 items-center pt-1.5">
-          <Pressable
-            onPress={() => go("myAttendance")}
-            className="h-11 w-11 items-center justify-center rounded-full bg-primary active:opacity-90"
-          >
-            <TimerIcon color={onPrimary} size={22} />
-          </Pressable>
-          <T className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">{t.nav.clock}</T>
-        </View>
+        <Pressable
+          onPress={() => go("myAttendance")}
+          accessibilityLabel={t.nav.clock}
+          className="h-[50px] flex-1 items-center justify-end pb-1.5"
+        >
+          {/* The web's centre slot: a disc lifted half out of the bar on a ring of page
+              background, so the bar keeps its five even columns underneath. */}
+          <View className="-mt-[26px] rounded-full bg-background p-[5px]">
+            <View className="h-[54px] w-[54px] items-center justify-center rounded-full bg-primary">
+              <TimerIcon color={onPrimary} size={26} />
+            </View>
+          </View>
+          <T className="text-[10px] font-semibold text-muted-foreground">{t.nav.clock}</T>
+        </Pressable>
         <Tab
           label={bar[2]?.label ?? ""}
           icon={bar[2]!.icon}
