@@ -1,6 +1,5 @@
 // PROTOTYPE. Three variants of the sign-in screen, switched by ?variant=, see issue 23.
 import { router, useLocalSearchParams } from "expo-router";
-import { Alert } from "react-native";
 
 import { SignInA } from "@/prototype/sign-in/a";
 import { SignInB } from "@/prototype/sign-in/b";
@@ -26,7 +25,7 @@ export default function SignInRoute() {
   const props: SignInProps = {
     preset,
     onBack: () => (router.canGoBack() ? router.back() : router.replace("/prototype/welcome")),
-    onSuccess: () => Alert.alert("Signed in", "Stub. The dashboard would open here."),
+    onSuccess: () => router.replace({ pathname: "/prototype/shell", params: { variant } }),
     onTwoFactor: (methods) =>
       router.push({
         pathname: "/prototype/two-factor",

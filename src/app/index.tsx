@@ -1,6 +1,6 @@
 import { Redirect } from "expo-router";
 
-// PROTOTYPE branch: the app opens on the welcome-screen prototype.
+// PROTOTYPE branch: the app opens on the dashboard-shell prototype.
 export default function Index() {
-  return <Redirect href="/prototype/welcome" />;
+  return <Redirect href="/prototype/shell" />;
 }

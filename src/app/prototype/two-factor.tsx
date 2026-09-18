@@ -1,7 +1,6 @@
 // PROTOTYPE. Three variants of the two-factor screen, switched by ?variant=, see issue 23.
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
-import { Alert } from "react-native";
 
 import type { TwoFactorMethod } from "@/prototype/stub-auth";
 import { Switcher, type Variant } from "@/prototype/switcher";
@@ -31,7 +30,7 @@ export default function TwoFactorRoute() {
     methods,
     preset,
     onBack: () => (router.canGoBack() ? router.back() : router.replace("/prototype/welcome")),
-    onSuccess: () => Alert.alert("Signed in", "Stub. The dashboard would open here."),
+    onSuccess: () => router.replace({ pathname: "/prototype/shell", params: { variant } }),
   };
   const Screen = variant === "b" ? TwoFactorB : variant === "c" ? TwoFactorC : TwoFactorA;
   return (

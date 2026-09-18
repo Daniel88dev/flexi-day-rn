@@ -56,7 +56,7 @@ export function Switcher({
           </Text>
         </Pressable>
         {open ? (
-          <View className="flex-1 gap-1.5">
+          <View className="flex-1 gap-1.5 pr-14">
             <View className="flex-row flex-wrap gap-1.5">
               <ChipButton label={"‹ prev"} onPress={() => go(-1)} />
               <ChipButton
