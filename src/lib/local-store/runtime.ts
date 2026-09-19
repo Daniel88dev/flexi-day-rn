@@ -12,6 +12,7 @@ export type StoreTransaction = {
 export type StoreRuntime = {
   lifecycle: StoreLifecycle;
   events: StoreEvents;
+  isOpen(): boolean;
   getDatabase(): StoreDatabase;
   /** Runs one synchronous transaction; on commit it emits the tables it touched, on a throw nothing. */
   write<TResult>(run: (transaction: StoreTransaction) => TResult): TResult;
@@ -24,6 +25,7 @@ export function createStoreRuntime(adapter: StoreAdapter): StoreRuntime {
   return {
     lifecycle,
     events,
+    isOpen: () => lifecycle.isOpen(),
     getDatabase: () => lifecycle.getDatabase(),
 
     write(run) {

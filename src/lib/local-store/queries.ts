@@ -1,7 +1,8 @@
-import { getTableColumns, sql } from "drizzle-orm";
+import { count, getTableColumns, sql } from "drizzle-orm";
 
 import type { StoreDatabase } from "./adapter";
-import { vacations, type StoreTableName } from "./schema";
+import { SYNC_TABLE_NAMES, type SyncTableName } from "./envelope";
+import { schema, vacations, type StoreTableName } from "./schema";
 
 export type VacationStatus = "pending" | "approved" | "rejected" | "cancelled";
 
@@ -23,4 +24,13 @@ end`;
 export function selectVacations(db: StoreDatabase) {
   const { generation, ...columns } = getTableColumns(vacations);
   return db.select({ ...columns, status: vacationStatus }).from(vacations);
+}
+
+/** How many rows the store holds in each of the pull's tables; the development card's readout. */
+export function storeRowCounts(db: StoreDatabase): Record<SyncTableName, number> {
+  const counts = {} as Record<SyncTableName, number>;
+  for (const name of SYNC_TABLE_NAMES) {
+    counts[name] = db.select({ rows: count() }).from(schema[name]).all()[0]?.rows ?? 0;
+  }
+  return counts;
 }

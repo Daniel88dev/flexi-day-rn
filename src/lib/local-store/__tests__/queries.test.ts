@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
 
 import { applyPage } from "../apply";
-import { selectVacations } from "../queries";
+import { selectVacations, storeRowCounts } from "../queries";
 import type { StoreRuntime } from "../runtime";
 import { vacations } from "../schema";
-import { syncPage, vacationRow } from "../test-support/sync-fixtures";
+import { fullSyncPage, syncPage, vacationRow } from "../test-support/sync-fixtures";
 import { openTestStore } from "../test-support/test-store";
 
 const APPROVED = "2026-09-20T08:00:00.000Z";
@@ -86,5 +86,41 @@ describe("selectVacations", () => {
 
   it("returns every booking the store holds when nothing narrows it", () => {
     expect(selectVacations(store.getDatabase()).all()).toHaveLength(5);
+  });
+});
+
+describe("storeRowCounts", () => {
+  it("returns zero for every table of a store nothing has pulled into", () => {
+    expect(storeRowCounts(store.getDatabase())).toEqual({
+      organizations: 0,
+      users: 0,
+      groups: 0,
+      groupUsers: 0,
+      groupMirrors: 0,
+      userYearQuotas: 0,
+      bankHolidays: 0,
+      vacations: 0,
+    });
+  });
+
+  it("returns what a page wrote, table by table", () => {
+    store.write((transaction) =>
+      applyPage(
+        transaction,
+        fullSyncPage({ vacations: [vacationRow(), vacationRow({ id: "vacation-2" })] }),
+        1
+      )
+    );
+
+    expect(storeRowCounts(store.getDatabase())).toEqual({
+      organizations: 1,
+      users: 1,
+      groups: 1,
+      groupUsers: 1,
+      groupMirrors: 1,
+      userYearQuotas: 1,
+      bankHolidays: 1,
+      vacations: 2,
+    });
   });
 });

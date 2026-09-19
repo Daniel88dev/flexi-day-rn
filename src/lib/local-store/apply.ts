@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable, SQLiteUpdateSetSource } from "drizzle-orm/sqlite-core";
 
+import type { StoreDatabase } from "./adapter";
 import { SYNC_TABLE_NAMES, type SyncEnvelope, type SyncTableName } from "./envelope";
 import type { StoreTransaction } from "./runtime";
 import {
@@ -136,6 +137,13 @@ export type SyncStatePatch = {
   lastPulledAt?: string | null;
   generation?: number;
 };
+
+export type SyncStateRow = typeof syncState.$inferSelect;
+
+/** Where the store stopped: the cursor, the time it was written and the generation it holds. */
+export function readSyncState(db: StoreDatabase): SyncStateRow | null {
+  return db.select().from(syncState).where(eq(syncState.id, SYNC_STATE_ID)).all()[0] ?? null;
+}
 
 export function writeSyncState(transaction: StoreTransaction, patch: SyncStatePatch): void {
   transaction.db.update(syncState).set(patch).where(eq(syncState.id, SYNC_STATE_ID)).run();

@@ -1,7 +1,7 @@
 import { router, type Href } from "expo-router";
 import { TabList, TabSlot, TabTrigger, Tabs } from "expo-router/ui";
 import { ListIcon } from "phosphor-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Toaster } from "sonner-native";
@@ -27,17 +27,25 @@ export default function AppLayout() {
 
   const viewerId = viewer?.id;
 
+  // Signing out wipes the cookie jar, the caches and the local store. Only the store exists so
+  // far; the rest waits for the session work, which is also what a 401 from the pull will mean.
+  const signOut = useCallback(() => {
+    setMoreOpen(false);
+    setStoreOpen(false);
+    void destroyStore();
+  }, []);
+
   useEffect(() => {
     if (!viewerId) return;
     let current = true;
-    openStore(viewerId).then(
+    openStore(viewerId, { onUnauthorized: signOut }).then(
       () => current && setStoreOpen(true),
       (error: unknown) => console.error("The local store did not open.", error)
     );
     return () => {
       current = false;
     };
-  }, [viewerId]);
+  }, [viewerId, signOut]);
 
   // Nobody administers anything until the viewer's roles are read from the backend, so the
   // admin sections stay out of the tree rather than rendering empty.
@@ -48,12 +56,6 @@ export default function AppLayout() {
   const go = (link: NavLink) => {
     setMoreOpen(false);
     router.push(link.href as Href);
-  };
-
-  const signOut = () => {
-    setMoreOpen(false);
-    setStoreOpen(false);
-    void destroyStore();
   };
 
   return (
@@ -92,8 +94,6 @@ export default function AppLayout() {
           utility={utility}
           viewer={viewer}
           onNavigate={go}
-          // Signing out wipes the cookie jar, the caches and the local store. Only the store
-          // exists so far; the rest waits for the session work.
           onSignOut={signOut}
         />
       </View>

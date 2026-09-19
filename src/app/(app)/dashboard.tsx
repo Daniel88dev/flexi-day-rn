@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 
+import { DevelopmentCard } from "@/components/dashboard/development-card";
 import { EmptyDashboard } from "@/components/dashboard/empty-dashboard";
 import { Greeting } from "@/components/dashboard/greeting";
 import { useTone } from "@/components/ui/icon";
@@ -29,6 +30,7 @@ export default function DashboardScreen() {
       <View className="gap-5 px-4 pt-3">
         <Greeting viewer={viewer} />
         <EmptyDashboard />
+        <DevelopmentCard />
       </View>
     </ScrollView>
   );

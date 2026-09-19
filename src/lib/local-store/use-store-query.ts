@@ -22,7 +22,10 @@ export function useStoreQuery<TResult>(
 
   const key = [...tables].sort().join(",");
   useEffect(() => {
-    const reread = () => setVersion((current) => current + 1);
+    // A wipe can land while this is still mounted, and a read of the closed file would throw.
+    const reread = () => {
+      if (runtime.isOpen()) setVersion((current) => current + 1);
+    };
     // A transaction committing between the first render and this effect would otherwise be missed.
     reread();
     return runtime.events.subscribe(subscribed.current, reread);

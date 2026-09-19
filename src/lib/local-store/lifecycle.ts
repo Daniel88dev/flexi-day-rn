@@ -7,6 +7,7 @@ export type StoreLifecycle = {
   openStore(userId: string): Promise<void>;
   destroyStore(): Promise<void>;
   closeStore(): Promise<void>;
+  isOpen(): boolean;
   getDatabase(): StoreDatabase;
 };
 
@@ -75,6 +76,8 @@ export function createStoreLifecycle(
       connection = null;
       openUserId = null;
     },
+
+    isOpen: () => connection !== null,
 
     getDatabase() {
       if (!connection) throw new Error("The local store is not open.");

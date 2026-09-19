@@ -118,6 +118,20 @@ describe("useStoreQuery", () => {
     expect(result.current).toEqual([expect.objectContaining({ id: "vacation-2" })]);
   });
 
+  it("keeps its last rows when the store is destroyed under it", async () => {
+    await applyInTest(syncPage({ vacations: [vacationRow()] }));
+    const build = buildVacations();
+    const { result } = await renderVacations(build);
+    const rows = result.current;
+
+    await act(async () => {
+      await store.lifecycle.destroyStore();
+      store.events.emit(["vacations"]);
+    });
+
+    expect(result.current).toBe(rows);
+  });
+
   it("stops reading the store after it unmounts", async () => {
     const build = buildVacations();
     const { unmount } = await renderVacations(build);
