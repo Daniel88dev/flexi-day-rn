@@ -1,26 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { StoreDatabase } from "./adapter";
+import type { StoreChannel } from "./events";
 import { activeStoreRuntime } from "./runtime";
-import type { StoreTableName } from "./schema";
 
 /**
- * Reads the local store and re-reads when a committed transaction touches one of `tables`, or
- * when `build` changes: memoize `build` so a screen re-reads on its own inputs and nothing else.
+ * Reads the local store and re-reads when one of `channels` is announced — a committed
+ * transaction touching that table, or the pending-change overlay moving — or when `build`
+ * changes: memoize `build` so a screen re-reads on its own inputs and nothing else.
  */
 export function useStoreQuery<TResult>(
   build: (db: StoreDatabase) => TResult,
-  tables: readonly StoreTableName[]
+  channels: readonly StoreChannel[]
 ): TResult {
   const runtime = activeStoreRuntime();
-  const subscribed = useRef(tables);
+  const subscribed = useRef(channels);
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    subscribed.current = tables;
+    subscribed.current = channels;
   });
 
-  const key = [...tables].sort().join(",");
+  const key = [...channels].sort().join(",");
   useEffect(() => {
     // A wipe can land while this is still mounted, and a read of the closed file would throw.
     const reread = () => {

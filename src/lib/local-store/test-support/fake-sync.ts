@@ -1,5 +1,5 @@
 import type { SyncEnvelope } from "../envelope";
-import type { SyncFetch } from "../pull";
+import type { StoreFetch, StoreRequestInit } from "../fetch";
 
 export type FakeSyncReply =
   | { type: "page"; page: SyncEnvelope }
@@ -25,30 +25,40 @@ export const reply = {
     body,
   }),
 
+  /** What a write gets back: the rows the endpoint answers with, under its own status. */
+  rows: (rows: unknown[], status = 201): FakeSyncReply => ({ type: "status", status, body: rows }),
+
   failure: (message: string): FakeSyncReply => ({ type: "failure", error: new Error(message) }),
   hang: (): FakeSyncReply => ({ type: "hang" }),
 };
 
+export type FakeRequest = { path: string; init: StoreRequestInit };
+
 export type FakeSync = {
-  fetchPage: SyncFetch;
+  apiFetch: StoreFetch;
   /** The cursor each request carried, in order; `null` for a request that sent none. */
   cursors: (string | null)[];
+  /** Every request as it was sent, for the writes, which carry a method and a body. */
+  requests: FakeRequest[];
 };
 
-/** A sync pull server of canned replies, one per request, that records the cursors it was sent. */
+/** A backend of canned replies, one per request, that records the requests it was sent. */
 export function createFakeSync(
   replies: FakeSyncReply[],
   options: { onRequest?: (cursor: string | null) => void } = {}
 ): FakeSync {
   const queue = [...replies];
   const cursors: (string | null)[] = [];
+  const requests: FakeRequest[] = [];
 
   return {
     cursors,
+    requests,
 
-    fetchPage(path, init) {
+    apiFetch(path, init) {
       const cursor = new URL(path, "http://sync.test").searchParams.get("cursor");
       cursors.push(cursor);
+      requests.push({ path, init });
       options.onRequest?.(cursor);
 
       const next = queue.shift();

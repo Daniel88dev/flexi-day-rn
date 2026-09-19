@@ -1,15 +1,21 @@
 import type { StoreTableName } from "./schema";
 
-export type StoreListener = (tables: ReadonlySet<StoreTableName>) => void;
+/** The pending-change overlay lives in memory, so it announces itself on a channel of its own. */
+export const PENDING_CHANGES_CHANNEL = "pendingChanges";
+
+/** What a read can depend on: a table of the store, or the overlay laid over it. */
+export type StoreChannel = StoreTableName | typeof PENDING_CHANGES_CHANNEL;
+
+export type StoreListener = (channels: ReadonlySet<StoreChannel>) => void;
 
 export type StoreEvents = {
-  emit(tables: Iterable<StoreTableName>): void;
-  subscribe(tables: Iterable<StoreTableName>, listener: StoreListener): () => void;
+  emit(channels: Iterable<StoreChannel>): void;
+  subscribe(channels: Iterable<StoreChannel>, listener: StoreListener): () => void;
 };
 
-function overlaps(subscribed: ReadonlySet<StoreTableName>, emitted: ReadonlySet<StoreTableName>) {
-  for (const table of emitted) {
-    if (subscribed.has(table)) return true;
+function overlaps(subscribed: ReadonlySet<StoreChannel>, emitted: ReadonlySet<StoreChannel>) {
+  for (const channel of emitted) {
+    if (subscribed.has(channel)) return true;
   }
   return false;
 }
@@ -19,29 +25,32 @@ function overlaps(subscribed: ReadonlySet<StoreTableName>, emitted: ReadonlySet<
  * joins and truncates and coalesces nothing, so committed transactions announce their own tables.
  */
 export function createStoreEvents(): StoreEvents {
-  const subscriptions = new Set<{ tables: ReadonlySet<StoreTableName>; listener: StoreListener }>();
-  let pending: Set<StoreTableName> | null = null;
+  const subscriptions = new Set<{
+    channels: ReadonlySet<StoreChannel>;
+    listener: StoreListener;
+  }>();
+  let pending: Set<StoreChannel> | null = null;
 
   const flush = () => {
     const emitted = pending;
     pending = null;
     if (!emitted) return;
     for (const subscription of [...subscriptions]) {
-      if (overlaps(subscription.tables, emitted)) subscription.listener(emitted);
+      if (overlaps(subscription.channels, emitted)) subscription.listener(emitted);
     }
   };
 
   return {
-    emit(tables) {
+    emit(channels) {
       if (!pending) {
         pending = new Set();
         queueMicrotask(flush);
       }
-      for (const table of tables) pending.add(table);
+      for (const channel of channels) pending.add(channel);
     },
 
-    subscribe(tables, listener) {
-      const subscription = { tables: new Set(tables), listener };
+    subscribe(channels, listener) {
+      const subscription = { channels: new Set(channels), listener };
       subscriptions.add(subscription);
       return () => {
         subscriptions.delete(subscription);

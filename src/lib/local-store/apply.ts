@@ -10,8 +10,13 @@ import {
 import type { SQLiteColumn, SQLiteTable, SQLiteUpdateSetSource } from "drizzle-orm/sqlite-core";
 
 import type { StoreDatabase } from "./adapter";
-import { SYNC_TABLE_NAMES, type SyncEnvelope, type SyncTableName } from "./envelope";
-import type { StoreTransaction } from "./runtime";
+import {
+  SYNC_TABLE_NAMES,
+  type SyncEnvelope,
+  type SyncTableName,
+  type SyncVacationRow,
+} from "./envelope";
+import type { StoreRuntime, StoreTransaction } from "./runtime";
 import {
   bankHolidays,
   groupMirrors,
@@ -121,6 +126,48 @@ export function applyPage(
     const { table, tombstones } = SYNC_TABLES[name];
     applyRows(transaction, name, table, page[name], generation, tombstones);
   }
+}
+
+/**
+ * Upserts the rows a write just had confirmed, stamped with the generation the pull is on so a
+ * later snapshot sweeps them exactly as it sweeps rows it sent itself.
+ */
+function applyWrittenVacations(transaction: StoreTransaction, rows: SyncVacationRow[]): void {
+  const generation = readSyncState(transaction.db)?.generation ?? 0;
+  applyRows(transaction, "vacations", vacations, rows, generation, "keep");
+}
+
+/** The row the create endpoint answers with: the table's columns, minus the organization. */
+type CreatedVacation = Omit<SyncVacationRow, "organizationId">;
+
+function organizationIdsByGroup(db: StoreDatabase, groupIds: string[]): Map<string, string> {
+  if (groupIds.length === 0) return new Map();
+  const rows = db
+    .select({ id: groups.id, organizationId: groups.organizationId })
+    .from(groups)
+    .where(inArray(groups.id, groupIds))
+    .all();
+  return new Map(rows.map((row) => [row.id, row.organizationId]));
+}
+
+/** The answer carries no organization, so each row takes its group's before it is stored. */
+export function storeCreatedVacations(runtime: StoreRuntime, body: unknown): void {
+  const created = (Array.isArray(body) ? body : []) as CreatedVacation[];
+  // Signing out closes the store under a write in flight; the rows are the server's either way.
+  if (created.length === 0 || !runtime.isOpen()) return;
+
+  runtime.write((transaction) => {
+    const organizations = organizationIdsByGroup(
+      transaction.db,
+      created.map((row) => row.groupId)
+    );
+    const rows = created.flatMap<SyncVacationRow>((row) => {
+      // A group the store has never pulled cannot place its rows; the next pull brings them.
+      const organizationId = organizations.get(row.groupId);
+      return organizationId ? [{ ...row, organizationId }] : [];
+    });
+    if (rows.length > 0) applyWrittenVacations(transaction, rows);
+  });
 }
 
 /** Drops what a snapshot did not re-send: every row still stamped with an earlier generation. */

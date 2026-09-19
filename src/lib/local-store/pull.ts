@@ -1,6 +1,7 @@
 import { applyPage, readSyncState, sweepGenerations, writeSyncState } from "./apply";
 import type { StoreClock } from "./clock";
 import type { SyncEnvelope } from "./envelope";
+import { serverMessage, type StoreFetch } from "./fetch";
 import type { StoreRuntime } from "./runtime";
 
 export type PullReason = "foreground" | "refresh" | "after-write";
@@ -8,15 +9,6 @@ export type PullReason = "foreground" | "refresh" | "after-write";
 export const SYNC_PULL_PATH = "/api/sync/pull";
 
 export const PAGE_TIMEOUT_MS = 30_000;
-
-/** As much of a response as the loop reads, so the device passes `fetch` and Jest passes a fake. */
-export type SyncPageResponse = {
-  status: number;
-  json(): Promise<unknown>;
-};
-
-/** A fetch already bound to the API base URL: the loop only ever names a path. */
-export type SyncFetch = (path: string, init: { signal: AbortSignal }) => Promise<SyncPageResponse>;
 
 export type PullStatus = {
   inFlight: boolean;
@@ -43,7 +35,7 @@ export type PullController = {
 
 export type PullControllerOptions = {
   runtime: StoreRuntime;
-  fetchPage: SyncFetch;
+  apiFetch: StoreFetch;
   clock: StoreClock;
   isOnline: () => Promise<boolean>;
   onUnauthorized: () => void;
@@ -66,23 +58,6 @@ const PULLED: PullOutcome = { ok: true };
 /** Offline, and any failure the server put no words to: the caller supplies the copy. */
 const UNREPORTED_FAILURE: PullOutcome = { ok: false, message: null };
 
-function nonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-/** The backend answers every failure as `{ errors: [{ message }] }`; the first one is the one. */
-async function serverMessage(response: SyncPageResponse): Promise<string | null> {
-  try {
-    const body = (await response.json()) as {
-      errors?: { message?: unknown }[];
-      message?: unknown;
-    } | null;
-    return nonEmptyString(body?.errors?.[0]?.message) ?? nonEmptyString(body?.message);
-  } catch {
-    return null;
-  }
-}
-
 function pullPath(cursor: string | null): string {
   return cursor ? `${SYNC_PULL_PATH}?cursor=${encodeURIComponent(cursor)}` : SYNC_PULL_PATH;
 }
@@ -99,7 +74,7 @@ function errorMessage(error: unknown): string {
 
 export function createPullController({
   runtime,
-  fetchPage,
+  apiFetch,
   clock,
   isOnline,
   onUnauthorized,
@@ -120,7 +95,7 @@ export function createPullController({
     const request = new AbortController();
     const cancelTimeout = clock.setTimeout(() => request.abort(), PAGE_TIMEOUT_MS);
     try {
-      const response = await fetchPage(pullPath(cursor), { signal: request.signal });
+      const response = await apiFetch(pullPath(cursor), { signal: request.signal });
       if (response.status === 401) throw new UnauthorizedError("The sync pull was not authorized.");
       if (response.status !== 200) {
         throw new SyncPullError(

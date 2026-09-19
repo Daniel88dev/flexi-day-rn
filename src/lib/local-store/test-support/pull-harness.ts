@@ -12,7 +12,7 @@ type PullOptionsInput = {
   runtime: StoreRuntime;
   clock: StoreClock;
   sync: FakeSync;
-} & Partial<Omit<PullControllerOptions, "runtime" | "clock" | "fetchPage">>;
+} & Partial<Omit<PullControllerOptions, "runtime" | "clock" | "apiFetch">>;
 
 /** A controller's dependencies, online and unwatched unless the test says otherwise. */
 export function pullOptions({
@@ -24,7 +24,7 @@ export function pullOptions({
   return {
     runtime,
     clock,
-    fetchPage: sync.fetchPage,
+    apiFetch: sync.apiFetch,
     isOnline: () => Promise.resolve(true),
     onUnauthorized: () => {},
     ...overrides,

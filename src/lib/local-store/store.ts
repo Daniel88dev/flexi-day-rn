@@ -1,13 +1,16 @@
 import type { StoreAdapter } from "./adapter";
 import type { AppStateSource } from "./app-state";
 import type { StoreClock } from "./clock";
-import { installPullController, type PullOutcome, type PullReason, type SyncFetch } from "./pull";
+import type { StoreFetch } from "./fetch";
+import { installPendingChanges } from "./pending";
+import { installPullController, type PullOutcome, type PullReason } from "./pull";
 import { installStoreRuntime, type StoreRuntime } from "./runtime";
 import { createPullTriggers } from "./triggers";
+import { createStoreWrites, type StoreWrites } from "./writes";
 
 export type StoreOptions = {
   adapter: StoreAdapter;
-  fetchPage: SyncFetch;
+  apiFetch: StoreFetch;
   clock: StoreClock;
   isOnline: () => Promise<boolean>;
   appState: AppStateSource;
@@ -18,7 +21,7 @@ export type OpenStoreOptions = {
   onUnauthorized?: () => void;
 };
 
-export type Store = {
+export type Store = StoreWrites & {
   runtime: StoreRuntime;
   openStore(userId: string, options?: OpenStoreOptions): Promise<void>;
   destroyStore(): Promise<void>;
@@ -26,16 +29,11 @@ export type Store = {
 };
 
 /**
- * The module's one wiring: the runtime, the pull loop and the unauthorized handoff, over the
- * adapter and the fetch they were built with. The device builds one; a test builds its own.
+ * The module's one wiring: the runtime, the pull loop, the pending-change overlay, the writes and
+ * the unauthorized handoff, over the adapter and the fetch they were built with. The device
+ * builds one; a test builds its own.
  */
-export function createStore({
-  adapter,
-  fetchPage,
-  clock,
-  isOnline,
-  appState,
-}: StoreOptions): Store {
+export function createStore({ adapter, apiFetch, clock, isOnline, appState }: StoreOptions): Store {
   const runtime = installStoreRuntime(adapter);
   let unwatchAppState: (() => void) | null = null;
 
@@ -53,14 +51,24 @@ export function createStore({
   let onUnauthorized = wipeOnUnauthorized;
   const controller = installPullController({
     runtime,
-    fetchPage,
+    apiFetch,
     clock,
     isOnline,
     onUnauthorized: () => onUnauthorized(),
   });
   const triggers = createPullTriggers({ runtime, controller, clock, appState });
+  const pending = installPendingChanges({ runtime, clock });
+  const writes = createStoreWrites({
+    runtime,
+    apiFetch,
+    clock,
+    pending,
+    pull: (reason) => triggers.pull(reason),
+    onUnauthorized: () => onUnauthorized(),
+  });
 
   return {
+    ...writes,
     runtime,
     destroyStore,
 

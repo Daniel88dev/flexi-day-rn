@@ -1,13 +1,35 @@
-import { count, getTableColumns, sql } from "drizzle-orm";
+import { and, count, eq, getTableColumns, gte, lte, sql } from "drizzle-orm";
 
 import type { StoreDatabase } from "./adapter";
+import { readSyncState } from "./apply";
 import { SYNC_TABLE_NAMES, type SyncTableName } from "./envelope";
-import { schema, vacations, type StoreTableName } from "./schema";
+import { PENDING_CHANGES_CHANNEL, type StoreChannel } from "./events";
+import type { PendingChange, VacationDraft } from "./pending";
+import { bankHolidays, groups, schema, vacations } from "./schema";
 
 export type VacationStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 /** The tables a vacation read depends on, for `useStoreQuery`. */
-export const VACATION_TABLES = ["vacations"] as const satisfies readonly StoreTableName[];
+export const VACATION_TABLES = ["vacations"] as const satisfies readonly StoreChannel[];
+
+/** What a merged read depends on: the rows, what a draft expands over, and the overlay itself. */
+export const MERGED_VACATION_CHANNELS = [
+  "vacations",
+  "groups",
+  "bankHolidays",
+  PENDING_CHANGES_CHANNEL,
+] as const satisfies readonly StoreChannel[];
+
+export type StoredVacation = Omit<typeof vacations.$inferSelect, "generation"> & {
+  status: VacationStatus;
+};
+
+export type MergedVacation = StoredVacation & {
+  /** A row the store shows that the server has never sent: the expansion of a create in flight. */
+  pending: boolean;
+  /** A change holds this row, so a screen leaves its actions alone until the change lifts. */
+  actionsDisabled: boolean;
+};
 
 /**
  * Status is not a column: the backend sends the three timestamps and the web derives the word from
@@ -24,6 +46,116 @@ end`;
 export function selectVacations(db: StoreDatabase) {
   const { generation, ...columns } = getTableColumns(vacations);
   return db.select({ ...columns, status: vacationStatus }).from(vacations);
+}
+
+/** The ISO days of an inclusive range, in order; nothing for a range that reads backwards. */
+function expandDays(from: string, to: string): string[] {
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
+
+  const days: string[] = [];
+  const day = new Date(start.getTime());
+  while (day.getTime() <= end.getTime()) {
+    days.push(day.toISOString().slice(0, 10));
+    day.setUTCDate(day.getUTCDate() + 1);
+  }
+  return days;
+}
+
+type BookingGroup = { workingDays: number[]; holidayCountry: string | null };
+
+/** The days a draft would actually book: the group's working days, its bank holidays dropped. */
+function bookableDays(db: StoreDatabase, draft: VacationDraft, group: BookingGroup): string[] {
+  const days = expandDays(draft.from, draft.to).filter((day) =>
+    group.workingDays.includes(new Date(`${day}T00:00:00Z`).getUTCDay())
+  );
+  if (days.length === 0 || !group.holidayCountry) return days;
+
+  const holidays = db
+    .select({ date: bankHolidays.date })
+    .from(bankHolidays)
+    .where(
+      and(
+        eq(bankHolidays.country, group.holidayCountry),
+        gte(bankHolidays.date, days[0]),
+        lte(bankHolidays.date, days[days.length - 1])
+      )
+    )
+    .all();
+  const closed = new Set(holidays.map((holiday) => holiday.date));
+  return days.filter((day) => !closed.has(day));
+}
+
+/** The rows a create shows while it is in flight, one per day the server is expected to book. */
+function syntheticVacations(db: StoreDatabase, change: PendingChange): MergedVacation[] {
+  const draft = change.draft;
+  if (!draft) return [];
+
+  const [group] = db
+    .select({
+      organizationId: groups.organizationId,
+      workingDays: groups.workingDays,
+      holidayCountry: groups.holidayCountry,
+    })
+    .from(groups)
+    .where(eq(groups.id, draft.groupId))
+    .all();
+  // Without the group the store cannot place the rows; the answer brings them a moment later.
+  if (!group) return [];
+
+  const stamp = new Date(change.startedAt).toISOString();
+  const userId = draft.userId ?? readSyncState(db)?.userId ?? "";
+
+  return bookableDays(db, draft, group).map((day) => ({
+    id: `${change.id}:${day}`,
+    userId,
+    groupId: draft.groupId,
+    organizationId: group.organizationId,
+    requestId: change.id,
+    requestedDay: day,
+    startTime: draft.startTime ?? null,
+    endTime: draft.endTime ?? null,
+    vacationType: draft.vacationType ?? "VACATION",
+    halfDay: draft.halfDay ?? false,
+    approvedAt: null,
+    approvedBy: null,
+    rejectedAt: null,
+    rejectedBy: null,
+    rejectionReason: null,
+    note: draft.note ?? null,
+    createdByUserId: userId,
+    deletedAt: null,
+    deletedByUserId: null,
+    createdAt: stamp,
+    updatedAt: stamp,
+    status: "pending",
+    pending: true,
+    actionsDisabled: true,
+  }));
+}
+
+/**
+ * The store's vacations with the overlay merged in, so a screen reads one list: a create in
+ * flight contributes the rows it expects, and every row a change holds says so.
+ */
+export function mergedVacations(
+  db: StoreDatabase,
+  changes: readonly PendingChange[]
+): MergedVacation[] {
+  const held = new Set(changes.flatMap((change) => change.vacationIds ?? []));
+  const stored: MergedVacation[] = selectVacations(db)
+    .all()
+    .map((row) => ({ ...row, pending: false, actionsDisabled: held.has(row.id) }));
+
+  const synthetic = changes
+    .filter((change) => change.kind === "create")
+    .flatMap((change) => syntheticVacations(db, change));
+
+  return [...stored, ...synthetic].sort(
+    (left, right) =>
+      left.requestedDay.localeCompare(right.requestedDay) || left.id.localeCompare(right.id)
+  );
 }
 
 /** How many rows the store holds in each of the pull's tables; the development card's readout. */

@@ -34,7 +34,7 @@ function buildStore(replies: FakeSyncReply[]): Store {
   sync = createFakeSync(replies);
   return createStore({
     adapter: createBetterSqlite3Adapter(":memory:"),
-    fetchPage: sync.fetchPage,
+    apiFetch: sync.apiFetch,
     clock,
     isOnline: () => Promise.resolve(true),
     appState,
