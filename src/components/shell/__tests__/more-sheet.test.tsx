@@ -16,7 +16,7 @@ function renderSheet(open: boolean) {
         onClose={jest.fn()}
         sections={sheet}
         utility={buildUtilityLinks(en)}
-        viewer={{ name: "Dana Kučerová", email: "dana@northwind.co" }}
+        viewer={{ id: "placeholder-viewer", name: "Dana Kučerová", email: "dana@northwind.co" }}
         onNavigate={jest.fn()}
         onSignOut={jest.fn()}
       />

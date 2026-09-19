@@ -6,13 +6,15 @@ adds only the terms the mobile client coins. Use the backend's words for everyth
 
 ## Glossary
 
-| Term               | Meaning                                                                                                                                                                        |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Local store**    | The on-device SQLite database holding everything the signed-in user can see on the web, partitioned by organization. Sign-out empties it. Avoid: cache, offline database.      |
-| **Sync pull**      | One request to the backend's delta endpoint for every row changed since the sync cursor, across all the user's organizations. Runs on app foreground and pull-to-refresh only. |
-| **Sync cursor**    | The position the last sync pull reached, kept in the local store and sent on the next pull. Avoid: last sync time, watermark.                                                  |
-| **Tombstone**      | A row the sync pull returns for a soft-deleted record, so the local store can drop its copy. Avoid: deletion marker.                                                           |
-| **Pending change** | A write shown at once as an overlay while its request is in flight. Commits to the local store on the server's response, rolls back with a toast after a timeout. Server wins. |
+| Term                | Meaning                                                                                                                                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Local store**     | The on-device SQLite database holding everything the signed-in user can see on the web, partitioned by organization. Sign-out empties it. Avoid: cache, offline database.                                                                              |
+| **Sync pull**       | One request to the backend's delta endpoint for every row changed since the sync cursor, across all the user's organizations. Runs on app foreground (debounced 30 s, except cold start and sign-in), on pull-to-refresh, and after a confirmed write. |
+| **Sync cursor**     | The position the last sync pull reached, kept in the local store and sent on the next pull. Avoid: last sync time, watermark.                                                                                                                          |
+| **Tombstone**       | A row the sync pull returns for a soft-deleted record, so the local store can drop its copy. Avoid: deletion marker.                                                                                                                                   |
+| **Sync reset**      | Defined in `flexi-day-be/CONTEXT.md`; the local store applies one by generation sweep.                                                                                                                                                                 |
+| **Pending change**  | A write shown at once as an overlay on the rows it targets while its request is in flight. Lifts on the server's answer, or after a timeout with a toast. Never stored, never survives a restart. Avoid: optimistic update, outbox.                    |
+| **Provisional row** | A row the local store holds in the state the server just confirmed but has not yet sent back, written when a write returns no row. The next sync pull overwrites it. Avoid: optimistic row.                                                            |
 
 ## Boundaries
 

@@ -16,7 +16,9 @@ describe("Greeting", () => {
   it("greets the viewer by first name", async () => {
     await render(
       <TranslationProvider>
-        <Greeting viewer={{ name: "Dana Kučerová", email: "dana@northwind.co" }} />
+        <Greeting
+          viewer={{ id: "placeholder-viewer", name: "Dana Kučerová", email: "dana@northwind.co" }}
+        />
       </TranslationProvider>
     );
     expect(screen.getByText(/Dana$/)).toBeTruthy();

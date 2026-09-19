@@ -1,25 +1,43 @@
 import { useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
+import { toast } from "sonner-native";
 
+import { DevelopmentCard } from "@/components/dashboard/development-card";
 import { EmptyDashboard } from "@/components/dashboard/empty-dashboard";
 import { Greeting } from "@/components/dashboard/greeting";
+import { LastSynced } from "@/components/dashboard/last-synced";
+import { SyncingDashboard } from "@/components/dashboard/syncing-dashboard";
 import { useTone } from "@/components/ui/icon";
+import { useTranslation } from "@/i18n/use-translation";
+import { pull, useStoreRowCounts, useSyncStatus } from "@/lib/local-store";
 import { useViewer } from "@/lib/viewer/use-viewer";
 
 export default function DashboardScreen() {
+  const { t } = useTranslation();
   const viewer = useViewer();
   const primary = useTone("primary");
+  const counts = useStoreRowCounts();
+  const { inFlight } = useSyncStatus();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Pull to refresh is one of the two triggers for a sync pull. The pull itself lands with the
-  // local store; until then the gesture is here so the screen is built around it.
+  const empty = Object.values(counts).every((rows) => rows === 0);
+
+  // A pull-to-refresh never fails quietly; a foreground one says nothing and keeps what is there.
+  // The pull resolves when the whole loop ends, a queued rerun included, which is how long the
+  // control stays down.
   const refresh = () => {
     setRefreshing(true);
-    setRefreshing(false);
+    void pull("refresh")
+      .then((outcome) => {
+        if (!outcome.ok) toast.error(outcome.message ?? t.sync.unreachable);
+      })
+      .catch(() => toast.error(t.sync.unreachable))
+      .finally(() => setRefreshing(false));
   };
 
   return (
     <ScrollView
+      testID="dashboard"
       className="flex-1 bg-background pt-safe"
       contentContainerStyle={{ paddingBottom: 24 }}
       refreshControl={
@@ -28,7 +46,9 @@ export default function DashboardScreen() {
     >
       <View className="gap-5 px-4 pt-3">
         <Greeting viewer={viewer} />
-        <EmptyDashboard />
+        <LastSynced />
+        {empty && (inFlight ? <SyncingDashboard /> : <EmptyDashboard />)}
+        <DevelopmentCard />
       </View>
     </ScrollView>
   );
