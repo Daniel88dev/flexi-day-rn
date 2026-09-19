@@ -36,6 +36,16 @@ export const cs: Dictionary = {
       body: "Vaše volno, kalendář týmu a vaše limity se tu objeví, jakmile se telefon sesynchronizuje s webem.",
     },
   },
+  sync: {
+    syncing: "Synchronizuji…",
+    lastSynced: (age: string) => `Naposledy synchronizováno ${age}`,
+    never: "Zatím nesynchronizováno",
+    justNow: "právě teď",
+    minutesAgo: (minutes: number) => `před ${minutes} min`,
+    hoursAgo: (hours: number) => `před ${hours} h`,
+    daysAgo: (days: number) => `před ${days} d`,
+    unreachable: "Nepodařilo se spojit se serverem. Zkuste to znovu.",
+  },
   account: {
     signOut: "Odhlásit se",
     signOutTitle: "Odhlásit se",

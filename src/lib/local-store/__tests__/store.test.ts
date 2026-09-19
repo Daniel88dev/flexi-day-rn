@@ -2,6 +2,7 @@ import { readSyncState } from "../apply";
 import { activePullController } from "../pull";
 import { createStore, type Store } from "../store";
 import { createBetterSqlite3Adapter } from "../test-support/better-sqlite3-adapter";
+import { createFakeAppState, type FakeAppState } from "../test-support/fake-app-state";
 import { createFakeClock, type FakeClock } from "../test-support/fake-clock";
 import {
   createFakeSync,
@@ -16,10 +17,12 @@ const NOW = "2026-09-19T12:00:00.000Z";
 
 let clock: FakeClock;
 let sync: FakeSync;
+let appState: FakeAppState;
 let warn: jest.SpyInstance;
 
 beforeEach(() => {
   clock = createFakeClock(NOW);
+  appState = createFakeAppState();
   warn = jest.spyOn(console, "warn").mockImplementation(() => {});
 });
 
@@ -34,6 +37,7 @@ function buildStore(replies: FakeSyncReply[]): Store {
     fetchPage: sync.fetchPage,
     clock,
     isOnline: () => Promise.resolve(true),
+    appState,
   });
 }
 
@@ -73,6 +77,40 @@ describe("createStore", () => {
 
     expect(store.runtime.isOpen()).toBe(false);
     expect(warn).toHaveBeenCalled();
+  });
+
+  it("pulls when the app comes back to the foreground, debounce permitting", async () => {
+    const store = buildStore([
+      reply.page(syncPage({ reset: true, hasMore: false, cursor: "page-1" })),
+      reply.page(syncPage({ hasMore: false, cursor: "page-2" })),
+    ]);
+
+    await store.openStore("user-1");
+    await tick();
+
+    appState.becomeActive();
+    await tick();
+    expect(sync.cursors).toEqual([null]);
+
+    clock.advance(30_000);
+    appState.becomeActive();
+    await tick();
+
+    expect(sync.cursors).toEqual([null, "page-1"]);
+  });
+
+  it("stops listening for the foreground when the store is destroyed", async () => {
+    const store = buildStore([
+      reply.page(syncPage({ reset: true, hasMore: false, cursor: "page-1" })),
+    ]);
+
+    await store.openStore("user-1");
+    await tick();
+    expect(appState.listening()).toBe(true);
+
+    await store.destroyStore();
+
+    expect(appState.listening()).toBe(false);
   });
 
   it("pulls on demand after the store is open", async () => {

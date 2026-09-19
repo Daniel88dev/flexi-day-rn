@@ -412,6 +412,82 @@ describe("pull", () => {
     expect(controller.status().lastError).toBeNull();
   });
 
+  it("returns the message of the error envelope a failing page answered with", async () => {
+    const { controller } = pullWith([reply.status(503, "Your group was archived.")]);
+
+    expect(await controller.pull("refresh")).toEqual({
+      ok: false,
+      message: "Your group was archived.",
+    });
+  });
+
+  it("returns a top-level message for a failure that carried no error envelope", async () => {
+    const { controller } = pullWith([reply.statusWithBody(500, { message: "Bad gateway." })]);
+
+    expect(await controller.pull("refresh")).toEqual({ ok: false, message: "Bad gateway." });
+  });
+
+  it("returns no message when the failing page described nothing", async () => {
+    const { controller } = pullWith([reply.statusWithBody(500, { errors: [] })]);
+
+    expect(await controller.pull("refresh")).toEqual({ ok: false, message: null });
+  });
+
+  it("returns no message when the failure was a timeout", async () => {
+    const { controller } = pullWith([reply.hang()]);
+
+    const pulling = controller.pull("refresh");
+    await tick();
+    clock.advance(30_000);
+
+    expect(await pulling).toEqual({ ok: false, message: null });
+  });
+
+  it("returns a failure without a message while the device is offline", async () => {
+    const { controller } = pullWith([reply.page(syncPage())], {
+      isOnline: () => Promise.resolve(false),
+    });
+
+    expect(await controller.pull("refresh")).toEqual({ ok: false, message: null });
+    expect(controller.status().lastError).toBeNull();
+  });
+
+  it("returns ok for a session the server rejected, since the wipe is the feedback", async () => {
+    const { controller } = pullWith([reply.status(401)]);
+
+    expect(await controller.pull("refresh")).toEqual({ ok: true });
+  });
+
+  it("keeps one flight open across the rerun a trigger queued during it", async () => {
+    let controller: PullController;
+    let settled = false;
+    const sync = createFakeSync(
+      [reply.page(syncPage({ hasMore: false, cursor: "page-1" })), reply.hang()],
+      {
+        onRequest: (cursor) => {
+          if (cursor === null) void controller.pull("refresh");
+        },
+      }
+    );
+    controller = controllerFor(sync);
+
+    const pulling = controller.pull("refresh").then((outcome) => {
+      settled = true;
+      return outcome;
+    });
+    await tick();
+
+    expect(sync.cursors).toEqual([null, "page-1"]);
+    expect(settled).toBe(false);
+    expect(controller.status().inFlight).toBe(true);
+
+    clock.advance(30_000);
+    const outcome = await pulling;
+
+    expect(outcome).toEqual({ ok: false, message: null });
+    expect(controller.status().inFlight).toBe(false);
+  });
+
   it("reports inFlight while the loop runs", async () => {
     const inFlight: boolean[] = [];
     const sync = createFakeSync([reply.page(syncPage({ hasMore: false, cursor: "page-1" }))], {

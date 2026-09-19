@@ -1,27 +1,28 @@
-import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { Text } from "@/components/ui/text";
 import { useStoreRowCounts, useSyncStatus, type SyncStatus } from "@/lib/local-store";
+import { ageMs, roughAge, type AgeUnit } from "@/lib/relative-time";
+import { useNow } from "@/lib/use-now";
 
 const AGE_TICK_MS = 1_000;
 
-const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
+const UNIT_SUFFIX: Record<AgeUnit, string> = {
+  seconds: "s",
+  minutes: "m",
+  hours: "h",
+  days: "d",
+};
 
-/** How long ago, in the roughest unit that still says something. */
 export function formatAge(ms: number): string {
-  if (ms < MINUTE) return `${Math.max(0, Math.round(ms / 1000))}s`;
-  if (ms < HOUR) return `${Math.floor(ms / MINUTE)}m`;
-  if (ms < DAY) return `${Math.floor(ms / HOUR)}h`;
-  return `${Math.floor(ms / DAY)}d`;
+  const { unit, value } = roughAge(ms);
+  return `${value}${UNIT_SUFFIX[unit]}`;
 }
 
 function cursorLine(status: SyncStatus, now: number): string {
   const age =
     status.hasCursor && status.lastPulledAt
-      ? `${formatAge(now - Date.parse(status.lastPulledAt))} old`
+      ? `${formatAge(ageMs(status.lastPulledAt, now))} old`
       : "none";
   return `Cursor ${age} · generation ${status.generation}`;
 }
@@ -29,22 +30,13 @@ function cursorLine(status: SyncStatus, now: number): string {
 function pullLine(status: SyncStatus, now: number): string {
   if (status.inFlight) return "Syncing…";
   if (!status.lastPulledAt) return "Never pulled";
-  return `Last pull ${formatAge(now - Date.parse(status.lastPulledAt))} ago`;
-}
-
-function useNow(): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const ticking = setInterval(() => setNow(Date.now()), AGE_TICK_MS);
-    return () => clearInterval(ticking);
-  }, []);
-  return now;
+  return `Last pull ${formatAge(ageMs(status.lastPulledAt, now))} ago`;
 }
 
 function StoreReadout() {
   const status = useSyncStatus();
   const counts = useStoreRowCounts();
-  const now = useNow();
+  const now = useNow(AGE_TICK_MS);
 
   return (
     <View className="gap-1 rounded-2xl border border-dashed border-border bg-card px-4 py-3">

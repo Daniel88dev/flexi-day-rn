@@ -1,5 +1,6 @@
 import { API_URL } from "@/lib/api";
 
+import { deviceAppState } from "./app-state";
 import { systemClock } from "./clock";
 import { createExpoSqliteAdapter } from "./expo-adapter";
 import { deviceIsOnline } from "./network";
@@ -16,11 +17,12 @@ const store = createStore({
   fetchPage: syncFetch,
   clock: systemClock,
   isOnline: deviceIsOnline,
+  appState: deviceAppState,
 });
 
 export type { StoreDatabase } from "./adapter";
 export type { SyncTableName } from "./envelope";
-export type { PullReason } from "./pull";
+export type { PullOutcome, PullReason } from "./pull";
 export type { StoreTableName } from "./schema";
 export type { OpenStoreOptions } from "./store";
 export { useStoreQuery } from "./use-store-query";
@@ -33,5 +35,8 @@ export const openStore = store.openStore;
 /** Closes the store and deletes its file. */
 export const destroyStore = store.destroyStore;
 
-/** Fetches everything the signed-in user can see, page by page, into the store. */
+/**
+ * Fetches everything the signed-in user can see, page by page, into the store. A `foreground`
+ * pull is skipped while the last one is recent; `refresh` and `after-write` always run.
+ */
 export const pull = store.pull;

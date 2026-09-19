@@ -23,8 +23,21 @@ export type PullStatus = {
   lastError: string | null;
 };
 
+/**
+ * What a trigger learns about the pull it asked for: enough to report a failure and nothing more.
+ * A 401 answers `ok` because the wipe is the feedback. Offline answers a failure without a
+ * message, so a deliberate refresh says so, while it still records no error and keeps the cursor.
+ */
+export type PullOutcome =
+  | { ok: true }
+  | {
+      ok: false;
+      /** The server's message when the failing response carried one; the caller's copy otherwise. */
+      message: string | null;
+    };
+
 export type PullController = {
-  pull(reason: PullReason): Promise<void>;
+  pull(reason: PullReason): Promise<PullOutcome>;
   status(): PullStatus;
 };
 
@@ -37,6 +50,38 @@ export type PullControllerOptions = {
 };
 
 class UnauthorizedError extends Error {}
+
+/** A failure the server described: its message is what a pull-to-refresh shows instead of copy. */
+class SyncPullError extends Error {
+  constructor(
+    message: string,
+    readonly serverMessage: string | null
+  ) {
+    super(message);
+  }
+}
+
+const PULLED: PullOutcome = { ok: true };
+
+/** Offline, and any failure the server put no words to: the caller supplies the copy. */
+const UNREPORTED_FAILURE: PullOutcome = { ok: false, message: null };
+
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+/** The backend answers every failure as `{ errors: [{ message }] }`; the first one is the one. */
+async function serverMessage(response: SyncPageResponse): Promise<string | null> {
+  try {
+    const body = (await response.json()) as {
+      errors?: { message?: unknown }[];
+      message?: unknown;
+    } | null;
+    return nonEmptyString(body?.errors?.[0]?.message) ?? nonEmptyString(body?.message);
+  } catch {
+    return null;
+  }
+}
 
 function pullPath(cursor: string | null): string {
   return cursor ? `${SYNC_PULL_PATH}?cursor=${encodeURIComponent(cursor)}` : SYNC_PULL_PATH;
@@ -60,7 +105,7 @@ export function createPullController({
   onUnauthorized,
 }: PullControllerOptions): PullController {
   let status: PullStatus = { inFlight: false, lastError: null };
-  let running: Promise<void> | null = null;
+  let running: Promise<PullOutcome> | null = null;
   let pending = false;
 
   const setStatus = (patch: Partial<PullStatus>) => {
@@ -78,7 +123,10 @@ export function createPullController({
       const response = await fetchPage(pullPath(cursor), { signal: request.signal });
       if (response.status === 401) throw new UnauthorizedError("The sync pull was not authorized.");
       if (response.status !== 200) {
-        throw new Error(`The sync pull answered ${response.status}.`);
+        throw new SyncPullError(
+          `The sync pull answered ${response.status}.`,
+          await serverMessage(response)
+        );
       }
       return (await response.json()) as SyncEnvelope;
     } catch (error) {
@@ -133,8 +181,9 @@ export function createPullController({
     }
   };
 
-  const runOnce = async (): Promise<void> => {
-    if (!(await isOnline())) return;
+  const runOnce = async (): Promise<PullOutcome> => {
+    // A pull nobody could make is no error to record, but a refresh still has to be told.
+    if (!(await isOnline())) return UNREPORTED_FAILURE;
 
     try {
       // A delta that saw a membership tombstone dropped its cursor, so one more loop runs and
@@ -142,22 +191,29 @@ export function createPullController({
       // answer is a snapshot, which never self-resets, so the retry is bounded at one.
       if (await runLoop()) await runLoop();
       setStatus({ lastError: null });
+      return PULLED;
     } catch (error) {
       if (error instanceof UnauthorizedError) {
         onUnauthorized();
-        return;
+        return PULLED;
       }
       setStatus({ lastError: errorMessage(error) });
+      if (!(error instanceof SyncPullError) || error.serverMessage === null) {
+        return UNREPORTED_FAILURE;
+      }
+      return { ok: false, message: error.serverMessage };
     }
   };
 
-  const drain = async (): Promise<void> => {
+  const drain = async (): Promise<PullOutcome> => {
     setStatus({ inFlight: true });
+    let outcome: PullOutcome = PULLED;
     try {
       while (pending) {
         pending = false;
-        await runOnce();
+        outcome = await runOnce();
       }
+      return outcome;
     } finally {
       running = null;
       setStatus({ inFlight: false });

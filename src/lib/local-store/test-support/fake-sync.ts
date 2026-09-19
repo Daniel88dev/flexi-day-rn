@@ -3,14 +3,28 @@ import type { SyncFetch } from "../pull";
 
 export type FakeSyncReply =
   | { type: "page"; page: SyncEnvelope }
-  | { type: "status"; status: number }
+  | { type: "status"; status: number; body: unknown }
   | { type: "failure"; error: Error }
   /** Answers only when the request is aborted, which is how the page timeout is exercised. */
   | { type: "hang" };
 
 export const reply = {
   page: (page: SyncEnvelope): FakeSyncReply => ({ type: "page", page }),
-  status: (status: number): FakeSyncReply => ({ type: "status", status }),
+
+  /** A failure in the backend's envelope: every error it answers is `{ errors: [{ message }] }`. */
+  status: (status: number, message = `status ${status}`): FakeSyncReply => ({
+    type: "status",
+    status,
+    body: { errors: [{ message }] },
+  }),
+
+  /** A failure whose body is something else, for the shapes the loop still has to survive. */
+  statusWithBody: (status: number, body: unknown): FakeSyncReply => ({
+    type: "status",
+    status,
+    body,
+  }),
+
   failure: (message: string): FakeSyncReply => ({ type: "failure", error: new Error(message) }),
   hang: (): FakeSyncReply => ({ type: "hang" }),
 };
@@ -44,10 +58,7 @@ export function createFakeSync(
         case "page":
           return Promise.resolve({ status: 200, json: () => Promise.resolve(next.page) });
         case "status":
-          return Promise.resolve({
-            status: next.status,
-            json: () => Promise.resolve({ message: `status ${next.status}` }),
-          });
+          return Promise.resolve({ status: next.status, json: () => Promise.resolve(next.body) });
         case "failure":
           return Promise.reject(next.error);
         case "hang":

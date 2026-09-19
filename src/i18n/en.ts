@@ -34,6 +34,16 @@ export const en = {
       body: "Your time off, your team's calendar and your quotas appear here once this phone syncs with the web.",
     },
   },
+  sync: {
+    syncing: "Syncing…",
+    lastSynced: (age: string) => `Last synced ${age}`,
+    never: "Not synced yet",
+    justNow: "just now",
+    minutesAgo: (minutes: number) => `${minutes} min ago`,
+    hoursAgo: (hours: number) => `${hours} h ago`,
+    daysAgo: (days: number) => `${days} d ago`,
+    unreachable: "Couldn't reach the server. Try again.",
+  },
   account: {
     signOut: "Sign out",
     signOutTitle: "Sign out",
