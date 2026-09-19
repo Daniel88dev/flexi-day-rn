@@ -23,11 +23,11 @@ const store = createStore({
 export type { StoreDatabase } from "./adapter";
 export type { SyncTableName } from "./envelope";
 export type { StoreChannel } from "./events";
-export type { PendingChange, PendingKind, VacationDraft } from "./pending";
+export type { PendingChange, PendingKind, VacationDraft, VacationUpdateDraft } from "./pending";
 export type { PullOutcome, PullReason } from "./pull";
 export type { StoreTableName } from "./schema";
 export type { OpenStoreOptions } from "./store";
-export type { WriteOutcome } from "./writes";
+export type { VacationUpdate, WriteOutcome } from "./writes";
 export { usePendingChanges } from "./use-pending-changes";
 export { useStoreQuery } from "./use-store-query";
 export { useStoreRowCounts } from "./use-store-row-counts";
@@ -51,3 +51,14 @@ export const pull = store.pull;
  * the caller toasts, so no copy lives in here.
  */
 export const createVacation = store.createVacation;
+
+/** Edits the rows it names: the fields show at once, and the server's own rows replace them. */
+export const updateVacation = store.updateVacation;
+
+/**
+ * The three decisions, single or bulk: each shows on the rows it names at once, the server
+ * confirms without sending rows, and the pull that follows brings its own back over them.
+ */
+export const approveVacations = store.approveVacations;
+export const rejectVacations = store.rejectVacations;
+export const cancelVacations = store.cancelVacations;

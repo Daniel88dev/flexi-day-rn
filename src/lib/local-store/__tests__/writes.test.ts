@@ -9,11 +9,22 @@ import { vacations } from "../schema";
 import { createFakeClock, type FakeClock } from "../test-support/fake-clock";
 import { createFakeSync, reply, type FakeSyncReply } from "../test-support/fake-sync";
 import { tick } from "../test-support/pull-harness";
-import { groupRow, syncPage, vacationRow } from "../test-support/sync-fixtures";
+import { groupRow, storeVacations, syncPage, vacationRow } from "../test-support/sync-fixtures";
 import { openTestStore } from "../test-support/test-store";
-import { createStoreWrites, CREATE_VACATION_PATH, WRITE_TIMEOUT_MS } from "../writes";
+import {
+  APPROVE_VACATION_PATH,
+  CANCEL_VACATION_PATH,
+  createStoreWrites,
+  CREATE_VACATION_PATH,
+  REJECT_VACATION_PATH,
+  VACATION_PATH,
+  WRITE_TIMEOUT_MS,
+} from "../writes";
 
 const NOW = "2026-09-19T12:00:00.000Z";
+
+/** What the pull after a write brings back: the server's own stamp, not the one the store guessed. */
+const PULLED = "2026-09-19T12:00:02.000Z";
 
 const DRAFT: VacationDraft = { groupId: "group-1", from: "2026-09-21", to: "2026-09-22" };
 
@@ -57,6 +68,15 @@ function buildWrites(replies: FakeSyncReply[]) {
 
 function storedVacations() {
   return selectVacations(store.getDatabase()).all();
+}
+
+function generationOf(id: string): number | undefined {
+  return store
+    .getDatabase()
+    .select({ generation: vacations.generation })
+    .from(vacations)
+    .where(eq(vacations.id, id))
+    .all()[0]?.generation;
 }
 
 describe("createVacation", () => {
@@ -252,5 +272,461 @@ describe("createVacation", () => {
 
     expect(outcome).toEqual({ ok: true });
     expect(storedVacations()).toEqual([expect.objectContaining({ id: "vacation-1" })]);
+  });
+});
+
+describe("updateVacation", () => {
+  const EDIT = { ids: ["vacation-1"], halfDay: true, note: "Half a day after all" };
+
+  it("returns ok and stores the rows the server answered with", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([
+      reply.rows([createdRow({ id: "vacation-1", halfDay: true, note: "Half a day after all" })]),
+    ]);
+
+    const outcome = await writes.updateVacation(EDIT);
+
+    expect(outcome).toEqual({ ok: true });
+    expect(storedVacations()).toEqual([
+      expect.objectContaining({
+        id: "vacation-1",
+        halfDay: true,
+        note: "Half a day after all",
+        organizationId: "org-1",
+      }),
+    ]);
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("sends the ids and the fields to the update endpoint as a patch", async () => {
+    const { sync, writes } = buildWrites([reply.rows([createdRow()])]);
+
+    await writes.updateVacation({ ids: ["vacation-1", "vacation-2"], vacationType: "HOME_OFFICE" });
+
+    const [request] = sync.requests;
+    expect(request.path).toBe(VACATION_PATH);
+    expect(request.init.method).toBe("PATCH");
+    expect(JSON.parse(request.init.body ?? "")).toEqual({
+      ids: ["vacation-1", "vacation-2"],
+      vacationType: "HOME_OFFICE",
+    });
+  });
+
+  it("holds the rows it edits until the answer lands", async () => {
+    const { writes } = buildWrites([reply.rows([createdRow()])]);
+
+    const written = writes.updateVacation(EDIT);
+    expect(pending.list()).toEqual([
+      expect.objectContaining({
+        kind: "update",
+        vacationIds: ["vacation-1"],
+        update: { halfDay: true, note: "Half a day after all" },
+      }),
+    ]);
+
+    await written;
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("returns the server's message when a row is no longer editable", async () => {
+    const { writes } = buildWrites([
+      reply.status(409, "One or more records changed while editing — refresh and retry"),
+    ]);
+
+    expect(await writes.updateVacation(EDIT)).toEqual({
+      ok: false,
+      reason: "rejected",
+      message: "One or more records changed while editing — refresh and retry",
+    });
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("returns an unreachable failure when the server never answers", async () => {
+    const { writes } = buildWrites([reply.hang()]);
+
+    const written = writes.updateVacation(EDIT);
+    await tick();
+    expect(pending.list()).toHaveLength(1);
+    clock.advance(WRITE_TIMEOUT_MS);
+
+    expect(await written).toEqual({ ok: false, reason: "unreachable", message: null });
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("returns ok and hands a 401 to the unauthorized callback", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.status(401, "Unauthorized")]);
+
+    expect(await writes.updateVacation(EDIT)).toEqual({ ok: true });
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    expect(storedVacations()).toEqual([expect.objectContaining({ halfDay: false })]);
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("returns ok and sends nothing when it was given no ids", async () => {
+    const { sync, writes } = buildWrites([]);
+
+    expect(await writes.updateVacation({ ids: [], halfDay: true })).toEqual({ ok: true });
+    expect(sync.requests).toEqual([]);
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("returns the validator's own message when it refuses the body", async () => {
+    const { writes } = buildWrites([
+      reply.statusWithBody(422, {
+        error: "Invalid data",
+        details: [{ message: "halfDay: `halfDay` is only valid for a single-day record" }],
+      }),
+    ]);
+
+    expect(
+      await writes.updateVacation({ ids: ["vacation-1", "vacation-2"], halfDay: true })
+    ).toEqual({
+      ok: false,
+      reason: "rejected",
+      message: "halfDay: `halfDay` is only valid for a single-day record",
+    });
+  });
+
+  it("pulls once after the server confirms the edit", async () => {
+    const { writes } = buildWrites([reply.rows([createdRow()])]);
+
+    await writes.updateVacation(EDIT);
+
+    expect(pull.mock.calls).toEqual([["after-write"]]);
+  });
+});
+
+describe("approveVacations", () => {
+  it("returns ok and writes the approval the answer carried no rows for", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.decided("Vacation approved")]);
+
+    const outcome = await writes.approveVacations(["vacation-1"]);
+
+    expect(outcome).toEqual({ ok: true });
+    expect(storedVacations()).toEqual([
+      expect.objectContaining({ id: "vacation-1", approvedAt: NOW, approvedBy: "user-1" }),
+    ]);
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("posts one id to the endpoint of that one row", async () => {
+    const { sync, writes } = buildWrites([reply.decided("Vacation approved")]);
+
+    await writes.approveVacations(["vacation-1"]);
+
+    const [request] = sync.requests;
+    expect(request.path).toBe(`${APPROVE_VACATION_PATH}/vacation-1`);
+    expect(request.init.method).toBe("POST");
+    expect(JSON.parse(request.init.body ?? "")).toEqual({});
+  });
+
+  it("posts several ids to the bulk endpoint in one body", async () => {
+    storeVacations(
+      store,
+      vacationRow({ id: "vacation-1" }),
+      vacationRow({ id: "vacation-2", requestedDay: "2026-09-22" })
+    );
+    const { sync, writes } = buildWrites([reply.decided("Vacations approved")]);
+
+    await writes.approveVacations(["vacation-1", "vacation-2"]);
+
+    const [request] = sync.requests;
+    expect(request.path).toBe(APPROVE_VACATION_PATH);
+    expect(JSON.parse(request.init.body ?? "")).toEqual({ ids: ["vacation-1", "vacation-2"] });
+    expect(storedVacations().map((row) => row.status)).toEqual(["approved", "approved"]);
+  });
+
+  it("stamps the row it wrote with the generation the pull is on", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    store.write((transaction) => writeSyncState(transaction, { generation: 4 }));
+    const { writes } = buildWrites([reply.decided("Vacation approved")]);
+
+    await writes.approveVacations(["vacation-1"]);
+
+    expect(generationOf("vacation-1")).toBe(4);
+  });
+
+  it("pulls once after the server confirms the approval", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.decided("Vacation approved")]);
+
+    await writes.approveVacations(["vacation-1"]);
+
+    expect(pull.mock.calls).toEqual([["after-write"]]);
+  });
+
+  it("keeps the row the pull that follows sent over the one it wrote itself", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    pull.mockImplementation(() => {
+      storeVacations(
+        store,
+        vacationRow({ id: "vacation-1", approvedAt: PULLED, approvedBy: "user-2" })
+      );
+      return Promise.resolve({ ok: true });
+    });
+    const { writes } = buildWrites([reply.decided("Vacation approved")]);
+
+    await writes.approveVacations(["vacation-1"]);
+    await tick();
+
+    expect(storedVacations()).toEqual([
+      expect.objectContaining({ approvedAt: PULLED, approvedBy: "user-2" }),
+    ]);
+  });
+
+  it("keeps the row it wrote itself when the pull that follows fails", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    pull.mockResolvedValue({ ok: false, message: "The sync pull answered 500." });
+    const { writes } = buildWrites([reply.decided("Vacation approved")]);
+
+    await writes.approveVacations(["vacation-1"]);
+    await tick();
+
+    expect(storedVacations()).toEqual([
+      expect.objectContaining({ approvedAt: NOW, approvedBy: "user-1", status: "approved" }),
+    ]);
+  });
+
+  it("returns the server's message and writes nothing when the row was already decided", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.status(409, "Vacation already approved")]);
+
+    expect(await writes.approveVacations(["vacation-1"])).toEqual({
+      ok: false,
+      reason: "rejected",
+      message: "Vacation already approved",
+    });
+    expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
+    expect(pending.list()).toEqual([]);
+    expect(pull).not.toHaveBeenCalled();
+  });
+
+  it("returns an unreachable failure and writes nothing when the server never answers", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.hang()]);
+
+    const written = writes.approveVacations(["vacation-1"]);
+    await tick();
+    expect(pending.list()).toHaveLength(1);
+    clock.advance(WRITE_TIMEOUT_MS);
+
+    expect(await written).toEqual({ ok: false, reason: "unreachable", message: null });
+    expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("returns ok and hands a 401 to the unauthorized callback, writing nothing", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.status(401, "Unauthorized")]);
+
+    expect(await writes.approveVacations(["vacation-1"])).toEqual({ ok: true });
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
+    expect(pending.list()).toEqual([]);
+  });
+});
+
+describe("rejectVacations", () => {
+  it("returns ok and writes the rejection with the reason it carried", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.decided("Vacation rejected")]);
+
+    const outcome = await writes.rejectVacations(["vacation-1"], "Too many away that week");
+
+    expect(outcome).toEqual({ ok: true });
+    expect(storedVacations()).toEqual([
+      expect.objectContaining({
+        rejectedAt: NOW,
+        rejectedBy: "user-1",
+        rejectionReason: "Too many away that week",
+        status: "rejected",
+      }),
+    ]);
+  });
+
+  it("posts one id and its reason to the endpoint of that one row", async () => {
+    const { sync, writes } = buildWrites([reply.decided("Vacation rejected")]);
+
+    await writes.rejectVacations(["vacation-1"], "Too many away that week");
+
+    const [request] = sync.requests;
+    expect(request.path).toBe(`${REJECT_VACATION_PATH}/vacation-1`);
+    expect(JSON.parse(request.init.body ?? "")).toEqual({ reason: "Too many away that week" });
+  });
+
+  it("posts several ids and one reason to the bulk endpoint", async () => {
+    storeVacations(
+      store,
+      vacationRow({ id: "vacation-1" }),
+      vacationRow({ id: "vacation-2", requestedDay: "2026-09-22" })
+    );
+    const { sync, writes } = buildWrites([reply.decided("Vacations rejected")]);
+
+    await writes.rejectVacations(["vacation-1", "vacation-2"], "Understaffed");
+
+    const [request] = sync.requests;
+    expect(request.path).toBe(REJECT_VACATION_PATH);
+    expect(JSON.parse(request.init.body ?? "")).toEqual({
+      ids: ["vacation-1", "vacation-2"],
+      reason: "Understaffed",
+    });
+    expect(storedVacations().map((row) => row.status)).toEqual(["rejected", "rejected"]);
+  });
+
+  it("returns ok and writes no reason where the caller gave none", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.decided("Vacation rejected")]);
+
+    await writes.rejectVacations(["vacation-1"]);
+
+    expect(storedVacations()).toEqual([
+      expect.objectContaining({ rejectionReason: null, status: "rejected" }),
+    ]);
+  });
+
+  it("returns the server's message and writes nothing when the row was already decided", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.status(409, "Vacation already rejected")]);
+
+    expect(await writes.rejectVacations(["vacation-1"], "Understaffed")).toEqual({
+      ok: false,
+      reason: "rejected",
+      message: "Vacation already rejected",
+    });
+    expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
+  });
+
+  it("returns an unreachable failure and writes nothing when the server never answers", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.hang()]);
+
+    const written = writes.rejectVacations(["vacation-1"]);
+    await tick();
+    clock.advance(WRITE_TIMEOUT_MS);
+
+    expect(await written).toEqual({ ok: false, reason: "unreachable", message: null });
+    expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("returns ok and hands a 401 to the unauthorized callback, writing nothing", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.status(401, "Unauthorized")]);
+
+    expect(await writes.rejectVacations(["vacation-1"])).toEqual({ ok: true });
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
+  });
+});
+
+describe("cancelVacations", () => {
+  it("returns ok and writes the cancellation the answer carried no rows for", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.decided("Vacation cancelled")]);
+
+    const outcome = await writes.cancelVacations(["vacation-1"]);
+
+    expect(outcome).toEqual({ ok: true });
+    expect(storedVacations()).toEqual([
+      expect.objectContaining({
+        deletedAt: NOW,
+        deletedByUserId: "user-1",
+        status: "cancelled",
+      }),
+    ]);
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("deletes one id at the endpoint of that one row, with its reason", async () => {
+    const { sync, writes } = buildWrites([reply.decided("Vacation cancelled")]);
+
+    await writes.cancelVacations(["vacation-1"], "Plans changed");
+
+    const [request] = sync.requests;
+    expect(request.path).toBe(`${VACATION_PATH}/vacation-1`);
+    expect(request.init.method).toBe("DELETE");
+    expect(JSON.parse(request.init.body ?? "")).toEqual({ reason: "Plans changed" });
+  });
+
+  it("posts several ids to the bulk endpoint in one body", async () => {
+    storeVacations(
+      store,
+      vacationRow({ id: "vacation-1" }),
+      vacationRow({ id: "vacation-2", requestedDay: "2026-09-22" })
+    );
+    const { sync, writes } = buildWrites([reply.decided("Vacations cancelled")]);
+
+    await writes.cancelVacations(["vacation-1", "vacation-2"], "Plans changed");
+
+    const [request] = sync.requests;
+    expect(request.path).toBe(CANCEL_VACATION_PATH);
+    expect(request.init.method).toBe("POST");
+    expect(JSON.parse(request.init.body ?? "")).toEqual({
+      ids: ["vacation-1", "vacation-2"],
+      reason: "Plans changed",
+    });
+    expect(storedVacations().map((row) => row.status)).toEqual(["cancelled", "cancelled"]);
+  });
+
+  it("pulls once after the server confirms the cancellation", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.decided("Vacation cancelled")]);
+
+    await writes.cancelVacations(["vacation-1"]);
+
+    expect(pull.mock.calls).toEqual([["after-write"]]);
+  });
+
+  it("returns the server's message and writes nothing when the row was already cancelled", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.status(409, "Vacation already cancelled")]);
+
+    expect(await writes.cancelVacations(["vacation-1"])).toEqual({
+      ok: false,
+      reason: "rejected",
+      message: "Vacation already cancelled",
+    });
+    expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
+    expect(pull).not.toHaveBeenCalled();
+  });
+
+  it("returns an unreachable failure and writes nothing when the server never answers", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.hang()]);
+
+    const written = writes.cancelVacations(["vacation-1"]);
+    await tick();
+    clock.advance(WRITE_TIMEOUT_MS);
+
+    expect(await written).toEqual({ ok: false, reason: "unreachable", message: null });
+    expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
+    expect(pending.list()).toEqual([]);
+  });
+
+  it("returns ok and hands a 401 to the unauthorized callback, writing nothing", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.status(401, "Unauthorized")]);
+
+    expect(await writes.cancelVacations(["vacation-1"])).toEqual({ ok: true });
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
+  });
+
+  it("returns ok and sends nothing when it was given no ids", async () => {
+    const { sync, writes } = buildWrites([]);
+
+    expect(await writes.cancelVacations([])).toEqual({ ok: true });
+    expect(sync.requests).toEqual([]);
+    expect(pending.list()).toEqual([]);
+    expect(pull).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing for an id the store has never pulled", async () => {
+    const { writes } = buildWrites([reply.decided("Vacation cancelled")]);
+
+    expect(await writes.cancelVacations(["vacation-404"])).toEqual({ ok: true });
+    expect(storedVacations()).toEqual([]);
   });
 });

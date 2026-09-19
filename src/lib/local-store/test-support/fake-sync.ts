@@ -28,6 +28,9 @@ export const reply = {
   /** What a write gets back: the rows the endpoint answers with, under its own status. */
   rows: (rows: unknown[], status = 201): FakeSyncReply => ({ type: "status", status, body: rows }),
 
+  /** What approve, reject and cancel answer: a message and never the rows they changed. */
+  decided: (message: string): FakeSyncReply => ({ type: "status", status: 200, body: { message } }),
+
   failure: (message: string): FakeSyncReply => ({ type: "failure", error: new Error(message) }),
   hang: (): FakeSyncReply => ({ type: "hang" }),
 };

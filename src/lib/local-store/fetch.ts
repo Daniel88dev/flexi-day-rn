@@ -4,9 +4,12 @@ export type StoreResponse = {
   json(): Promise<unknown>;
 };
 
+/** The verbs the store's writes use; a pull sends none and gets the default. */
+export type StoreRequestMethod = "POST" | "PATCH" | "DELETE";
+
 export type StoreRequestInit = {
   signal: AbortSignal;
-  method?: "POST";
+  method?: StoreRequestMethod;
   headers?: Record<string, string>;
   body?: string;
 };
@@ -18,14 +21,24 @@ function nonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-/** The backend answers every failure as `{ errors: [{ message }] }`; the first one is the one. */
+/**
+ * The backend answers a failure as `{ errors: [{ message }] }`; the first one is the one. A body
+ * its validator refused never reaches that middleware and says `{ error, details: [{ message }] }`.
+ */
 export async function serverMessage(response: StoreResponse): Promise<string | null> {
   try {
     const body = (await response.json()) as {
       errors?: { message?: unknown }[];
+      details?: { message?: unknown }[];
       message?: unknown;
+      error?: unknown;
     } | null;
-    return nonEmptyString(body?.errors?.[0]?.message) ?? nonEmptyString(body?.message);
+    return (
+      nonEmptyString(body?.errors?.[0]?.message) ??
+      nonEmptyString(body?.details?.[0]?.message) ??
+      nonEmptyString(body?.message) ??
+      nonEmptyString(body?.error)
+    );
   } catch {
     return null;
   }

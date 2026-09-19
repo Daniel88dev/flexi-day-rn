@@ -2,13 +2,14 @@ import { eq } from "drizzle-orm";
 
 import { applyPage } from "../apply";
 import { activePendingChanges, type PendingChange, type VacationDraft } from "../pending";
-import { mergedVacations, selectVacations, storeRowCounts } from "../queries";
+import { mergedVacations, selectVacations, storeRowCounts, type MergedVacation } from "../queries";
 import type { StoreRuntime } from "../runtime";
 import { vacations } from "../schema";
 import {
   bankHolidayRow,
   fullSyncPage,
   groupRow,
+  storeVacations,
   syncPage,
   vacationRow,
 } from "../test-support/sync-fixtures";
@@ -256,14 +257,14 @@ describe("mergedVacations", () => {
     ]);
   });
 
-  it("returns a stored row with its actions disabled while a change holds it", () => {
+  it("returns a stored row patched and its actions disabled while a change holds it", () => {
     store.write((transaction) =>
       applyPage(transaction, syncPage({ vacations: [vacationRow()] }), 1)
     );
     activePendingChanges().add({ kind: "approve", vacationIds: ["vacation-1"] });
 
     expect(merged()).toEqual([
-      expect.objectContaining({ id: "vacation-1", pending: false, actionsDisabled: true }),
+      expect.objectContaining({ id: "vacation-1", pending: true, actionsDisabled: true }),
     ]);
   });
 
@@ -288,6 +289,134 @@ describe("mergedVacations", () => {
 
   it("returns nothing for a range that reads backwards", () => {
     create({ from: "2026-09-25", to: "2026-09-21" });
+
+    expect(merged()).toEqual([]);
+  });
+
+  function rowOf(id: string): MergedVacation | undefined {
+    return merged().find((row) => row.id === id);
+  }
+
+  it("returns a row patched with the fields an update in flight named", () => {
+    storeVacations(store, vacationRow());
+    activePendingChanges().add({
+      kind: "update",
+      vacationIds: ["vacation-1"],
+      update: { vacationType: "HOME_OFFICE", halfDay: true, note: "From home" },
+    });
+
+    expect(rowOf("vacation-1")).toEqual(
+      expect.objectContaining({
+        vacationType: "HOME_OFFICE",
+        halfDay: true,
+        note: "From home",
+        status: "pending",
+        pending: true,
+        actionsDisabled: true,
+      })
+    );
+  });
+
+  it("returns the row's own columns where an update named nothing", () => {
+    storeVacations(store, vacationRow({ startTime: "09:00:00", note: "Skiing" }));
+    activePendingChanges().add({
+      kind: "update",
+      vacationIds: ["vacation-1"],
+      update: { halfDay: true },
+    });
+
+    expect(rowOf("vacation-1")).toEqual(
+      expect.objectContaining({ startTime: "09:00:00", note: "Skiing", halfDay: true })
+    );
+  });
+
+  it("returns an approved row while the approval is in flight", () => {
+    storeVacations(store, vacationRow());
+    const change = activePendingChanges().add({ kind: "approve", vacationIds: ["vacation-1"] });
+
+    expect(rowOf("vacation-1")).toEqual(
+      expect.objectContaining({
+        approvedAt: new Date(change.startedAt).toISOString(),
+        approvedBy: "user-1",
+        status: "approved",
+        pending: true,
+        actionsDisabled: true,
+      })
+    );
+  });
+
+  it("returns a rejected row carrying the reason while the rejection is in flight", () => {
+    storeVacations(store, vacationRow());
+    const change = activePendingChanges().add({
+      kind: "reject",
+      vacationIds: ["vacation-1"],
+      reason: "Too many away that week",
+    });
+
+    expect(rowOf("vacation-1")).toEqual(
+      expect.objectContaining({
+        rejectedAt: new Date(change.startedAt).toISOString(),
+        rejectedBy: "user-1",
+        rejectionReason: "Too many away that week",
+        status: "rejected",
+        actionsDisabled: true,
+      })
+    );
+  });
+
+  it("returns no reason on a rejection that named none", () => {
+    storeVacations(store, vacationRow());
+    activePendingChanges().add({ kind: "reject", vacationIds: ["vacation-1"] });
+
+    expect(rowOf("vacation-1")).toEqual(
+      expect.objectContaining({ rejectionReason: null, status: "rejected" })
+    );
+  });
+
+  it("returns a cancelled row while the cancellation is in flight", () => {
+    storeVacations(store, vacationRow({ approvedAt: APPROVED, approvedBy: "user-2" }));
+    const change = activePendingChanges().add({ kind: "cancel", vacationIds: ["vacation-1"] });
+
+    expect(rowOf("vacation-1")).toEqual(
+      expect.objectContaining({
+        deletedAt: new Date(change.startedAt).toISOString(),
+        deletedByUserId: "user-1",
+        status: "cancelled",
+        actionsDisabled: true,
+      })
+    );
+  });
+
+  it("returns the stored row as it stands once the change lifts", () => {
+    storeVacations(store, vacationRow());
+    const change = activePendingChanges().add({ kind: "cancel", vacationIds: ["vacation-1"] });
+    expect(rowOf("vacation-1")).toEqual(expect.objectContaining({ status: "cancelled" }));
+
+    activePendingChanges().remove(change.id);
+
+    expect(rowOf("vacation-1")).toEqual(
+      expect.objectContaining({
+        status: "pending",
+        deletedAt: null,
+        pending: false,
+        actionsDisabled: false,
+      })
+    );
+  });
+
+  it("returns every row a change holds patched, not only the first", () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    storeVacations(store, vacationRow({ id: "vacation-2", requestedDay: "2026-09-22" }));
+    activePendingChanges().add({
+      kind: "approve",
+      vacationIds: ["vacation-1", "vacation-2"],
+    });
+
+    expect(merged().map((row) => row.status)).toEqual(["approved", "approved"]);
+  });
+
+  it("returns no row for a change holding an id the store has never pulled", () => {
+    activePendingChanges().add({ kind: "approve", vacationIds: ["vacation-404"] });
 
     expect(merged()).toEqual([]);
   });

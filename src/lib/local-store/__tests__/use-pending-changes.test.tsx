@@ -12,7 +12,7 @@ import type { StoreRuntime } from "../runtime";
 import { createFakeClock, type FakeClock } from "../test-support/fake-clock";
 import { createFakeSync, reply } from "../test-support/fake-sync";
 import { tick } from "../test-support/pull-harness";
-import { groupRow, syncPage, vacationRow } from "../test-support/sync-fixtures";
+import { groupRow, storeVacations, syncPage, vacationRow } from "../test-support/sync-fixtures";
 import { flushStoreEvents, openTestStore } from "../test-support/test-store";
 import { usePendingChanges } from "../use-pending-changes";
 import { useStoreQuery } from "../use-store-query";
@@ -213,5 +213,221 @@ describe("createVacation", () => {
       reason: "rejected",
       message: "Booking would exceed the allowance",
     });
+  });
+});
+
+describe("updateVacation", () => {
+  const EDIT = { ids: ["vacation-1"], vacationType: "HOME_OFFICE" as const, note: "From home" };
+
+  it("shows the fields it asked for while the server decides", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { result } = await renderBookings();
+    const backend = deferredBackend();
+
+    await act(async () => {
+      void backend.writes.updateVacation(EDIT);
+      await flushStoreEvents();
+    });
+
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        id: "vacation-1",
+        vacationType: "HOME_OFFICE",
+        note: "From home",
+        pending: true,
+        actionsDisabled: true,
+      }),
+    ]);
+  });
+
+  it("shows the server's own row without a render in between", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { result, renders } = await renderBookings();
+    const backend = deferredBackend();
+    let written!: Promise<WriteOutcome>;
+
+    await act(async () => {
+      written = backend.writes.updateVacation(EDIT);
+      await flushStoreEvents();
+    });
+    const shown = renders.length;
+
+    await act(async () => {
+      backend.respond(200, [
+        (({ organizationId, ...row }) => row)(
+          vacationRow({ id: "vacation-1", vacationType: "HOME_OFFICE", note: "From home" })
+        ),
+      ]);
+      await written;
+    });
+
+    expect(renders.slice(shown).map((rows) => rows.map((row) => row.vacationType))).toEqual([
+      ["HOME_OFFICE"],
+    ]);
+    expect(result.current).toEqual([
+      expect.objectContaining({ vacationType: "HOME_OFFICE", actionsDisabled: false }),
+    ]);
+  });
+
+  it("shows the row as it was when the server refuses the edit", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { result } = await renderBookings();
+    const backend = deferredBackend();
+    let written!: Promise<WriteOutcome>;
+
+    await act(async () => {
+      written = backend.writes.updateVacation(EDIT);
+      await flushStoreEvents();
+    });
+
+    await act(async () => {
+      backend.respond(409, {
+        errors: [{ message: "One or more records changed while editing" }],
+      });
+      await written;
+      await flushStoreEvents();
+    });
+
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        vacationType: "VACATION",
+        note: null,
+        actionsDisabled: false,
+      }),
+    ]);
+  });
+});
+
+describe("approveVacations", () => {
+  it("shows the approval at once and keeps the row's actions off until it lifts", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { result } = await renderBookings();
+    const backend = deferredBackend();
+    let written!: Promise<WriteOutcome>;
+
+    await act(async () => {
+      written = backend.writes.approveVacations(["vacation-1"]);
+      await flushStoreEvents();
+    });
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        status: "approved",
+        approvedAt: NOW,
+        approvedBy: "user-1",
+        actionsDisabled: true,
+      }),
+    ]);
+
+    await act(async () => {
+      backend.respond(200, { message: "Vacation approved" });
+      await written;
+      await flushStoreEvents();
+    });
+
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        status: "approved",
+        approvedAt: NOW,
+        approvedBy: "user-1",
+        actionsDisabled: false,
+      }),
+    ]);
+  });
+
+  it("takes the approval off the row again when the server refuses it", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { result } = await renderBookings();
+    const backend = deferredBackend();
+    let written!: Promise<WriteOutcome>;
+
+    await act(async () => {
+      written = backend.writes.approveVacations(["vacation-1"]);
+      await flushStoreEvents();
+    });
+
+    let outcome!: WriteOutcome;
+    await act(async () => {
+      backend.respond(409, { errors: [{ message: "Vacation already approved" }] });
+      outcome = await written;
+      await flushStoreEvents();
+    });
+
+    expect(result.current).toEqual([
+      expect.objectContaining({ status: "pending", approvedAt: null, actionsDisabled: false }),
+    ]);
+    expect(outcome).toEqual({
+      ok: false,
+      reason: "rejected",
+      message: "Vacation already approved",
+    });
+  });
+});
+
+describe("rejectVacations", () => {
+  it("shows the rejection and its reason at once", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { result } = await renderBookings();
+    const backend = deferredBackend();
+    let written!: Promise<WriteOutcome>;
+
+    await act(async () => {
+      written = backend.writes.rejectVacations(["vacation-1"], "Too many away that week");
+      await flushStoreEvents();
+    });
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        status: "rejected",
+        rejectedAt: NOW,
+        rejectedBy: "user-1",
+        rejectionReason: "Too many away that week",
+        actionsDisabled: true,
+      }),
+    ]);
+
+    await act(async () => {
+      backend.respond(200, { message: "Vacation rejected" });
+      await written;
+      await flushStoreEvents();
+    });
+
+    expect(result.current).toEqual([
+      expect.objectContaining({ status: "rejected", actionsDisabled: false }),
+    ]);
+  });
+});
+
+describe("cancelVacations", () => {
+  it("shows the cancellation at once, on every row it holds", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    storeVacations(store, vacationRow({ id: "vacation-2", requestedDay: "2026-09-22" }));
+    const { result } = await renderBookings();
+    const backend = deferredBackend();
+    let written!: Promise<WriteOutcome>;
+
+    await act(async () => {
+      written = backend.writes.cancelVacations(["vacation-1", "vacation-2"], "Plans changed");
+      await flushStoreEvents();
+    });
+    expect(result.current).toEqual([
+      expect.objectContaining({ id: "vacation-1", status: "cancelled", actionsDisabled: true }),
+      expect.objectContaining({ id: "vacation-2", status: "cancelled", actionsDisabled: true }),
+    ]);
+
+    await act(async () => {
+      backend.respond(200, { message: "Vacations cancelled", cancelledCount: 2 });
+      await written;
+      await flushStoreEvents();
+    });
+
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        id: "vacation-1",
+        status: "cancelled",
+        deletedAt: NOW,
+        deletedByUserId: "user-1",
+        actionsDisabled: false,
+      }),
+      expect.objectContaining({ id: "vacation-2", status: "cancelled", actionsDisabled: false }),
+    ]);
   });
 });

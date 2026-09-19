@@ -1,3 +1,5 @@
+import { applyPage } from "../apply";
+import type { StoreRuntime } from "../runtime";
 import type {
   SyncBankHolidayRow,
   SyncEnvelope,
@@ -159,4 +161,9 @@ export function fullSyncPage(page: Partial<SyncEnvelope> = {}): SyncEnvelope {
     vacations: [vacationRow()],
     ...page,
   });
+}
+
+/** Puts bookings in the store the way a pull would, for a test that writes over them after. */
+export function storeVacations(runtime: StoreRuntime, ...rows: SyncVacationRow[]): void {
+  runtime.write((transaction) => applyPage(transaction, syncPage({ vacations: rows }), 1));
 }

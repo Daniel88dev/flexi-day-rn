@@ -1,7 +1,7 @@
 import type { StoreClock } from "./clock";
 import { PENDING_CHANGES_CHANNEL } from "./events";
 import type { StoreRuntime } from "./runtime";
-import type { CalendarRecordType } from "./schema";
+import type { CalendarRecordType, vacations } from "./schema";
 
 export type PendingKind = "create" | "update" | "approve" | "reject" | "cancel";
 
@@ -25,14 +25,75 @@ export type VacationDraft = {
   autoApprove?: boolean;
 };
 
+/**
+ * What an edit asks for, field for field the body of `PATCH /api/vacation` with the ids left out.
+ * A field the caller left out stays as it is; `null` clears it.
+ */
+export type VacationUpdateDraft = {
+  vacationType?: Exclude<CalendarRecordType, "BANK_HOLIDAY">;
+  startTime?: string | null;
+  endTime?: string | null;
+  halfDay?: boolean;
+  note?: string | null;
+};
+
 /** A write in flight, laid over the rows it targets until the server answers or the write gives up. */
 export type PendingChange = {
   id: string;
   kind: PendingKind;
   vacationIds?: string[];
   draft?: VacationDraft;
+  update?: VacationUpdateDraft;
+  /** What the decision was given for, which a rejection keeps on the row it refused. */
+  reason?: string;
   startedAt: number;
 };
+
+/** The columns a change in flight writes over the rows it holds. */
+export type VacationPatch = Partial<
+  Pick<
+    typeof vacations.$inferSelect,
+    | "vacationType"
+    | "startTime"
+    | "endTime"
+    | "halfDay"
+    | "note"
+    | "approvedAt"
+    | "approvedBy"
+    | "rejectedAt"
+    | "rejectedBy"
+    | "rejectionReason"
+    | "deletedAt"
+    | "deletedByUserId"
+  >
+>;
+
+function definedFields(update: VacationUpdateDraft): VacationPatch {
+  return Object.fromEntries(
+    Object.entries(update).filter(([, value]) => value !== undefined)
+  ) as VacationPatch;
+}
+
+/**
+ * What the server is expected to write for a change in flight: the rows read this way while it is
+ * in flight, and a confirmation that carries no rows of its own is stored as exactly this.
+ */
+export function expectedVacationPatch(change: PendingChange, userId: string): VacationPatch {
+  const at = new Date(change.startedAt).toISOString();
+  switch (change.kind) {
+    case "update":
+      return change.update ? definedFields(change.update) : {};
+    case "approve":
+      return { approvedAt: at, approvedBy: userId };
+    case "reject":
+      return { rejectedAt: at, rejectedBy: userId, rejectionReason: change.reason ?? null };
+    case "cancel":
+      return { deletedAt: at, deletedByUserId: userId };
+    case "create":
+      // A create holds no stored row; it expands into rows of its own.
+      return {};
+  }
+}
 
 export type PendingChangeInput = Omit<PendingChange, "id" | "startedAt">;
 

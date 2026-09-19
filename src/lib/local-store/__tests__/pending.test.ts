@@ -3,7 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { PENDING_CHANGES_CHANNEL } from "../events";
-import { activePendingChanges, type PendingChanges, type VacationDraft } from "../pending";
+import {
+  activePendingChanges,
+  expectedVacationPatch,
+  type PendingChanges,
+  type VacationDraft,
+} from "../pending";
 import { mergedVacations } from "../queries";
 import type { StoreRuntime } from "../runtime";
 import { createFakeClock, type FakeClock } from "../test-support/fake-clock";
@@ -116,5 +121,59 @@ describe("createPendingChanges", () => {
 
     expect(mergedVacations(store.getDatabase(), activePendingChanges().list())).toEqual([]);
     expect(activePendingChanges().list()).toEqual([]);
+  });
+});
+
+describe("expectedVacationPatch", () => {
+  function patchOf(change: Parameters<typeof pending.add>[0]) {
+    return expectedVacationPatch(pending.add(change), "user-1");
+  }
+
+  it("returns the fields an update named, a null among them clearing the column", () => {
+    expect(
+      patchOf({
+        kind: "update",
+        vacationIds: ["vacation-1"],
+        update: { vacationType: "HOME_OFFICE", note: null },
+      })
+    ).toEqual({ vacationType: "HOME_OFFICE", note: null });
+  });
+
+  it("returns nothing for a field the update left out", () => {
+    expect(
+      patchOf({ kind: "update", vacationIds: ["vacation-1"], update: { halfDay: true } })
+    ).toEqual({ halfDay: true });
+  });
+
+  it("returns the approval stamped with the change's own time and the signed-in user", () => {
+    expect(patchOf({ kind: "approve", vacationIds: ["vacation-1"] })).toEqual({
+      approvedAt: NOW,
+      approvedBy: "user-1",
+    });
+  });
+
+  it("returns the rejection with the reason it was given", () => {
+    expect(
+      patchOf({ kind: "reject", vacationIds: ["vacation-1"], reason: "Too many away" })
+    ).toEqual({ rejectedAt: NOW, rejectedBy: "user-1", rejectionReason: "Too many away" });
+  });
+
+  it("returns a rejection with no reason where none was given", () => {
+    expect(patchOf({ kind: "reject", vacationIds: ["vacation-1"] })).toEqual({
+      rejectedAt: NOW,
+      rejectedBy: "user-1",
+      rejectionReason: null,
+    });
+  });
+
+  it("returns the cancellation stamped with the signed-in user", () => {
+    expect(patchOf({ kind: "cancel", vacationIds: ["vacation-1"] })).toEqual({
+      deletedAt: NOW,
+      deletedByUserId: "user-1",
+    });
+  });
+
+  it("returns nothing for a create, which expands into rows of its own", () => {
+    expect(patchOf({ kind: "create", draft: DRAFT })).toEqual({});
   });
 });

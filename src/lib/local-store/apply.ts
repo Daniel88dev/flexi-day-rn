@@ -16,6 +16,7 @@ import {
   type SyncTableName,
   type SyncVacationRow,
 } from "./envelope";
+import { expectedVacationPatch, type PendingChange } from "./pending";
 import type { StoreRuntime, StoreTransaction } from "./runtime";
 import {
   bankHolidays,
@@ -137,8 +138,8 @@ function applyWrittenVacations(transaction: StoreTransaction, rows: SyncVacation
   applyRows(transaction, "vacations", vacations, rows, generation, "keep");
 }
 
-/** The row the create endpoint answers with: the table's columns, minus the organization. */
-type CreatedVacation = Omit<SyncVacationRow, "organizationId">;
+/** The row a write's answer carries: the table's columns, minus the organization. */
+type WrittenVacation = Omit<SyncVacationRow, "organizationId">;
 
 function organizationIdsByGroup(db: StoreDatabase, groupIds: string[]): Map<string, string> {
   if (groupIds.length === 0) return new Map();
@@ -151,22 +152,46 @@ function organizationIdsByGroup(db: StoreDatabase, groupIds: string[]): Map<stri
 }
 
 /** The answer carries no organization, so each row takes its group's before it is stored. */
-export function storeCreatedVacations(runtime: StoreRuntime, body: unknown): void {
-  const created = (Array.isArray(body) ? body : []) as CreatedVacation[];
+export function storeWrittenVacations(runtime: StoreRuntime, body: unknown): void {
+  const written = (Array.isArray(body) ? body : []) as WrittenVacation[];
   // Signing out closes the store under a write in flight; the rows are the server's either way.
-  if (created.length === 0 || !runtime.isOpen()) return;
+  if (written.length === 0 || !runtime.isOpen()) return;
 
   runtime.write((transaction) => {
     const organizations = organizationIdsByGroup(
       transaction.db,
-      created.map((row) => row.groupId)
+      written.map((row) => row.groupId)
     );
-    const rows = created.flatMap<SyncVacationRow>((row) => {
+    const rows = written.flatMap<SyncVacationRow>((row) => {
       // A group the store has never pulled cannot place its rows; the next pull brings them.
       const organizationId = organizations.get(row.groupId);
       return organizationId ? [{ ...row, organizationId }] : [];
     });
     if (rows.length > 0) applyWrittenVacations(transaction, rows);
+  });
+}
+
+/**
+ * What a confirmation carrying no rows leaves behind: the patch the change expected, over the rows
+ * it held and stamped like a pulled row, until the pull that follows replaces it with the server's.
+ */
+export function storeProvisionalVacations(runtime: StoreRuntime, change: PendingChange): void {
+  const ids = change.vacationIds ?? [];
+  // Signing out closes the store under a write in flight; the decision is the server's either way.
+  if (ids.length === 0 || !runtime.isOpen()) return;
+
+  runtime.write((transaction) => {
+    const state = readSyncState(transaction.db);
+    const patch = expectedVacationPatch(change, state?.userId ?? "");
+    let changed = 0;
+    for (const chunk of chunks(ids, MAX_BOUND_PARAMETERS)) {
+      changed += transaction.db
+        .update(vacations)
+        .set({ ...patch, generation: state?.generation ?? 0 })
+        .where(inArray(vacations.id, chunk))
+        .run().changes;
+    }
+    if (changed > 0) transaction.touch("vacations");
   });
 }
 

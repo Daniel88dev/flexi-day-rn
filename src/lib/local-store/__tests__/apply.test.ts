@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 
 import type { StoreDatabase } from "../adapter";
-import { applyPage, sweepGenerations, writeSyncState } from "../apply";
+import { applyPage, storeProvisionalVacations, sweepGenerations, writeSyncState } from "../apply";
 import { SYNC_TABLE_NAMES } from "../envelope";
+import type { PendingChange } from "../pending";
 import type { StoreRuntime } from "../runtime";
 import {
   bankHolidays,
@@ -21,6 +22,7 @@ import {
   groupMirrorRow,
   groupUserRow,
   groupRow,
+  storeVacations,
   syncPage,
   vacationRow,
 } from "../test-support/sync-fixtures";
@@ -287,5 +289,82 @@ describe("writeSyncState", () => {
     const rows = allRows(store.getDatabase());
     expect(rows.vacations).toHaveLength(1);
     expect(store.getDatabase().select().from(syncState).all()[0].cursor).toBeNull();
+  });
+});
+
+describe("storeProvisionalVacations", () => {
+  const STARTED = "2026-09-19T12:00:00.000Z";
+
+  const approving: PendingChange = {
+    id: "pending-1",
+    kind: "approve",
+    vacationIds: ["vacation-1"],
+    startedAt: Date.parse(STARTED),
+  };
+
+  function vacationById(id: string) {
+    return store.getDatabase().select().from(vacations).where(eq(vacations.id, id)).all()[0];
+  }
+
+  /** Every channel the store announced, once the bus's coalescing microtask has run. */
+  async function announced(run: () => void): Promise<string[]> {
+    const channels: string[] = [];
+    const unsubscribe = store.events.subscribe(["vacations"], (touched) =>
+      channels.push(...touched)
+    );
+    run();
+    await Promise.resolve();
+    unsubscribe();
+    return channels;
+  }
+
+  beforeEach(() => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }), vacationRow({ id: "vacation-2" }));
+  });
+
+  it("writes the patch on the rows the change holds and leaves the rest alone", () => {
+    storeProvisionalVacations(store, approving);
+
+    expect(vacationById("vacation-1")).toMatchObject({
+      approvedAt: STARTED,
+      approvedBy: "user-1",
+    });
+    expect(vacationById("vacation-2")).toMatchObject({ approvedAt: null, approvedBy: null });
+  });
+
+  it("stamps what it wrote with the generation the pull is on", () => {
+    store.write((transaction) => writeSyncState(transaction, { generation: 7 }));
+
+    storeProvisionalVacations(store, approving);
+
+    expect(vacationById("vacation-1").generation).toBe(7);
+  });
+
+  it("announces the table it wrote", async () => {
+    expect(await announced(() => storeProvisionalVacations(store, approving))).toEqual([
+      "vacations",
+    ]);
+  });
+
+  it("announces nothing when it held an id the store does not have", async () => {
+    const announcements = await announced(() =>
+      storeProvisionalVacations(store, { ...approving, vacationIds: ["vacation-404"] })
+    );
+
+    expect(announcements).toEqual([]);
+  });
+
+  it("announces nothing when the change holds no rows at all", async () => {
+    const announcements = await announced(() =>
+      storeProvisionalVacations(store, { ...approving, vacationIds: [] })
+    );
+
+    expect(announcements).toEqual([]);
+  });
+
+  it("writes nothing once the store is closed under it", async () => {
+    await store.lifecycle.closeStore();
+
+    expect(() => storeProvisionalVacations(store, approving)).not.toThrow();
   });
 });

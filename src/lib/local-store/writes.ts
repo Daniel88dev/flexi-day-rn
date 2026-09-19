@@ -1,13 +1,23 @@
-import { storeCreatedVacations } from "./apply";
+import { storeProvisionalVacations, storeWrittenVacations } from "./apply";
 import type { StoreClock } from "./clock";
-import { serverMessage, type StoreFetch } from "./fetch";
-import type { PendingChanges, VacationDraft } from "./pending";
+import { serverMessage, type StoreFetch, type StoreRequestMethod } from "./fetch";
+import type {
+  PendingChange,
+  PendingChanges,
+  PendingKind,
+  VacationDraft,
+  VacationUpdateDraft,
+} from "./pending";
 import type { PullOutcome, PullReason } from "./pull";
 import type { StoreRuntime } from "./runtime";
 
 export const WRITE_TIMEOUT_MS = 10_000;
 
-export const CREATE_VACATION_PATH = "/api/vacation/create-vacation";
+export const VACATION_PATH = "/api/vacation";
+export const CREATE_VACATION_PATH = `${VACATION_PATH}/create-vacation`;
+export const APPROVE_VACATION_PATH = `${VACATION_PATH}/approve`;
+export const REJECT_VACATION_PATH = `${VACATION_PATH}/reject`;
+export const CANCEL_VACATION_PATH = `${VACATION_PATH}/cancel`;
 
 /**
  * What a caller learns about the write it asked for. A 401 answers `ok` because the signed-out
@@ -33,8 +43,18 @@ type WriteRefused = { type: "rejected"; message: string | null };
 type WriteResponse =
   { type: "written"; body: unknown } | { type: "unauthorized" } | WriteUnreachable | WriteRefused;
 
+/** What an edit is asked for: the rows it names, and the fields to write across all of them. */
+export type VacationUpdate = VacationUpdateDraft & { ids: string[] };
+
+/** The three decisions the backend confirms with a message and no rows at all. */
+type DecisionKind = Extract<PendingKind, "approve" | "reject" | "cancel">;
+
 export type StoreWrites = {
   createVacation(draft: VacationDraft): Promise<WriteOutcome>;
+  updateVacation(input: VacationUpdate): Promise<WriteOutcome>;
+  approveVacations(ids: string[]): Promise<WriteOutcome>;
+  rejectVacations(ids: string[], reason?: string): Promise<WriteOutcome>;
+  cancelVacations(ids: string[], reason?: string): Promise<WriteOutcome>;
 };
 
 export type StoreWriteOptions = {
@@ -46,18 +66,34 @@ export type StoreWriteOptions = {
   onUnauthorized: () => void;
 };
 
-async function postJson(
+type JsonRequest = { method: StoreRequestMethod; path: string; body: unknown };
+
+/** One id goes to the endpoint of that row, several to the bulk one that takes them as a list. */
+function decisionRequest(kind: DecisionKind, ids: string[], reason?: string): JsonRequest {
+  const only = ids.length === 1 ? ids[0] : null;
+  if (kind === "cancel") {
+    return only
+      ? { method: "DELETE", path: `${VACATION_PATH}/${only}`, body: { reason } }
+      : { method: "POST", path: CANCEL_VACATION_PATH, body: { ids, reason } };
+  }
+
+  const path = kind === "approve" ? APPROVE_VACATION_PATH : REJECT_VACATION_PATH;
+  return only
+    ? { method: "POST", path: `${path}/${only}`, body: { reason } }
+    : { method: "POST", path, body: { ids, reason } };
+}
+
+async function sendJson(
   apiFetch: StoreFetch,
   clock: StoreClock,
-  path: string,
-  body: unknown
+  { method, path, body }: JsonRequest
 ): Promise<WriteResponse> {
   const request = new AbortController();
   const cancelTimeout = clock.setTimeout(() => request.abort(), WRITE_TIMEOUT_MS);
   try {
     const response = await apiFetch(path, {
       signal: request.signal,
-      method: "POST",
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
@@ -87,30 +123,71 @@ export function createStoreWrites({
   pull,
   onUnauthorized,
 }: StoreWriteOptions): StoreWrites {
+  /** Every write ends the same way; only what an answer leaves in the store differs. */
+  const settle = (
+    change: PendingChange,
+    response: WriteResponse,
+    commit: (body: unknown) => void
+  ): WriteOutcome => {
+    if (response.type === "unauthorized") {
+      pending.remove(change.id);
+      onUnauthorized();
+      // The signed-out wipe is the feedback; there is nothing for the caller to say.
+      return WRITTEN;
+    }
+
+    if (response.type !== "written") {
+      pending.remove(change.id);
+      return failureOf(response);
+    }
+
+    // The rows land and the change lifts with no await between them, so the bus carries both
+    // in one flush and no read falls in the gap and finds the list empty.
+    commit(response.body);
+    pending.remove(change.id);
+    // What the server booked around these rows — a quota, a notification's twin — comes next.
+    void pull("after-write");
+    return WRITTEN;
+  };
+
+  const decide = async (kind: DecisionKind, ids: string[], reason?: string) => {
+    if (ids.length === 0) return WRITTEN;
+
+    const change = pending.add({ kind, vacationIds: ids, reason });
+    const response = await sendJson(apiFetch, clock, decisionRequest(kind, ids, reason));
+    // The answer carries no rows, so the store writes what the change expected and the pull that
+    // follows overwrites it with the server's own row.
+    return settle(change, response, () => storeProvisionalVacations(runtime, change));
+  };
+
   return {
     async createVacation(draft) {
       const change = pending.add({ kind: "create", draft });
-      const response = await postJson(apiFetch, clock, CREATE_VACATION_PATH, draft);
-
-      if (response.type === "unauthorized") {
-        pending.remove(change.id);
-        onUnauthorized();
-        // The signed-out wipe is the feedback; there is nothing for the caller to say.
-        return { ok: true };
-      }
-
-      if (response.type !== "written") {
-        pending.remove(change.id);
-        return failureOf(response);
-      }
-
-      // The rows land and the change lifts with no await between them, so the bus carries both
-      // in one flush and no read falls in the gap and finds the list empty.
-      storeCreatedVacations(runtime, response.body);
-      pending.remove(change.id);
-      // What the server booked around these rows — a quota, a notification's twin — comes next.
-      void pull("after-write");
-      return WRITTEN;
+      const response = await sendJson(apiFetch, clock, {
+        method: "POST",
+        path: CREATE_VACATION_PATH,
+        body: draft,
+      });
+      return settle(change, response, (body) => storeWrittenVacations(runtime, body));
     },
+
+    async updateVacation({ ids, ...update }) {
+      // Nothing to edit is nothing to send; the backend refuses an empty list anyway.
+      if (ids.length === 0) return WRITTEN;
+
+      const change = pending.add({ kind: "update", vacationIds: ids, update });
+      const response = await sendJson(apiFetch, clock, {
+        method: "PATCH",
+        path: VACATION_PATH,
+        body: { ids, ...update },
+      });
+      return settle(change, response, (body) => storeWrittenVacations(runtime, body));
+    },
+
+    approveVacations: (ids) => decide("approve", ids),
+
+    rejectVacations: (ids, reason) => decide("reject", ids, reason),
+
+    cancelVacations: (ids, reason) => decide("cancel", ids, reason),
   };
 }
