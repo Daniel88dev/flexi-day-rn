@@ -198,3 +198,5 @@ export const schema = {
   vacations,
   syncState,
 };
+
+export type StoreTableName = keyof typeof schema;
