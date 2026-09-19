@@ -48,7 +48,8 @@
             "ios": ["en", "cs"]
           }
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true

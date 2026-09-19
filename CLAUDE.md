@@ -35,6 +35,10 @@ the re-sign loop and how the app finds the backend are in
 Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 27 kills an app
 built with Xcode 27 that lacks it, and only a real phone shows that.
 
+Adding a native module — `expo-sqlite` is one — means `npm run prebuild` and then `npm run ios`
+or `npm run ios:device` to rebuild the dev client. Metro alone cannot load it, and the JavaScript
+fails at the import with a missing native module until the rebuild lands.
+
 The backend base URL comes from `src/lib/api.ts`: `EXPO_PUBLIC_API_URL` when set, otherwise the
 Metro host on port 8080. Never hardcode `localhost`; a phone cannot reach it.
 
@@ -60,6 +64,23 @@ v4 with Tailwind v3 and rejects OKLCH, so never install `nativewind` without the
 - `className` only works on React Native core components. Third-party ones, including
   `SafeAreaView` from `react-native-safe-area-context`, silently drop it; use a `View` with the
   `pt-safe` / `pb-safe` utilities for safe areas instead.
+
+## The local store
+
+`src/lib/local-store/` is one deep module: its `index.ts` is the whole interface and screens
+import nothing else. The schema, the connection, the adapters and the generated DDL stay
+unexported.
+
+It is a cache, so it never migrates. `drizzle-kit generate` writes the one migration file in
+`src/lib/local-store/drizzle/`, and `npm run store:ddl` regenerates it and copies it into
+`ddl.generated.ts`; neither is edited by hand. A schema change is: edit `schema.ts`, run
+`npm run store:ddl`, bump `STORE_VERSION` in `version.ts`. On open, a `STORE_VERSION` that differs
+from `PRAGMA user_version` deletes the file and creates it again, and the next sync pull refills
+it from a snapshot.
+
+The seam is the Drizzle instance: expo-sqlite on the device, `better-sqlite3` in Jest, on the same
+schema and the same DDL. Everything below the adapter is shared code, so the store's SQL is tested
+without a device.
 
 ## Testing
 
