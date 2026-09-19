@@ -17,7 +17,7 @@ approval before starting any non-trivial implementation.
 Every request goes to `flexi-day-be`. This repo holds no server code and no business rules the
 backend already enforces. The local store is a projection of the server, never a source of truth,
 and writes need connectivity. `CONTEXT.md` defines the words for that (local store, sync pull,
-sync cursor, tombstone, pending change); use them, not synonyms.
+sync cursor, tombstone, sync reset, pending change, provisional row); use them, not synonyms.
 
 ## Continuous native generation
 
@@ -71,12 +71,32 @@ v4 with Tailwind v3 and rejects OKLCH, so never install `nativewind` without the
 import nothing else. The schema, the connection, the adapters and the generated DDL stay
 unexported.
 
-It is a cache, so it never migrates. `drizzle-kit generate` writes the one migration file in
-`src/lib/local-store/drizzle/`, and `npm run store:ddl` regenerates it and copies it into
-`ddl.generated.ts`; neither is edited by hand. A schema change is: edit `schema.ts`, run
-`npm run store:ddl`, bump `STORE_VERSION` in `version.ts`. On open, a `STORE_VERSION` that differs
-from `PRAGMA user_version` deletes the file and creates it again, and the next sync pull refills
-it from a snapshot.
+It is a cache, so it never migrates
+([`docs/adr/0002`](docs/adr/0002-local-store-is-a-cache-never-migrated.md)). `drizzle-kit generate`
+writes the one migration file in `src/lib/local-store/drizzle/`, and `npm run store:ddl`
+regenerates it and copies it into `ddl.generated.ts`; neither is edited by hand. A schema change
+is: edit `schema.ts`, run `npm run store:ddl`, which deletes that folder and regenerates it, then
+bump `STORE_VERSION` in `version.ts`. On open, a `STORE_VERSION` that differs from
+`PRAGMA user_version` deletes the file and creates it again, and the next sync pull refills it
+from a snapshot. `__tests__/ddl-drift.test.ts` fails on a schema changed without a regeneration,
+so the only step it cannot catch is the version bump.
+
+Pending changes are never persisted. `pending.ts` keeps them in memory and the queries module lays
+them over the rows they target; nothing about them reaches SQLite. A restart mid-request leaves
+nothing behind and the next pull tells the truth. Never repair a lost pending change by writing it
+to a table: that is the offline outbox this repo does not have. A write the server confirms without
+sending rows writes a provisional row instead, and the after-write pull overwrites it.
+
+The native session meets the store at three points, and
+[Daniel88dev/flexi-day-rn#4](https://github.com/Daniel88dev/flexi-day-rn/issues/4) finishes each of
+them. The user id passed to `openStore` comes from `useViewer()`'s placeholder in
+`src/app/(app)/_layout.tsx`; the store opens one fixed file, `flexi-day.db`, stamps that id into
+`syncState`, and wipes and recreates the file when it opens with a different one. `apiFetch` in
+`index.ts` is a real `fetch` against `API_URL` that carries no session cookie yet. The
+`onUnauthorized` callback passed at open already works: the module's default destroys the store and
+the layout passes its own sign-out, and only the session's half of the wipe is missing. The session
+work replaces the placeholder id and wraps the fetch with the cookie, and `destroyStore()` is what
+the signed-out wipe calls. Keep the session out of the rest of the module.
 
 The seam is the Drizzle instance: expo-sqlite on the device, `better-sqlite3` in Jest, on the same
 schema and the same DDL. Everything below the adapter is shared code, so the store's SQL is tested
