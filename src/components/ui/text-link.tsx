@@ -8,11 +8,13 @@ import { cn } from "@/lib/cn";
 export function TextLink({
   label,
   external,
+  size = 15,
   className,
   ...props
 }: Omit<PressableProps, "children"> & {
   label: string;
   external?: boolean;
+  size?: number;
   className?: string;
 }) {
   return (
@@ -22,8 +24,10 @@ export function TextLink({
       hitSlop={8}
       className={cn("flex-row items-center gap-1", className)}
     >
-      <Text className="text-[15px] font-semibold text-primary">{label}</Text>
-      {external ? <Icon icon={ArrowUpRightIcon} tone="primary" size={15} weight="bold" /> : null}
+      <Text className="font-semibold text-primary" style={{ fontSize: size }}>
+        {label}
+      </Text>
+      {external ? <Icon icon={ArrowUpRightIcon} tone="primary" size={size} weight="bold" /> : null}
     </Pressable>
   );
 }

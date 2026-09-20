@@ -9,7 +9,10 @@ import { openWebPage } from "@/lib/web";
 
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 
-jest.mock("@/lib/web", () => ({ openWebPage: jest.fn() }));
+jest.mock("@/lib/web", () => ({
+  openWebPage: jest.fn(),
+  WEB_PATHS: jest.requireActual("@/lib/web").WEB_PATHS,
+}));
 
 jest.mock("expo-localization", () => ({ getLocales: jest.fn(() => [{ languageCode: "en" }]) }));
 

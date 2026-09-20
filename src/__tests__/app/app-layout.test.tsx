@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react-native";
 
 import AppLayout from "@/app/(app)/_layout";
 import { openStore } from "@/lib/local-store";
+import { authClient } from "@/lib/session/auth-client";
+import { SESSION, VIEWER } from "@/test-support/session";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import type { RootRoute } from "@/lib/session/root-route";
@@ -35,6 +37,8 @@ jest.mock("@/lib/local-store", () => ({
 
 jest.mock("sonner-native", () => ({ Toaster: () => null }));
 
+jest.mock("@/lib/session/auth-client", () => ({ authClient: { useSession: jest.fn() } }));
+
 jest.mock("react-native-gesture-handler", () => ({
   GestureHandlerRootView: jest.requireActual("react-native").View,
 }));
@@ -50,9 +54,11 @@ function renderShell(route: RootRoute) {
 }
 
 const open = openStore as jest.MockedFunction<typeof openStore>;
+const useSession = authClient.useSession as unknown as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useSession.mockReturnValue(SESSION);
 });
 
 describe("AppLayout", () => {
@@ -68,6 +74,6 @@ describe("AppLayout", () => {
 
     expect(screen.queryByText("/welcome")).toBeNull();
     expect(screen.getByTestId("tab-slot")).toBeTruthy();
-    expect(open).toHaveBeenCalled();
+    expect(open).toHaveBeenCalledWith(VIEWER.id, expect.anything());
   });
 });

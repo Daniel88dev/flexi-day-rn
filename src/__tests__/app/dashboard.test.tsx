@@ -4,6 +4,8 @@ import { toast } from "sonner-native";
 import DashboardScreen from "@/app/(app)/dashboard";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
+import { authClient } from "@/lib/session/auth-client";
+import { SESSION } from "@/test-support/session";
 import {
   pull,
   useStoreRowCounts,
@@ -21,12 +23,15 @@ jest.mock("@/lib/local-store", () => ({
 
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
 
+jest.mock("@/lib/session/auth-client", () => ({ authClient: { useSession: jest.fn() } }));
+
 jest.mock("@/components/dashboard/development-card", () => ({ DevelopmentCard: () => null }));
 
 const pullStore = pull as jest.MockedFunction<typeof pull>;
 const rowCounts = useStoreRowCounts as jest.MockedFunction<typeof useStoreRowCounts>;
 const status = useSyncStatus as jest.MockedFunction<typeof useSyncStatus>;
 const toastError = toast.error as jest.MockedFunction<typeof toast.error>;
+const useSession = authClient.useSession as unknown as jest.Mock;
 
 const NO_ROWS: Record<SyncTableName, number> = {
   organizations: 0,
@@ -42,6 +47,7 @@ const NO_ROWS: Record<SyncTableName, number> = {
 beforeEach(() => {
   jest.clearAllMocks();
   pullStore.mockResolvedValue({ ok: true });
+  useSession.mockReturnValue(SESSION);
 });
 
 function fakeStore(
@@ -94,6 +100,23 @@ async function pullToRefresh(): Promise<void> {
 }
 
 describe("DashboardScreen", () => {
+  it("greets the first name of the session's user", async () => {
+    fakeStore();
+
+    await renderDashboard();
+
+    expect(screen.getByText(/Dana$/)).toBeTruthy();
+  });
+
+  it("greets nobody in particular while no session has been read", async () => {
+    useSession.mockReturnValue({ data: null });
+    fakeStore();
+
+    await renderDashboard();
+
+    expect(screen.getByText(new RegExp(`${en.dashboard.fallbackName}$`))).toBeTruthy();
+  });
+
   it("renders the empty card while the store is empty and nothing is pulling", async () => {
     fakeStore();
 

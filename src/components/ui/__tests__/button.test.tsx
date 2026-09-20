@@ -15,4 +15,18 @@ describe("Button", () => {
     await userEvent.press(screen.getByRole("button"));
     expect(onPress).toHaveBeenCalled();
   });
+
+  it("presses nothing while it is disabled", async () => {
+    const onPress = jest.fn();
+    await render(<Button label="Sign in" onPress={onPress} disabled />);
+    await userEvent.press(screen.getByRole("button"));
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it("presses nothing while it is loading", async () => {
+    const onPress = jest.fn();
+    await render(<Button label="Signing in…" onPress={onPress} loading />);
+    await userEvent.press(screen.getByRole("button"));
+    expect(onPress).not.toHaveBeenCalled();
+  });
 });
