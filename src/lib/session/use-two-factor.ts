@@ -62,6 +62,8 @@ export function useTwoFactor({
 }: UseTwoFactorOptions) {
   const { t } = useTranslation();
   const setRootRoute = useSetRootRoute();
+  // setMethod below is what the screen gets; this is the raw setter it wraps.
+  // eslint-disable-next-line @eslint-react/use-state
   const [method, setMethodState] = useState<TwoFactorMethod>(() => defaultTwoFactorMethod(methods));
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,6 +75,9 @@ export function useTwoFactor({
 
   useEffect(() => {
     if (cooldown <= 0) return;
+    // The injected clock returns its own disposer, which is the cleanup this returns. The
+    // rule matches the method name rather than the object it is called on.
+    // eslint-disable-next-line @eslint-react/web-api-no-leaked-timeout
     return clock.setTimeout(() => setCooldown((seconds) => seconds - 1), 1000);
   }, [clock, cooldown]);
 
@@ -113,10 +118,10 @@ export function useTwoFactor({
   }, [auth, canResend, showRefusal, t]);
 
   // One automatic send when email is the factor in use; resends are manual.
-  const autoSent = useRef(false);
+  const autoSentRef = useRef(false);
   useEffect(() => {
-    if (method !== "otp" || autoSent.current) return;
-    autoSent.current = true;
+    if (method !== "otp" || autoSentRef.current) return;
+    autoSentRef.current = true;
     void sendOtp();
   }, [method, sendOtp]);
 

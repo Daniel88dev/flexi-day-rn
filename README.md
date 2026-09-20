@@ -19,7 +19,7 @@ Expo SDK 57, Expo Router, TypeScript, NativeWind v5. It talks to
 | `npm run ios`        | generate `ios/` if needed, build and run the dev client           |
 | `npm run ios:device` | the same, on a plugged-in iPhone ([docs](docs/device-testing.md)) |
 | `npm run prebuild`   | regenerate `ios/` from `app.json` (continuous native gen)         |
-| `npm run lint`       | eslint                                                            |
+| `npm run lint`       | eslint, with warnings failing the run                             |
 | `npm run typecheck`  | `tsc --noEmit`                                                    |
 | `npm run format`     | prettier over the repo                                            |
 | `npm run test`       | jest                                                              |

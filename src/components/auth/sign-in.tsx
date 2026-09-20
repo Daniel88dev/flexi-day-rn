@@ -22,7 +22,7 @@ export function SignIn({
 }) {
   const { t } = useTranslation();
   const form = useSignIn();
-  const password = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   return (
     <View className="flex-1 bg-background pt-safe">
@@ -54,7 +54,7 @@ export function SignIn({
                 textContentType="emailAddress"
                 returnKeyType="next"
                 submitBehavior="submit"
-                onSubmitEditing={() => password.current?.focus()}
+                onSubmitEditing={() => passwordRef.current?.focus()}
               />
               <Field
                 label={t.auth.password}
@@ -70,7 +70,7 @@ export function SignIn({
                 textContentType="password"
                 returnKeyType="go"
                 onSubmitEditing={() => void form.submit()}
-                inputRef={password}
+                inputRef={passwordRef}
               />
               <Button
                 className="mt-1"

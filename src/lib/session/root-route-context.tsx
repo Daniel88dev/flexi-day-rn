@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, use, useMemo, useState, type ReactNode } from "react";
 
 import type { RootRoute } from "./root-route";
 
@@ -8,18 +8,24 @@ type RootRouteState = { route: RootRoute; setRoute: (route: RootRoute) => void }
 // leaves the screen where it is.
 const RootRouteContext = createContext<RootRouteState>({ route: "wait", setRoute: () => {} });
 
-export function RootRouteProvider({ route, children }: { route: RootRoute; children: ReactNode }) {
+export function RootRouteProvider({
+  route: initialRoute,
+  children,
+}: {
+  route: RootRoute;
+  children: ReactNode;
+}) {
   // The launch decision only seeds it. Signing in and the signed-out wipe move it afterwards,
   // and the shell's guard has to see that rather than the answer the launch gave.
-  const [current, setRoute] = useState(route);
-  const value = useMemo(() => ({ route: current, setRoute }), [current]);
-  return <RootRouteContext.Provider value={value}>{children}</RootRouteContext.Provider>;
+  const [route, setRoute] = useState(initialRoute);
+  const value = useMemo(() => ({ route, setRoute }), [route]);
+  return <RootRouteContext value={value}>{children}</RootRouteContext>;
 }
 
 export function useRootRoute(): RootRoute {
-  return useContext(RootRouteContext).route;
+  return use(RootRouteContext).route;
 }
 
 export function useSetRootRoute(): (route: RootRoute) => void {
-  return useContext(RootRouteContext).setRoute;
+  return use(RootRouteContext).setRoute;
 }

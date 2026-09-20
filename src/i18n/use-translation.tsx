@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, use, useMemo, useState, type ReactNode } from "react";
 
 import { deviceLocale, dictionaries, type Dictionary, type Locale } from "@/i18n";
 
@@ -13,11 +13,11 @@ const TranslationContext = createContext<Translation | null>(null);
 export function TranslationProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>(deviceLocale);
   const value = useMemo(() => ({ locale, setLocale, t: dictionaries[locale] }), [locale]);
-  return <TranslationContext.Provider value={value}>{children}</TranslationContext.Provider>;
+  return <TranslationContext value={value}>{children}</TranslationContext>;
 }
 
 export function useTranslation(): Translation {
-  const value = useContext(TranslationContext);
+  const value = use(TranslationContext);
   if (!value) throw new Error("useTranslation must be used inside a TranslationProvider");
   return value;
 }

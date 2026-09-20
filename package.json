@@ -8,7 +8,7 @@
     "ios": "expo run:ios",
     "ios:device": "expo run:ios --device",
     "prebuild": "expo prebuild --platform ios",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -17,6 +17,12 @@
     "test:watch": "jest --watch"
   },
   "license": "MIT",
+  "//": "eslint-plugin-expo declares eslint as a dependency rather than a peer, which pins a second ESLint 9 in the tree. It never requires eslint at runtime — its rules are built on @typescript-eslint/utils — so it reads the root one instead.",
+  "overrides": {
+    "eslint-plugin-expo": {
+      "eslint": "$eslint"
+    }
+  },
   "dependencies": {
     "@better-auth/expo": "^1.7.4",
     "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
@@ -58,19 +64,23 @@
     "tailwindcss": "4.1.12"
   },
   "devDependencies": {
+    "@eslint-react/eslint-plugin": "^5.20.1",
     "@testing-library/react-native": "^14.0.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.4",
     "better-sqlite3": "^13.0.3",
     "drizzle-kit": "^0.31.10",
-    "eslint": "^9.39.5",
-    "eslint-config-expo": "^57.0.2",
+    "eslint": "^10.11.0",
+    "eslint-plugin-expo": "^1.1.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^16.5.0",
     "jest": "~29.7.0",
     "jest-expo": "~57.0.5",
     "prettier": "3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.0"
   },
   "jest": {
     "preset": "jest-expo",
