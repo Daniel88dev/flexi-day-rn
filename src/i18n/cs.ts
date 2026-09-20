@@ -46,6 +46,13 @@ export const cs: Dictionary = {
     daysAgo: (days: number) => `před ${days} d`,
     unreachable: "Nepodařilo se spojit se serverem. Zkuste to znovu.",
   },
+  auth: {
+    welcome: {
+      tagline: "Klidný sdílený kalendář volna pro celý tým.",
+      signIn: "Přihlásit se",
+      createOnWeb: "Vytvořit účet na webu",
+    },
+  },
   account: {
     signOut: "Odhlásit se",
     signOutTitle: "Odhlásit se",

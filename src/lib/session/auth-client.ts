@@ -7,6 +7,9 @@ import { API_URL } from "@/lib/api";
 
 import { attachClientHeaders } from "./client-headers";
 
+/** What the expo plugin names its Keychain entries after: the cookie jar and the session cache. */
+export const STORAGE_PREFIX = "flexi-day";
+
 /**
  * The session's own client: it keeps the cookie jar and the session cache in the Keychain and
  * carries the same client headers the request wrapper sends.
@@ -20,7 +23,7 @@ export const authClient = createAuthClient({
     },
   },
   plugins: [
-    expoClient({ scheme: "flexiday", storagePrefix: "flexi-day", storage: SecureStore }),
+    expoClient({ scheme: "flexiday", storagePrefix: STORAGE_PREFIX, storage: SecureStore }),
     twoFactorClient(),
   ],
 });

@@ -1,4 +1,4 @@
-import { router, type Href } from "expo-router";
+import { Redirect, router, type Href } from "expo-router";
 import { TabList, TabSlot, TabTrigger, Tabs } from "expo-router/ui";
 import { ListIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useState } from "react";
@@ -17,11 +17,13 @@ import {
   splitForTabBar,
   type NavLink,
 } from "@/lib/navigation/shell-links";
+import { useRootRoute } from "@/lib/session/root-route-context";
 import { useViewer } from "@/lib/viewer/use-viewer";
 
 export default function AppLayout() {
   const { t } = useTranslation();
   const viewer = useViewer();
+  const rootRoute = useRootRoute();
   const [moreOpen, setMoreOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
 
@@ -35,8 +37,10 @@ export default function AppLayout() {
     void destroyStore();
   }, []);
 
+  // Nothing of the signed-in user's is opened for a visitor the guard below is about to send
+  // to welcome; the store would be created and wiped for nobody.
   useEffect(() => {
-    if (!viewerId) return;
+    if (!viewerId || rootRoute === "welcome") return;
     let current = true;
     openStore(viewerId, { onUnauthorized: signOut }).then(
       () => current && setStoreOpen(true),
@@ -45,7 +49,11 @@ export default function AppLayout() {
     return () => {
       current = false;
     };
-  }, [viewerId, signOut]);
+  }, [viewerId, rootRoute, signOut]);
+
+  // A deep link into the shell without a session goes back to welcome. The root layout has read
+  // the session cache before any of this mounts, so the answer here is never a guess.
+  if (rootRoute === "welcome") return <Redirect href="/welcome" />;
 
   // Nobody administers anything until the viewer's roles are read from the backend, so the
   // admin sections stay out of the tree rather than rendering empty.

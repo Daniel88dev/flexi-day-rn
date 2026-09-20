@@ -44,6 +44,13 @@ export const en = {
     daysAgo: (days: number) => `${days} d ago`,
     unreachable: "Couldn't reach the server. Try again.",
   },
+  auth: {
+    welcome: {
+      tagline: "The calm, shared calendar for team time off.",
+      signIn: "Sign in",
+      createOnWeb: "Create an account on the web",
+    },
+  },
   account: {
     signOut: "Sign out",
     signOutTitle: "Sign out",
