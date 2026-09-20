@@ -20,13 +20,13 @@ export function CodeBoxes({
   onComplete?: (code: string) => void;
   disabled?: boolean;
 }) {
-  const input = useRef<TextInput>(null);
+  const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
   const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH);
 
   return (
     <Pressable
-      onPress={() => input.current?.focus()}
+      onPress={() => inputRef.current?.focus()}
       disabled={disabled}
       className={cn("flex-row gap-2.5", disabled && "opacity-50")}
     >
@@ -34,6 +34,8 @@ export function CodeBoxes({
         const active = focused && !disabled && box === Math.min(digits.length, CODE_LENGTH - 1);
         return (
           <View
+            // Six slots that never reorder, so the position is the identity.
+            // eslint-disable-next-line @eslint-react/no-array-index-key
             key={box}
             className={cn(
               "h-16 flex-1 items-center justify-center rounded-[12px] border bg-card",
@@ -47,7 +49,7 @@ export function CodeBoxes({
         );
       })}
       <TextInput
-        ref={input}
+        ref={inputRef}
         accessibilityLabel={label}
         value={digits}
         onChangeText={(typed) => {

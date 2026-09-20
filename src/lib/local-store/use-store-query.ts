@@ -14,11 +14,11 @@ export function useStoreQuery<TResult>(
   channels: readonly StoreChannel[]
 ): TResult {
   const runtime = activeStoreRuntime();
-  const subscribed = useRef(channels);
+  const subscribedRef = useRef(channels);
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    subscribed.current = channels;
+    subscribedRef.current = channels;
   });
 
   const key = [...channels].sort().join(",");
@@ -29,7 +29,7 @@ export function useStoreQuery<TResult>(
     };
     // A transaction committing between the first render and this effect would otherwise be missed.
     reread();
-    return runtime.events.subscribe(subscribed.current, reread);
+    return runtime.events.subscribe(subscribedRef.current, reread);
   }, [runtime, key]);
 
   // The rows change behind React's back, so the version stands in for them as a dependency.

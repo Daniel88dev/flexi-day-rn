@@ -2,7 +2,7 @@ import { count } from "drizzle-orm";
 
 import { applyPage, readSyncState, writeSyncState } from "../apply";
 import type { SyncTableName } from "../envelope";
-import { createPullController, type PullController, type PullControllerOptions } from "../pull";
+import { createPullController, type PullControllerOptions } from "../pull";
 import type { StoreRuntime, StoreTransaction } from "../runtime";
 import { schema, type StoreTableName } from "../schema";
 import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
@@ -321,7 +321,6 @@ describe("pull", () => {
   });
 
   it("runs exactly one more loop for the triggers that arrive during one", async () => {
-    let controller: PullController;
     let triggered = false;
     const sync = createFakeSync(
       [
@@ -337,7 +336,7 @@ describe("pull", () => {
         },
       }
     );
-    controller = controllerFor(sync);
+    const controller = controllerFor(sync);
 
     await controller.pull("foreground");
 
@@ -453,7 +452,6 @@ describe("pull", () => {
   });
 
   it("keeps one flight open across the rerun a trigger queued during it", async () => {
-    let controller: PullController;
     let settled = false;
     const sync = createFakeSync(
       [reply.page(syncPage({ hasMore: false, cursor: "page-1" })), reply.hang()],
@@ -463,7 +461,7 @@ describe("pull", () => {
         },
       }
     );
-    controller = controllerFor(sync);
+    const controller = controllerFor(sync);
 
     const pulling = controller.pull("refresh").then((outcome) => {
       settled = true;
