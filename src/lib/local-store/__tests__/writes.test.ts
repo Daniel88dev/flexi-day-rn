@@ -37,14 +37,12 @@ function createdRow(row: Partial<ReturnType<typeof vacationRow>> = {}) {
 let clock: FakeClock;
 let store: StoreRuntime;
 let pending: PendingChanges;
-let onUnauthorized: jest.Mock;
 let pull: jest.Mock<Promise<PullOutcome>, [string]>;
 
 beforeEach(async () => {
   clock = createFakeClock(NOW);
   store = await openTestStore("user-1", { clock });
   pending = activePendingChanges();
-  onUnauthorized = jest.fn();
   pull = jest.fn<Promise<PullOutcome>, [string]>(() => Promise.resolve({ ok: true }));
   store.write((transaction) => applyPage(transaction, syncPage({ groups: [groupRow()] }), 1));
 });
@@ -61,7 +59,6 @@ function buildWrites(replies: FakeSyncReply[]) {
     clock,
     pending,
     pull,
-    onUnauthorized,
   });
   return { sync, writes };
 }
@@ -216,13 +213,12 @@ describe("createVacation", () => {
     });
   });
 
-  it("returns ok and hands a 401 to the unauthorized callback, with nothing to say", async () => {
+  it("returns ok on a 401, with nothing to say", async () => {
     const { writes } = buildWrites([reply.status(401, "Unauthorized")]);
 
     const outcome = await writes.createVacation(DRAFT);
 
     expect(outcome).toEqual({ ok: true });
-    expect(onUnauthorized).toHaveBeenCalledTimes(1);
     expect(pending.list()).toEqual([]);
     expect(storedVacations()).toEqual([]);
   });
@@ -353,12 +349,11 @@ describe("updateVacation", () => {
     expect(pending.list()).toEqual([]);
   });
 
-  it("returns ok and hands a 401 to the unauthorized callback", async () => {
+  it("returns ok on a 401", async () => {
     storeVacations(store, vacationRow({ id: "vacation-1" }));
     const { writes } = buildWrites([reply.status(401, "Unauthorized")]);
 
     expect(await writes.updateVacation(EDIT)).toEqual({ ok: true });
-    expect(onUnauthorized).toHaveBeenCalledTimes(1);
     expect(storedVacations()).toEqual([expect.objectContaining({ halfDay: false })]);
     expect(pending.list()).toEqual([]);
   });
@@ -517,12 +512,11 @@ describe("approveVacations", () => {
     expect(pending.list()).toEqual([]);
   });
 
-  it("returns ok and hands a 401 to the unauthorized callback, writing nothing", async () => {
+  it("returns ok on a 401, writing nothing", async () => {
     storeVacations(store, vacationRow({ id: "vacation-1" }));
     const { writes } = buildWrites([reply.status(401, "Unauthorized")]);
 
     expect(await writes.approveVacations(["vacation-1"])).toEqual({ ok: true });
-    expect(onUnauthorized).toHaveBeenCalledTimes(1);
     expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
     expect(pending.list()).toEqual([]);
   });
@@ -611,12 +605,11 @@ describe("rejectVacations", () => {
     expect(pending.list()).toEqual([]);
   });
 
-  it("returns ok and hands a 401 to the unauthorized callback, writing nothing", async () => {
+  it("returns ok on a 401, writing nothing", async () => {
     storeVacations(store, vacationRow({ id: "vacation-1" }));
     const { writes } = buildWrites([reply.status(401, "Unauthorized")]);
 
     expect(await writes.rejectVacations(["vacation-1"])).toEqual({ ok: true });
-    expect(onUnauthorized).toHaveBeenCalledTimes(1);
     expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
   });
 });
@@ -705,12 +698,11 @@ describe("cancelVacations", () => {
     expect(pending.list()).toEqual([]);
   });
 
-  it("returns ok and hands a 401 to the unauthorized callback, writing nothing", async () => {
+  it("returns ok on a 401, writing nothing", async () => {
     storeVacations(store, vacationRow({ id: "vacation-1" }));
     const { writes } = buildWrites([reply.status(401, "Unauthorized")]);
 
     expect(await writes.cancelVacations(["vacation-1"])).toEqual({ ok: true });
-    expect(onUnauthorized).toHaveBeenCalledTimes(1);
     expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
   });
 

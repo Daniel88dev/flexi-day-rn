@@ -26,7 +26,6 @@ export function pullOptions({
     clock,
     apiFetch: sync.apiFetch,
     isOnline: () => Promise.resolve(true),
-    onUnauthorized: () => {},
     ...overrides,
   };
 }

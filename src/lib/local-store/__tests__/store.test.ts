@@ -57,22 +57,26 @@ describe("createStore", () => {
     });
   });
 
-  it("hands a 401 to the callback the caller opened the store with", async () => {
+  it("hands an unauthorized request to the callback the caller opened the store with", async () => {
     const store = buildStore([reply.status(401)]);
     const onUnauthorized = jest.fn();
 
     await store.openStore("user-1", { onUnauthorized });
     await tick();
+    store.handleUnauthorized();
 
     expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    // A 401 the pull saw is no error to record; the wrapper is what answers it.
     expect(activePullController().status().lastError).toBeNull();
     expect(store.runtime.isOpen()).toBe(true);
   });
 
-  it("destroys the store on a 401 when the caller passed no callback", async () => {
+  it("destroys the store on an unauthorized request when the caller passed no callback", async () => {
     const store = buildStore([reply.status(401)]);
 
     await store.openStore("user-1");
+    await tick();
+    store.handleUnauthorized();
     await tick();
 
     expect(store.runtime.isOpen()).toBe(false);

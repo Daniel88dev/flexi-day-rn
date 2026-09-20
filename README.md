@@ -26,6 +26,16 @@ Expo SDK 57, Expo Router, TypeScript, NativeWind v5. It talks to
 
 `ios/` is generated and gitignored. Native configuration goes into `app.json` or a config plugin.
 
+## Environment
+
+Both are optional and read as literal `process.env.EXPO_PUBLIC_*` expressions, so Expo inlines
+them at build time. Copy [`.env.example`](.env.example) to `.env` to set them.
+
+| Variable              | What it does                                                                                               |
+| --------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `EXPO_PUBLIC_API_URL` | the backend. Without it the app targets the Metro host on port 8080, so a phone on the LAN reaches the Mac |
+| `EXPO_PUBLIC_WEB_URL` | the web app the phone links out to for sign-up and password reset. Defaults to `https://flexi-day.com`     |
+
 ## Contributing
 
 `main` is protected. Every change goes on a branch and merges by squash through a PR. CI runs

@@ -35,9 +35,12 @@ the re-sign loop and how the app finds the backend are in
 Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 27 kills an app
 built with Xcode 27 that lacks it, and only a real phone shows that.
 
-Adding a native module — `expo-sqlite` is one — means `npm run prebuild` and then `npm run ios`
-or `npm run ios:device` to rebuild the dev client. Metro alone cannot load it, and the JavaScript
-fails at the import with a missing native module until the rebuild lands.
+Adding a native module — `expo-sqlite`, `expo-secure-store`, `expo-crypto`, `expo-application`
+and `expo-web-browser` are the ones here — means `npm run prebuild` and then `npm run ios` or
+`npm run ios:device` to rebuild the dev client. Metro alone cannot load them, and the JavaScript
+fails at the import with a missing native module until the rebuild lands. A non-interactive shell
+has no UTF-8 `LANG`, and CocoaPods quits without one, so run `LANG=en_US.UTF-8 npm run prebuild`
+there.
 
 The backend base URL comes from `src/lib/api.ts`: `EXPO_PUBLIC_API_URL` when set, otherwise the
 Metro host on port 8080. Never hardcode `localhost`; a phone cannot reach it.
@@ -92,11 +95,13 @@ The native session meets the store at three points, and
 them. The user id passed to `openStore` comes from `useViewer()`'s placeholder in
 `src/app/(app)/_layout.tsx`; the store opens one fixed file, `flexi-day.db`, stamps that id into
 `syncState`, and wipes and recreates the file when it opens with a different one. `apiFetch` in
-`index.ts` is a real `fetch` against `API_URL` that carries no session cookie yet. The
-`onUnauthorized` callback passed at open already works: the module's default destroys the store and
-the layout passes its own sign-out, and only the session's half of the wipe is missing. The session
-work replaces the placeholder id and wraps the fetch with the cookie, and `destroyStore()` is what
-the signed-out wipe calls. Keep the session out of the rest of the module.
+`index.ts` is the request wrapper from `src/lib/api.ts`, so every call it makes carries the client
+headers and whatever the auth client's cookie jar holds. A 401 reaches `handleUnauthorized()`, the
+store's one overridable handler: the module's default destroys the store, and the layout passes its
+own sign-out through `openStore`. The pull and the writes only report an unauthorized answer in
+their own result; they no longer call the handler themselves. The session work replaces the
+placeholder id, and the signed-out wipe becomes that callback and calls `destroyStore()`. Keep the
+session out of the rest of the module.
 
 The seam is the Drizzle instance: expo-sqlite on the device, `better-sqlite3` in Jest, on the same
 schema and the same DDL. Everything below the adapter is shared code, so the store's SQL is tested

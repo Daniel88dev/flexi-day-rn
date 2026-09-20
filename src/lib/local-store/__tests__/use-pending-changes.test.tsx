@@ -69,7 +69,6 @@ function buildWrites(apiFetch: StoreFetch): StoreWrites {
     clock,
     pending,
     pull: () => Promise.resolve({ ok: true }),
-    onUnauthorized: jest.fn(),
   });
 }
 

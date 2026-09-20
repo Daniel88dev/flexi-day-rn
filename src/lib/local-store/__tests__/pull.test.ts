@@ -29,12 +29,10 @@ const TOMBSTONED = "2026-09-19T11:00:00.000Z";
 
 let store: StoreRuntime;
 let clock: FakeClock;
-let unauthorized: jest.Mock;
 
 beforeEach(async () => {
   store = await openTestStore();
   clock = createFakeClock(NOW);
-  unauthorized = jest.fn();
 });
 
 afterEach(async () => {
@@ -42,9 +40,7 @@ afterEach(async () => {
 });
 
 function controllerFor(sync: FakeSync, overrides: Partial<PullControllerOptions> = {}) {
-  return createPullController(
-    pullOptions({ runtime: store, clock, sync, onUnauthorized: unauthorized, ...overrides })
-  );
+  return createPullController(pullOptions({ runtime: store, clock, sync, ...overrides }));
 }
 
 function pullWith(replies: FakeSyncReply[], overrides: Partial<PullControllerOptions> = {}) {
@@ -380,12 +376,11 @@ describe("pull", () => {
     expect(storedSyncState()?.lastPulledAt).toBeNull();
   });
 
-  it("hands a rejected session to the unauthorized callback without recording an error", async () => {
+  it("returns ok for a rejected session without recording an error", async () => {
     const { controller } = pullWith([reply.status(401)]);
 
-    await controller.pull("foreground");
+    await expect(controller.pull("foreground")).resolves.toEqual({ ok: true });
 
-    expect(unauthorized).toHaveBeenCalledTimes(1);
     expect(controller.status().lastError).toBeNull();
   });
 
@@ -394,7 +389,6 @@ describe("pull", () => {
 
     await controller.pull("foreground");
 
-    expect(unauthorized).not.toHaveBeenCalled();
     expect(controller.status().lastError).toContain("500");
   });
 

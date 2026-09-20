@@ -17,7 +17,7 @@ export type StoreOptions = {
 };
 
 export type OpenStoreOptions = {
-  /** What a 401 from the sync pull means: the signed-out wipe, once the native session lands. */
+  /** What an unauthorized request means: the signed-out wipe, once the native session lands. */
   onUnauthorized?: () => void;
 };
 
@@ -25,6 +25,8 @@ export type Store = StoreWrites & {
   runtime: StoreRuntime;
   openStore(userId: string, options?: OpenStoreOptions): Promise<void>;
   destroyStore(): Promise<void>;
+  /** What the request wrapper calls on a 401: the one place a rejected session is answered. */
+  handleUnauthorized(): void;
   pull(reason: PullReason): Promise<PullOutcome>;
 };
 
@@ -44,18 +46,12 @@ export function createStore({ adapter, apiFetch, clock, isOnline, appState }: St
   };
 
   const wipeOnUnauthorized = () => {
-    console.warn("The sync pull was not authorized; destroying the local store.");
+    console.warn("The request was not authorized; destroying the local store.");
     void destroyStore();
   };
 
   let onUnauthorized = wipeOnUnauthorized;
-  const controller = installPullController({
-    runtime,
-    apiFetch,
-    clock,
-    isOnline,
-    onUnauthorized: () => onUnauthorized(),
-  });
+  const controller = installPullController({ runtime, apiFetch, clock, isOnline });
   const triggers = createPullTriggers({ runtime, controller, clock, appState });
   const pending = installPendingChanges({ runtime, clock });
   const writes = createStoreWrites({
@@ -64,13 +60,13 @@ export function createStore({ adapter, apiFetch, clock, isOnline, appState }: St
     clock,
     pending,
     pull: (reason) => triggers.pull(reason),
-    onUnauthorized: () => onUnauthorized(),
   });
 
   return {
     ...writes,
     runtime,
     destroyStore,
+    handleUnauthorized: () => onUnauthorized(),
 
     async openStore(userId, options = {}) {
       onUnauthorized = options.onUnauthorized ?? wipeOnUnauthorized;
