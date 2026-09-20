@@ -4,9 +4,8 @@ import { KeyboardAvoidingView, ScrollView, View } from "react-native";
 import { ScreenHeader } from "@/components/auth/screen-header";
 import { Button } from "@/components/ui/button";
 import { CodeBoxes } from "@/components/ui/code-boxes";
-import { ErrorNotice } from "@/components/ui/error-notice";
 import { Field } from "@/components/ui/field";
-import { SuccessNotice } from "@/components/ui/success-notice";
+import { Notice } from "@/components/ui/notice";
 import { Text } from "@/components/ui/text";
 import { TextLink } from "@/components/ui/text-link";
 import { useTranslation } from "@/i18n/use-translation";
@@ -34,8 +33,8 @@ export function TwoFactor({ methods, onBack }: { methods: string[]; onBack: () =
               {form.description}
             </Text>
             <View className="mt-7 gap-4">
-              {form.error ? <ErrorNotice message={form.error} /> : null}
-              {form.info ? <SuccessNotice message={form.info} /> : null}
+              {form.error ? <Notice tone="error" message={form.error} /> : null}
+              {form.info ? <Notice tone="success" message={form.info} /> : null}
               {form.method === "backup" ? (
                 <Field
                   label={t.auth.twoFactor.backupCode}

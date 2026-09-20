@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 
 import WelcomeScreen from "@/app/(auth)/welcome";
 import { cs } from "@/i18n/cs";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
+import { clearSignedOutNotice, showSignedOutNotice } from "@/lib/session/signed-out-notice";
 import { openWebPage } from "@/lib/web";
 
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
@@ -22,6 +23,7 @@ const openPage = openWebPage as jest.MockedFunction<typeof openWebPage>;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  clearSignedOutNotice();
   getLocales.mockReturnValue([{ languageCode: "en" }]);
   openPage.mockResolvedValue(undefined);
 });
@@ -81,5 +83,39 @@ describe("WelcomeScreen", () => {
     fireEvent.press(screen.getByText(en.auth.welcome.createOnWeb));
 
     expect(openPage).toHaveBeenCalledWith("/sign-up/");
+  });
+});
+
+describe("WelcomeScreen, after a signed-out wipe", () => {
+  it("says nothing on a phone that was never signed out", async () => {
+    await renderWelcome();
+
+    expect(screen.queryByText(en.auth.welcome.signedOut)).toBeNull();
+  });
+
+  it("shows the notice the wipe left", async () => {
+    showSignedOutNotice();
+
+    await renderWelcome();
+
+    expect(screen.getByText(en.auth.welcome.signedOut)).toBeTruthy();
+  });
+
+  it("shows the notice in Czech for a phone set to Czech", async () => {
+    speakCzech();
+    showSignedOutNotice();
+
+    await renderWelcome();
+
+    expect(screen.getByText(cs.auth.welcome.signedOut)).toBeTruthy();
+  });
+
+  it("drops the notice once a sign-in has answered it", async () => {
+    showSignedOutNotice();
+    await renderWelcome();
+
+    await act(async () => clearSignedOutNotice());
+
+    expect(screen.queryByText(en.auth.welcome.signedOut)).toBeNull();
   });
 });

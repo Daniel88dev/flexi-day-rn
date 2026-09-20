@@ -1,8 +1,8 @@
 import { API_URL, createApiFetch } from "@/lib/api";
+import { deviceAppState } from "@/lib/app-state";
 import { sessionCookie } from "@/lib/session/auth-client";
 import { currentClientHeaders } from "@/lib/session/client-headers";
 
-import { deviceAppState } from "./app-state";
 import { systemClock } from "./clock";
 import { createExpoSqliteAdapter } from "./expo-adapter";
 import type { StoreFetch } from "./fetch";

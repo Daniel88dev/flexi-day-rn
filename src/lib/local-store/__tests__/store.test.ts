@@ -2,7 +2,7 @@ import { readSyncState } from "../apply";
 import { activePullController } from "../pull";
 import { createStore, type Store } from "../store";
 import { createBetterSqlite3Adapter } from "../test-support/better-sqlite3-adapter";
-import { createFakeAppState, type FakeAppState } from "../test-support/fake-app-state";
+import { createFakeAppState, type FakeAppState } from "@/test-support/fake-app-state";
 import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
 import {
   createFakeSync,

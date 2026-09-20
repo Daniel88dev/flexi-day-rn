@@ -92,16 +92,17 @@ sending rows writes a provisional row instead, and the after-write pull overwrit
 
 The native session meets the store at three points, and
 [Daniel88dev/flexi-day-rn#4](https://github.com/Daniel88dev/flexi-day-rn/issues/4) finishes each of
-them. The user id passed to `openStore` comes from `useViewer()`'s placeholder in
+them. The user id passed to `openStore` comes from the session, through `useViewer()` in
 `src/app/(app)/_layout.tsx`; the store opens one fixed file, `flexi-day.db`, stamps that id into
 `syncState`, and wipes and recreates the file when it opens with a different one. `apiFetch` in
 `index.ts` is the request wrapper from `src/lib/api.ts`, so every call it makes carries the client
 headers and whatever the auth client's cookie jar holds. A 401 reaches `handleUnauthorized()`, the
-store's one overridable handler: the module's default destroys the store, and the layout passes its
-own sign-out through `openStore`. The pull and the writes only report an unauthorized answer in
-their own result; they no longer call the handler themselves. The session work replaces the
-placeholder id, and the signed-out wipe becomes that callback and calls `destroyStore()`. Keep the
-session out of the rest of the module.
+store's one overridable handler: the shell passes the signed-out wipe
+(`src/lib/session/signed-out-wipe.ts`) through `openStore`, and the wipe calls `destroyStore()`
+itself along with everything else the phone holds. The module's own default, a bare destroy, only
+answers a request nobody opened the store for. The pull and the writes only report an unauthorized
+answer in their own result; they no longer call the handler themselves. Keep the session out of the
+rest of the module.
 
 The seam is the Drizzle instance: expo-sqlite on the device, `better-sqlite3` in Jest, on the same
 schema and the same DDL. Everything below the adapter is shared code, so the store's SQL is tested

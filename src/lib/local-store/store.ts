@@ -1,5 +1,6 @@
+import type { AppStateSource } from "@/lib/app-state";
+
 import type { StoreAdapter } from "./adapter";
-import type { AppStateSource } from "./app-state";
 import type { StoreClock } from "./clock";
 import type { StoreFetch } from "./fetch";
 import { installPendingChanges } from "./pending";

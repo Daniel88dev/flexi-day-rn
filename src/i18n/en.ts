@@ -50,6 +50,7 @@ export const en = {
     password: "Password",
     welcome: {
       tagline: "The calm, shared calendar for team time off.",
+      signedOut: "You're signed out. Sign in again to pick up where you left off.",
       signIn: "Sign in",
       createOnWeb: "Create an account on the web",
     },

@@ -10,14 +10,17 @@ import { ClockButton } from "@/components/shell/clock-button";
 import { MoreSheet } from "@/components/shell/more-sheet";
 import { TabButton } from "@/components/shell/tab-button";
 import { useTranslation } from "@/i18n/use-translation";
-import { destroyStore, openStore } from "@/lib/local-store";
+import { openStore } from "@/lib/local-store";
 import {
   buildSections,
   buildUtilityLinks,
   splitForTabBar,
   type NavLink,
 } from "@/lib/navigation/shell-links";
+import { useSessionRevalidation } from "@/lib/session/revalidate-session";
 import { useRootRoute } from "@/lib/session/root-route-context";
+import { signOut } from "@/lib/session/sign-out";
+import { useSignedOutWipe } from "@/lib/session/signed-out-wipe";
 import { useViewer } from "@/lib/viewer/use-viewer";
 
 export default function AppLayout() {
@@ -28,28 +31,34 @@ export default function AppLayout() {
   const [storeOpen, setStoreOpen] = useState(false);
 
   const viewerId = viewer?.id;
+  const signedIn = Boolean(viewerId) && rootRoute !== "welcome";
+  const signedOutWipe = useSignedOutWipe();
 
-  // Signing out wipes the cookie jar, the caches and the local store. Only the store exists so
-  // far; the rest waits for the session work, which is also what a 401 from the pull will mean.
-  const signOut = useCallback(() => {
+  // The shell's half of the wipe: the screens it is showing go before the phone lets go of what
+  // they were showing. A 401, a session the server no longer knows, and sign-out all end here.
+  const wipe = useCallback(async () => {
     setMoreOpen(false);
     setStoreOpen(false);
-    void destroyStore();
-  }, []);
+    await signedOutWipe();
+  }, [signedOutWipe]);
+
+  // The session and the sync pull revalidate on the same foreground event, neither waiting for
+  // the other, so a session revoked while the app slept is caught on the way back in.
+  useSessionRevalidation(wipe, { enabled: signedIn });
 
   // Nothing of the signed-in user's is opened for a visitor the guard below is about to send
   // to welcome; the store would be created and wiped for nobody.
   useEffect(() => {
-    if (!viewerId || rootRoute === "welcome") return;
+    if (!viewerId || !signedIn) return;
     let current = true;
-    openStore(viewerId, { onUnauthorized: signOut }).then(
+    openStore(viewerId, { onUnauthorized: () => void wipe() }).then(
       () => current && setStoreOpen(true),
       (error: unknown) => console.error("The local store did not open.", error)
     );
     return () => {
       current = false;
     };
-  }, [viewerId, rootRoute, signOut]);
+  }, [viewerId, signedIn, wipe]);
 
   // A deep link into the shell without a session goes back to welcome. The root layout has read
   // the session cache before any of this mounts, so the answer here is never a guess.
@@ -102,7 +111,7 @@ export default function AppLayout() {
           utility={utility}
           viewer={viewer}
           onNavigate={go}
-          onSignOut={signOut}
+          onSignOut={() => void signOut(wipe)}
         />
       </View>
       <Toaster />

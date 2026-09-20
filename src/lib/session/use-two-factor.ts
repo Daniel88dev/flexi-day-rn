@@ -5,6 +5,7 @@ import { useTranslation } from "@/i18n/use-translation";
 
 import { authClient } from "./auth-client";
 import { useSetRootRoute } from "./root-route-context";
+import { clearSignedOutNotice } from "./signed-out-notice";
 import {
   defaultTwoFactorMethod,
   isChallengeDead,
@@ -144,6 +145,7 @@ export function useTwoFactor({
         if (answer.error) {
           showRefusal(answer.error, method);
         } else {
+          clearSignedOutNotice();
           // The guards read the root route, so it moves before the shell is navigated to.
           setRootRoute("signed-in");
           router.replace("/dashboard");

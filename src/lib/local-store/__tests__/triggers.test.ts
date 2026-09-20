@@ -1,6 +1,6 @@
 import { createPullController, type PullController } from "../pull";
 import type { StoreRuntime } from "../runtime";
-import { createFakeAppState, type FakeAppState } from "../test-support/fake-app-state";
+import { createFakeAppState, type FakeAppState } from "@/test-support/fake-app-state";
 import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
 import {
   createFakeSync,

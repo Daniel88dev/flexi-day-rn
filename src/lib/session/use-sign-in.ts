@@ -5,6 +5,7 @@ import { useTranslation } from "@/i18n/use-translation";
 
 import { authClient } from "./auth-client";
 import { useSetRootRoute } from "./root-route-context";
+import { clearSignedOutNotice } from "./signed-out-notice";
 
 /** Only what the app reads of the answer: the auth client's own shape is a union per plugin. */
 export type SignInAnswer = {
@@ -59,6 +60,7 @@ export function useSignIn(signIn: SignInWithEmail = signInThroughAuthClient) {
       } else if (methods) {
         router.push(twoFactorHref(methods));
       } else {
+        clearSignedOutNotice();
         // The guards read the root route, so it moves before the shell is navigated to, and the
         // button stays in its loading state because this screen is on its way out.
         setRootRoute("signed-in");

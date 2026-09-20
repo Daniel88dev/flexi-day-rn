@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { useRootRoute, RootRouteProvider } from "@/lib/session/root-route-context";
+import { showSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
 import { useSignIn, type SignInAnswer, type SignInWithEmail } from "@/lib/session/use-sign-in";
 
 jest.mock("expo-router", () => ({ router: { push: jest.fn(), replace: jest.fn() } }));
@@ -171,5 +172,35 @@ describe("useSignIn", () => {
     });
 
     expect(result.current.form.loading).toBe(false);
+  });
+});
+
+describe("useSignIn, after a signed-out wipe", () => {
+  it("clears the welcome notice the wipe left once the session is back", async () => {
+    showSignedOutNotice();
+    const signIn: SignInWithEmail = jest.fn().mockResolvedValue({ data: { token: "a-token" } });
+    const { result } = await signInWith(signIn);
+
+    await fillIn(result.current.form, "owner@dev.local", "a-password");
+    await act(async () => {
+      await result.current.form.submit();
+    });
+
+    expect(signedOutNoticeShowing()).toBe(false);
+  });
+
+  it("leaves the notice up while the server refuses the credentials", async () => {
+    showSignedOutNotice();
+    const signIn: SignInWithEmail = jest
+      .fn()
+      .mockResolvedValue({ error: { message: "Invalid email or password" } });
+    const { result } = await signInWith(signIn);
+
+    await fillIn(result.current.form, "owner@dev.local", "a-password");
+    await act(async () => {
+      await result.current.form.submit();
+    });
+
+    expect(signedOutNoticeShowing()).toBe(true);
   });
 });

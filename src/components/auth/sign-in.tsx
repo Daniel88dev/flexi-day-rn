@@ -4,8 +4,8 @@ import { KeyboardAvoidingView, ScrollView, TextInput, View } from "react-native"
 
 import { ScreenHeader } from "@/components/auth/screen-header";
 import { Button } from "@/components/ui/button";
-import { ErrorNotice } from "@/components/ui/error-notice";
 import { Field } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { Text } from "@/components/ui/text";
 import { TextLink } from "@/components/ui/text-link";
 import { useTranslation } from "@/i18n/use-translation";
@@ -40,7 +40,7 @@ export function SignIn({
               {t.auth.signIn.description}
             </Text>
             <View className="mt-7 gap-4">
-              {form.error ? <ErrorNotice message={form.error} /> : null}
+              {form.error ? <Notice tone="error" message={form.error} /> : null}
               <Field
                 label={t.auth.workEmail}
                 icon={EnvelopeIcon}

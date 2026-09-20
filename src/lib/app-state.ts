@@ -1,6 +1,6 @@
 import { AppState } from "react-native";
 
-/** The app coming back to the foreground, as the store sees it: a fake stands in for Jest. */
+/** The app coming back to the foreground: the sync pull and the session both run on it. */
 export type AppStateSource = {
   subscribe(onActive: () => void): () => void;
 };

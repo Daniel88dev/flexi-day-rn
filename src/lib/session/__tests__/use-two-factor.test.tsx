@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { RootRouteProvider, useRootRoute } from "@/lib/session/root-route-context";
+import { showSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
 import { useTwoFactor } from "@/lib/session/use-two-factor";
 import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
 import { fakeTwoFactorAuth, type TwoFactorMocks } from "@/test-support/two-factor";
@@ -266,5 +267,20 @@ describe("useTwoFactor", () => {
     });
 
     expect(auth.verifyTotp).not.toHaveBeenCalled();
+  });
+});
+
+describe("useTwoFactor, after a signed-out wipe", () => {
+  it("clears the welcome notice the wipe left once the second factor is accepted", async () => {
+    showSignedOutNotice();
+    const auth = fakeTwoFactorAuth();
+    const { result } = await renderTwoFactor(["totp"], auth, createFakeClock());
+
+    await act(async () => {
+      await result.current.form.submit("123456");
+    });
+
+    expect(replace).toHaveBeenCalledWith("/dashboard");
+    expect(signedOutNoticeShowing()).toBe(false);
   });
 });

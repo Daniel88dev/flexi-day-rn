@@ -52,6 +52,7 @@ export const cs: Dictionary = {
     password: "Heslo",
     welcome: {
       tagline: "Klidný sdílený kalendář volna pro celý tým.",
+      signedOut: "Jste odhlášeni. Přihlaste se znovu a pokračujte tam, kde jste skončili.",
       signIn: "Přihlásit se",
       createOnWeb: "Vytvořit účet na webu",
     },
