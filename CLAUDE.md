@@ -62,11 +62,59 @@ v4 with Tailwind v3 and rejects OKLCH, so never install `nativewind` without the
   only switch. Never call `Appearance.setColorScheme`.
 - Native `rem` is pinned to 16px in `theme.css`; radii are px. Shadows use NativeWind's
   `elevation-*` and `shadow-*` utilities, not the web's `--shadow-*` strings.
-- Fonts are not embedded yet. The first screen prototype adds them through the `expo-font` config
-  plugin.
+- The font files are embedded through the `expo-font` config plugin in `app.json`. Native text
+  inherits nothing, so every text node goes through `Text` from `src/components/ui/text.tsx`,
+  which adds `font-sans`.
+- Never put an opacity modifier on a token. `bg-primary/10` compiles to `color-mix()` on this
+  release and paints nothing. The primary tint has a utility of its own, `bg-accent`, because
+  `--accent` is `var(--primary-soft)` in `src/theme.css`; warm, danger and ok have their own
+  `*-soft` utilities; anything else takes an inline `opacity`, as `src/components/ui/logo.tsx`
+  does for its halo.
+- One radius scale for new screens, settled by the prototypes: `rounded-full` for buttons and
+  links, 24 px for cards and slots, 16 px for tiles and rows, 12 px for fields. The `--radius-*`
+  tokens are the web's derived values and only `rounded-lg` lands on the scale, so the rest are
+  written as px, the way the fields use `rounded-[12px]`. The shell predates it: the dashboard
+  cards are `rounded-2xl` and `rounded-3xl`, the More sheet is `rounded-t-[28px]` with its
+  pressable rows at `rounded-2xl`, and moving them is open work.
 - `className` only works on React Native core components. Third-party ones, including
   `SafeAreaView` from `react-native-safe-area-context`, silently drop it; use a `View` with the
   `pt-safe` / `pb-safe` utilities for safe areas instead.
+
+## The native session
+
+better-auth's client is `src/lib/session/auth-client.ts`: the `expo` plugin, on the app's URL
+scheme with the storage prefix `flexi-day` and SecureStore as its storage, keeps the cookie jar
+and the session cache in the Keychain, and the two-factor client plugin rides beside it. Screens
+read the viewer through `useViewer()` rather than the client.
+
+`createApiFetch` in `src/lib/api.ts` is the wrapper every `/api/*` call goes through, and no
+screen builds a request of its own. It names the backend, attaches the Device id, the per-launch
+session id, the platform and the app version (`src/lib/session/client-headers.ts`), carries the
+cookie from the auth client's jar and omits the platform's own credentials, because iOS keeps a
+cookie jar of its own and only this one may answer. The auth client sends sign-in, the session
+lookup and sign-out itself, and its request hook attaches the same client headers.
+
+`signedOutWipe()` in `src/lib/session/signed-out-wipe.ts` is the only way out. A 401 from the
+wrapper, a session lookup that answers with none, and sign-out all end there: the cookie jar, the
+session cache and the local store go, the Device id stays, and welcome says why. `signOut()` is
+the one path that tells the server first, and it wipes whatever the server answers. Never clear a
+piece of the session on its own.
+
+`src/app/_layout.tsx` waits for the Device id, reads the expo plugin's session cache
+(`src/lib/session/session-cache.ts`) and hands both to `rootRoute()`, which decides the launch
+once: a cached session lands in `(app)`, none lands on `(auth)`'s welcome. The answer then lives
+in `src/lib/session/root-route-context.tsx`, because sign-in, two-factor and the wipe all move
+it; the guards read that, not the Keychain again.
+
+The session revalidates against the server on the same foreground event the sync pull runs on,
+from `src/lib/app-state.ts`, subscribed separately so neither waits for the other. Only an answer
+that arrived and carries no session wipes: a server that faults or cannot be reached says nothing
+about the session.
+
+`EXPO_PUBLIC_WEB_URL` is the second environment variable, beside the backend URL above: the web
+app that sign-up and password reset open in a browser sheet, `https://flexi-day.com` unless it is
+set. Both are read as literal `process.env.EXPO_PUBLIC_*` expressions so Expo inlines them, and
+both are documented in [`README.md`](README.md) and [`.env.example`](.env.example).
 
 ## The local store
 
@@ -90,9 +138,8 @@ nothing behind and the next pull tells the truth. Never repair a lost pending ch
 to a table: that is the offline outbox this repo does not have. A write the server confirms without
 sending rows writes a provisional row instead, and the after-write pull overwrites it.
 
-The native session meets the store at three points, and
-[Daniel88dev/flexi-day-rn#4](https://github.com/Daniel88dev/flexi-day-rn/issues/4) finishes each of
-them. The user id passed to `openStore` comes from the session, through `useViewer()` in
+The native session meets the store at three points. The user id passed to `openStore` comes from
+the session, through `useViewer()` in
 `src/app/(app)/_layout.tsx`; the store opens one fixed file, `flexi-day.db`, stamps that id into
 `syncState`, and wipes and recreates the file when it opens with a different one. `apiFetch` in
 `index.ts` is the request wrapper from `src/lib/api.ts`, so every call it makes carries the client
