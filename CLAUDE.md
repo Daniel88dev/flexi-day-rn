@@ -124,6 +124,12 @@ One feature = one branch named `feat/<feature-slug>`, sharing the slug with the 
 branch in `flexi-day-be` when it touches both. `main` is protected and merges by squash through a
 PR only.
 
+## Merging pull requests
+
+Never merge a PR yourself — no `gh pr merge`, no merge button, no auto-merge — unless the user
+asks for that merge outright. Push the branch, open the PR, report CI, and stop. Opening a PR is
+not permission to merge it, and one merge the user asked for does not carry to the next.
+
 ## Agent skills
 
 ### Issue tracker
