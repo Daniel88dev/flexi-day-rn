@@ -63,7 +63,6 @@ export type StoreWriteOptions = {
   clock: StoreClock;
   pending: PendingChanges;
   pull: (reason: PullReason) => Promise<PullOutcome>;
-  onUnauthorized: () => void;
 };
 
 type JsonRequest = { method: StoreRequestMethod; path: string; body: unknown };
@@ -121,7 +120,6 @@ export function createStoreWrites({
   clock,
   pending,
   pull,
-  onUnauthorized,
 }: StoreWriteOptions): StoreWrites {
   /** Every write ends the same way; only what an answer leaves in the store differs. */
   const settle = (
@@ -131,8 +129,7 @@ export function createStoreWrites({
   ): WriteOutcome => {
     if (response.type === "unauthorized") {
       pending.remove(change.id);
-      onUnauthorized();
-      // The signed-out wipe is the feedback; there is nothing for the caller to say.
+      // The request wrapper handed the 401 over; there is nothing for the caller to say.
       return WRITTEN;
     }
 

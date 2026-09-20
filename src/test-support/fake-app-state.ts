@@ -1,4 +1,4 @@
-import type { AppStateSource } from "../app-state";
+import type { AppStateSource } from "@/lib/app-state";
 
 export type FakeAppState = AppStateSource & {
   becomeActive(): void;

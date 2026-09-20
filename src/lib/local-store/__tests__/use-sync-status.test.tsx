@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react-native";
 
 import { installPullController, type PullController, type PullOutcome } from "../pull";
 import type { StoreRuntime } from "../runtime";
-import { createFakeClock, type FakeClock } from "../test-support/fake-clock";
+import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
 import { createFakeSync, reply, type FakeSyncReply } from "../test-support/fake-sync";
 import { pullOptions, tick } from "../test-support/pull-harness";
 import { syncPage } from "../test-support/sync-fixtures";

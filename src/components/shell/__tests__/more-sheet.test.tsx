@@ -4,6 +4,7 @@ import { MoreSheet } from "@/components/shell/more-sheet";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { buildSections, buildUtilityLinks, splitForTabBar } from "@/lib/navigation/shell-links";
+import { VIEWER } from "@/test-support/session";
 
 const sections = buildSections(en, { administersSomething: false });
 const { sheet } = splitForTabBar(sections);
@@ -16,7 +17,7 @@ function renderSheet(open: boolean) {
         onClose={jest.fn()}
         sections={sheet}
         utility={buildUtilityLinks(en)}
-        viewer={{ id: "placeholder-viewer", name: "Dana Kučerová", email: "dana@northwind.co" }}
+        viewer={VIEWER}
         onNavigate={jest.fn()}
         onSignOut={jest.fn()}
       />
@@ -36,7 +37,7 @@ describe("MoreSheet", () => {
   it("offers a way out and names the viewer", async () => {
     await renderSheet(true);
     expect(screen.getByText("Sign out")).toBeTruthy();
-    expect(screen.getByText("Dana Kučerová")).toBeTruthy();
+    expect(screen.getByText(VIEWER.name)).toBeTruthy();
   });
 
   it("renders nothing while closed", async () => {

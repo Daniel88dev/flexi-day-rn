@@ -1,10 +1,13 @@
+import { authClient } from "@/lib/session/auth-client";
+
 export type Viewer = { id: string; name: string; email: string };
 
 /**
- * Who the shell greets. The native session does not exist yet, so this answers with a placeholder
- * rather than pretending to read one; the sign-in work replaces the body, not the signature. The
- * id is what the local store is keyed by, so the first real session wipes the placeholder's store.
+ * Who the shell greets, read from the session the expo client cached, so a cold start knows
+ * the viewer before the backend answers. The id is what the Local store is keyed by.
  */
 export function useViewer(): Viewer | null {
-  return { id: "placeholder-viewer", name: "Dana Kučerová", email: "dana@northwind.co" };
+  const user = authClient.useSession().data?.user;
+  if (!user) return null;
+  return { id: user.id, name: user.name, email: user.email };
 }

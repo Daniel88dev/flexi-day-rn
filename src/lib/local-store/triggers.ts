@@ -1,5 +1,6 @@
+import type { AppStateSource } from "@/lib/app-state";
+
 import { readSyncState } from "./apply";
-import type { AppStateSource } from "./app-state";
 import type { StoreClock } from "./clock";
 import type { PullController, PullOutcome, PullReason } from "./pull";
 import type { StoreRuntime } from "./runtime";

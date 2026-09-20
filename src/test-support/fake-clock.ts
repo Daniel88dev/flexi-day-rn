@@ -1,9 +1,6 @@
-import type { StoreClock } from "../clock";
+import type { StoreClock } from "@/lib/local-store/clock";
 
-export type FakeClock = StoreClock & {
-  /** Moves the clock on and runs every timer that falls due, in the order they were set. */
-  advance(ms: number): void;
-};
+export type FakeClock = StoreClock & { advance(ms: number): void };
 
 type PendingTimer = { at: number; run: () => void; cancelled: boolean };
 

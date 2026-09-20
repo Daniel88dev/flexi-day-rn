@@ -38,7 +38,6 @@ export type PullControllerOptions = {
   apiFetch: StoreFetch;
   clock: StoreClock;
   isOnline: () => Promise<boolean>;
-  onUnauthorized: () => void;
 };
 
 class UnauthorizedError extends Error {}
@@ -77,7 +76,6 @@ export function createPullController({
   apiFetch,
   clock,
   isOnline,
-  onUnauthorized,
 }: PullControllerOptions): PullController {
   let status: PullStatus = { inFlight: false, lastError: null };
   let running: Promise<PullOutcome> | null = null;
@@ -168,10 +166,8 @@ export function createPullController({
       setStatus({ lastError: null });
       return PULLED;
     } catch (error) {
-      if (error instanceof UnauthorizedError) {
-        onUnauthorized();
-        return PULLED;
-      }
+      // The request wrapper already handed the 401 over; the pull only has nothing to report.
+      if (error instanceof UnauthorizedError) return PULLED;
       setStatus({ lastError: errorMessage(error) });
       if (!(error instanceof SyncPullError) || error.serverMessage === null) {
         return UNREPORTED_FAILURE;

@@ -1,6 +1,8 @@
-import { API_URL } from "@/lib/api";
+import { API_URL, createApiFetch } from "@/lib/api";
+import { deviceAppState } from "@/lib/app-state";
+import { sessionCookie } from "@/lib/session/auth-client";
+import { currentClientHeaders } from "@/lib/session/client-headers";
 
-import { deviceAppState } from "./app-state";
 import { systemClock } from "./clock";
 import { createExpoSqliteAdapter } from "./expo-adapter";
 import type { StoreFetch } from "./fetch";
@@ -9,8 +11,12 @@ import { createStore } from "./store";
 
 const DATABASE_NAME = "flexi-day.db";
 
-/** The session's request wrapper lands here; until then a request carries no cookie and is 401ed. */
-const apiFetch: StoreFetch = (path, init) => fetch(`${API_URL}${path}`, init);
+const apiFetch: StoreFetch = createApiFetch({
+  baseUrl: API_URL,
+  clientHeaders: currentClientHeaders,
+  cookie: sessionCookie,
+  onUnauthorized: () => store.handleUnauthorized(),
+});
 
 const store = createStore({
   adapter: createExpoSqliteAdapter(DATABASE_NAME),

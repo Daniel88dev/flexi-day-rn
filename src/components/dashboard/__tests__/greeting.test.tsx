@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react-native";
 
 import { Greeting, greetingKey } from "@/components/dashboard/greeting";
 import { TranslationProvider } from "@/i18n/use-translation";
+import { VIEWER } from "@/test-support/session";
 
 describe("greetingKey", () => {
   it("maps the hour to the part of the day", () => {
@@ -16,9 +17,7 @@ describe("Greeting", () => {
   it("greets the viewer by first name", async () => {
     await render(
       <TranslationProvider>
-        <Greeting
-          viewer={{ id: "placeholder-viewer", name: "Dana Kučerová", email: "dana@northwind.co" }}
-        />
+        <Greeting viewer={VIEWER} />
       </TranslationProvider>
     );
     expect(screen.getByText(/Dana$/)).toBeTruthy();
