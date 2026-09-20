@@ -32,4 +32,12 @@ describe("Field", () => {
     expect(input.props.secureTextEntry).toBe(false);
     expect(screen.getByLabelText(en.auth.signIn.hidePassword)).toBeTruthy();
   });
+
+  it("takes nothing while it is not editable", async () => {
+    await renderField(<Field placeholder={en.auth.twoFactor.backupPlaceholder} editable={false} />);
+
+    expect(screen.getByPlaceholderText(en.auth.twoFactor.backupPlaceholder).props.editable).toBe(
+      false
+    );
+  });
 });

@@ -30,8 +30,7 @@ function offeredMethods(data: unknown): string[] | null {
 }
 
 function twoFactorHref(methods: string[]): Href {
-  // The two-factor route arrives with a later ticket, so the typed route needs the cast.
-  return `/two-factor?methods=${encodeURIComponent(methods.join(","))}` as Href;
+  return `/two-factor?methods=${encodeURIComponent(methods.join(","))}`;
 }
 
 /**

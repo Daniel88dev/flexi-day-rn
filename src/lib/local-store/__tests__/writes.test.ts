@@ -6,7 +6,7 @@ import { selectVacations } from "../queries";
 import type { PullOutcome } from "../pull";
 import type { StoreRuntime } from "../runtime";
 import { vacations } from "../schema";
-import { createFakeClock, type FakeClock } from "../test-support/fake-clock";
+import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
 import { createFakeSync, reply, type FakeSyncReply } from "../test-support/fake-sync";
 import { tick } from "../test-support/pull-harness";
 import { groupRow, storeVacations, syncPage, vacationRow } from "../test-support/sync-fixtures";

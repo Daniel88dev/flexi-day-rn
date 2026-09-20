@@ -44,7 +44,8 @@ export function Field({
       <View
         className={cn(
           "h-[52px] flex-row items-center gap-3 rounded-[12px] border bg-card px-4",
-          focused ? "border-primary" : "border-input"
+          focused ? "border-primary" : "border-input",
+          props.editable === false && "opacity-50"
         )}
       >
         {icon ? <Icon icon={icon} tone={focused ? "primary" : "faint"} size={18} /> : null}

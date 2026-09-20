@@ -5,7 +5,7 @@ import type { SyncTableName } from "../envelope";
 import { createPullController, type PullController, type PullControllerOptions } from "../pull";
 import type { StoreRuntime, StoreTransaction } from "../runtime";
 import { schema, type StoreTableName } from "../schema";
-import { createFakeClock, type FakeClock } from "../test-support/fake-clock";
+import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
 import {
   createFakeSync,
   reply,

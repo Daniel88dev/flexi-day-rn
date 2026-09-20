@@ -11,7 +11,7 @@ import {
 } from "../pending";
 import { mergedVacations } from "../queries";
 import type { StoreRuntime } from "../runtime";
-import { createFakeClock, type FakeClock } from "../test-support/fake-clock";
+import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
 import { flushStoreEvents, openTestStore } from "../test-support/test-store";
 
 const NOW = "2026-09-19T12:00:00.000Z";

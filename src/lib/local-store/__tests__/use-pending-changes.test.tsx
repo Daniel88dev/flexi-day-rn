@@ -9,7 +9,7 @@ import type { StoreFetch, StoreResponse } from "../fetch";
 import { activePendingChanges, type PendingChanges, type VacationDraft } from "../pending";
 import { mergedVacations, MERGED_VACATION_CHANNELS, type MergedVacation } from "../queries";
 import type { StoreRuntime } from "../runtime";
-import { createFakeClock, type FakeClock } from "../test-support/fake-clock";
+import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
 import { createFakeSync, reply } from "../test-support/fake-sync";
 import { tick } from "../test-support/pull-harness";
 import { groupRow, storeVacations, syncPage, vacationRow } from "../test-support/sync-fixtures";

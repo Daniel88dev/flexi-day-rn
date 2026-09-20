@@ -14,4 +14,11 @@ describe("TextLink", () => {
     await userEvent.press(screen.getByRole("link"));
     expect(onPress).toHaveBeenCalled();
   });
+
+  it("stays quiet while it is disabled", async () => {
+    const onPress = jest.fn();
+    await render(<TextLink label="Resend code (30)" onPress={onPress} disabled />);
+    await userEvent.press(screen.getByRole("link"));
+    expect(onPress).not.toHaveBeenCalled();
+  });
 });
