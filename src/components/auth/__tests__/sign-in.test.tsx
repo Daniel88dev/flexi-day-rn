@@ -108,6 +108,18 @@ describe("SignIn", () => {
     expect(replace).toHaveBeenCalledWith("/dashboard");
   });
 
+  it("signs in through the ids the Maestro flows drive", async () => {
+    speakCzech();
+
+    await renderSignIn();
+
+    await fireEvent.changeText(screen.getByTestId("sign-in-email"), "owner@dev.local");
+    await fireEvent.changeText(screen.getByTestId("sign-in-password"), "a-password");
+    await fireEvent.press(screen.getByTestId("sign-in-submit"));
+
+    expect(signIn).toHaveBeenCalledWith({ email: "owner@dev.local", password: "a-password" });
+  });
+
   it("signs in from the password field's return key", async () => {
     await renderSignIn();
 
