@@ -6,6 +6,11 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A push to main runs to the end: it is what writes the caches every PR reads.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check:
     name: Lint, Format, Typecheck & Test
@@ -38,4 +43,216 @@ jobs:
       - name: Test
         run: npm run test
 
-      # No native build here. The iOS app is built on a Mac through Xcode for now.
+      # Advisory: the expected versions come from Expo's servers and move whenever Expo publishes
+      # a patch, so a required check would turn red with no change in this repo.
+      - name: Expo SDK versions
+        continue-on-error: true
+        run: npx expo install --check
+
+  ios-e2e:
+    name: iOS build & Maestro
+    runs-on: xcode-27
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      BACKEND_REF: ${{ vars.FLEXI_DAY_BE_REF }}
+      MAESTRO_VERSION: 2.10.0
+      MAESTRO_SHA256: 29b675e10cc12080e445e9bfb2e2b4e4dfb9c0f2e30d5884120d258b5e1cd991
+      MAESTRO_CLI_NO_ANALYTICS: "1"
+      MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: "true"
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: "180000"
+      # CocoaPods quits without a UTF-8 locale.
+      LANG: en_US.UTF-8
+      DATABASE: postgres://localhost:5432/flexi-day
+      API_URL: http://localhost:8080
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+
+    steps:
+      - name: Require the pinned backend ref
+        run: |
+          if [ -z "$BACKEND_REF" ]; then
+            echo "::error title=FLEXI_DAY_BE_REF is not set::Set the repository variable FLEXI_DAY_BE_REF to the flexi-day-be commit this job runs against: gh variable set FLEXI_DAY_BE_REF --repo Daniel88dev/flexi-day-rn --body <sha>"
+            exit 1
+          fi
+          echo "flexi-day-be at $BACKEND_REF"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Select Xcode 27.0
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.app
+          xcodebuild -version
+
+      - name: Install ccache and Postgres
+        run: |
+          brew install ccache postgresql@17
+          echo "$(brew --prefix postgresql@17)/bin" >> "$GITHUB_PATH"
+          echo "CCACHE_DIR=$HOME/Library/Caches/ccache" >> "$GITHUB_ENV"
+
+      # A first boot is slow, so it starts now and runs beside the build.
+      - name: Boot the simulator
+        run: |
+          udid=$(xcrun simctl create e2e "iPhone 17" com.apple.CoreSimulator.SimRuntime.iOS-27-0)
+          xcrun simctl boot "$udid"
+          echo "SIMULATOR_UDID=$udid" >> "$GITHUB_ENV"
+
+      - name: Start Postgres
+        run: |
+          brew services start postgresql@17
+          for _ in $(seq 1 30); do pg_isready -h localhost -q && break; sleep 1; done
+          createdb -h localhost flexi-day
+
+      # Runs in the background so it overlaps the native build; "Seed the backend" waits for it.
+      - name: Start flexi-day-be
+        run: |
+          token=$(openssl rand -hex 24)
+          echo "DEV_TOOLS_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "E2E_PASSWORD=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
+          backend="$RUNNER_TEMP/flexi-day-be"
+          git init -q "$backend"
+          git -C "$backend" fetch -q --depth 1 https://github.com/Daniel88dev/flexi-day-be.git "$BACKEND_REF"
+          git -C "$backend" checkout -q FETCH_HEAD
+          (
+            cd "$backend"
+            export NODE_ENV=dev PORT=8080 DEV_TOOLS_ENABLED=true DEV_TOOLS_TOKEN="$token"
+            export QUOTA_ROLLOVER_ENABLED=false BETTER_AUTH_URL="$API_URL"
+            export TRUSTED_ORIGINS="http://localhost:3000,flexiday://"
+            BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+            export BETTER_AUTH_SECRET
+            npm ci && npm run build && npm run db:migrate && exec npm run start
+          ) > "$RUNNER_TEMP/backend.log" 2>&1 &
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate ios/
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Restore Pods
+        id: pods
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ios/Pods
+            ios/Podfile.lock
+          key: pods-xcode27-${{ hashFiles('package-lock.json', 'app.json') }}
+
+      - name: Restore ccache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-xcode27-${{ hashFiles('package-lock.json') }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-xcode27-${{ hashFiles('package-lock.json') }}-
+            ccache-xcode27-
+
+      - name: Install Pods
+        working-directory: ios
+        env:
+          USE_CCACHE: "1"
+        run: pod install
+
+      - name: Build the Release simulator app
+        env:
+          EXPO_PUBLIC_API_URL: ${{ env.API_URL }}
+        run: |
+          set -o pipefail
+          ccache --zero-stats
+          xcodebuild -workspace ios/FlexiDay.xcworkspace -scheme FlexiDay \
+            -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" | xcbeautify
+          ccache --show-stats
+
+      - name: Save Pods
+        if: github.event_name == 'push' && steps.pods.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ios/Pods
+            ios/Podfile.lock
+          key: pods-xcode27-${{ hashFiles('package-lock.json', 'app.json') }}
+
+      - name: Save ccache
+        if: github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-xcode27-${{ hashFiles('package-lock.json') }}-${{ github.run_id }}
+
+      - name: Seed the backend
+        run: |
+          for _ in $(seq 1 90); do
+            curl -fsS "$API_URL/health" > /dev/null 2>&1 && break
+            sleep 2
+          done
+          if ! curl -fsS "$API_URL/health" > /dev/null; then
+            echo "::error::flexi-day-be did not come up"
+            cat "$RUNNER_TEMP/backend.log"
+            exit 1
+          fi
+          curl -fsS -X POST "$API_URL/api/dev/scenario" \
+            -H "x-dev-token: $DEV_TOOLS_TOKEN" -H 'content-type: application/json' \
+            -d "{\"password\":\"$E2E_PASSWORD\"}" > /dev/null
+
+      - name: Install the app
+        run: |
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          xcrun simctl install "$SIMULATOR_UDID" \
+            "$RUNNER_TEMP/DerivedData/Build/Products/Release-iphonesimulator/FlexiDay.app"
+
+      - name: Install Maestro
+        run: |
+          zip="$RUNNER_TEMP/maestro.zip"
+          url="https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip"
+          for attempt in 1 2 3; do
+            curl -fsSL --retry 3 -o "$zip" "$url" && echo "$MAESTRO_SHA256  $zip" | shasum -a 256 -c - && break
+            if [ "$attempt" = 3 ]; then echo "::error::Maestro download failed"; exit 1; fi
+            sleep 10
+          done
+          unzip -q "$zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
+
+      # One retry per flow: the iOS driver sometimes fails its first request on a cold start.
+      - name: Run Maestro flows
+        timeout-minutes: 20
+        run: |
+          maestro --version
+          mkdir -p maestro-results
+          status=0
+          for flow in .maestro/*.yaml; do
+            name=$(basename "$flow" .yaml)
+            for attempt in 1 2; do
+              if maestro test --device "$SIMULATOR_UDID" "$flow" \
+                -e EMAIL=owner@dev.local -e PASSWORD="$E2E_PASSWORD" \
+                --format junit --output "maestro-results/$name.xml" \
+                --test-output-dir "maestro-results/$name-$attempt"; then
+                break
+              fi
+              if [ "$attempt" = 1 ]; then
+                echo "::warning title=Flaky e2e flow::$name failed once, retrying"
+              else
+                status=1
+              fi
+            done
+          done
+          exit "$status"
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-e2e-${{ github.run_attempt }}
+          path: |
+            maestro-results/
+            ${{ runner.temp }}/backend.log
+          if-no-files-found: ignore

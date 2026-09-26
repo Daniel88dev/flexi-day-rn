@@ -39,7 +39,9 @@ them at build time. Copy [`.env.example`](.env.example) to `.env` to set them.
 ## Contributing
 
 `main` is protected. Every change goes on a branch and merges by squash through a PR. CI runs
-lint, prettier, typecheck and the tests; there is no native build in CI.
+lint, prettier, typecheck and the tests, then builds the app for the iOS Simulator and runs the
+Maestro flows in `.maestro/` against `flexi-day-be` ([docs](docs/native-ci.md)). Dependabot's
+`expo-sdk` PRs need `npx expo install --fix` run on their branch by hand.
 
 ## License
 
