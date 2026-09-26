@@ -32,7 +32,7 @@ jest.mock("better-auth/client/plugins", () => ({
 jest.mock("expo-secure-store", () => ({
   getItemAsync: jest.fn().mockResolvedValue(null),
   setItemAsync: jest.fn().mockResolvedValue(undefined),
-  WHEN_UNLOCKED: "whenUnlocked",
+  WHEN_UNLOCKED_THIS_DEVICE_ONLY: "whenUnlockedThisDeviceOnly",
 }));
 
 jest.mock("expo-crypto", () => ({

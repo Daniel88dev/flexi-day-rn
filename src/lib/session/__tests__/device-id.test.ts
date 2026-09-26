@@ -11,7 +11,7 @@ import {
 jest.mock("expo-secure-store", () => ({
   getItemAsync: jest.fn(),
   setItemAsync: jest.fn(),
-  WHEN_UNLOCKED: "whenUnlocked",
+  WHEN_UNLOCKED_THIS_DEVICE_ONLY: "whenUnlockedThisDeviceOnly",
 }));
 
 jest.mock("expo-crypto", () => ({ randomUUID: jest.fn() }));
@@ -92,7 +92,9 @@ describe("loadDeviceId", () => {
     randomUUID.mockReturnValue("a-fresh-uuid");
 
     await expect(loadDeviceId()).resolves.toBe("a-fresh-uuid");
-    expect(setItemAsync).toHaveBeenCalledWith(DEVICE_ID_KEY, "a-fresh-uuid", expect.anything());
+    expect(setItemAsync).toHaveBeenCalledWith(DEVICE_ID_KEY, "a-fresh-uuid", {
+      keychainAccessible: "whenUnlockedThisDeviceOnly",
+    });
     expect(currentDeviceId()).toBe("a-fresh-uuid");
 
     getItemAsync.mockClear();
