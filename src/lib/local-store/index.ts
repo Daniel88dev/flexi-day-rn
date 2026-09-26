@@ -31,10 +31,18 @@ export type { SyncTableName } from "./envelope";
 export type { StoreChannel } from "./events";
 export type { PendingChange, PendingKind, VacationDraft, VacationUpdateDraft } from "./pending";
 export type { PullOutcome, PullReason } from "./pull";
-export type { StoreTableName } from "./schema";
+export type { VacationStatus } from "./queries";
+export type {
+  ListedVacation,
+  RequestListQuery,
+  RequestListScope,
+  RequestScopeGroup,
+} from "./requests";
+export type { CalendarRecordType, StoreTableName } from "./schema";
 export type { OpenStoreOptions } from "./store";
 export type { VacationUpdate, WriteOutcome } from "./writes";
 export { usePendingChanges } from "./use-pending-changes";
+export { useRequestListVacations, useRequestScopeGroups } from "./use-request-list";
 export { useStoreQuery } from "./use-store-query";
 export { useStoreRowCounts } from "./use-store-row-counts";
 export { useSyncStatus, type SyncStatus } from "./use-sync-status";

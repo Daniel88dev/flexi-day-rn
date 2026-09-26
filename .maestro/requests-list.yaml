@@ -1,0 +1,30 @@
+appId: com.flexiday.app
+name: Requests lists the seeded runs
+---
+- runFlow: subflows/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: "dashboard"
+    timeout: 60000
+- tapOn: "Requests"
+- extendedWaitUntil:
+    visible:
+      id: "requests-list"
+    timeout: 30000
+- assertVisible:
+    id: "requests-scope"
+    text: ".*Dev Team.*"
+# The scenario books its members from seven working days back to ten ahead, so whatever the date,
+# the month the list opens on holds a run of one of them.
+- extendedWaitUntil:
+    visible: ".*(Alice Novak|Bob Dvorak|Carol Svoboda).*"
+    timeout: 60000
+- tapOn:
+    id: "requests-filter-mine"
+- assertVisible:
+    id: "requests-filter-mine"
+    selected: true
+- assertNotVisible: ".*(Alice Novak|Bob Dvorak|Carol Svoboda).*"
+- tapOn:
+    id: "requests-filter-all"
+- assertVisible: ".*(Alice Novak|Bob Dvorak|Carol Svoboda).*"

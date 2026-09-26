@@ -1,4 +1,4 @@
-import { and, count, eq, getTableColumns, gte, lte, sql } from "drizzle-orm";
+import { and, count, eq, getTableColumns, gte, lt, lte, sql } from "drizzle-orm";
 
 import type { StoreDatabase } from "./adapter";
 import { readSyncState } from "./apply";
@@ -168,6 +168,9 @@ function patchesByVacation(
   return patches;
 }
 
+/** `YYYY-MM-DD` days from `from` up to, not including, `until`. */
+export type DayRange = { from: string; until: string };
+
 /**
  * The store's vacations with the overlay merged in, so a screen reads one list: a create in
  * flight contributes the rows it expects, every other change patches the rows it holds with what
@@ -175,10 +178,17 @@ function patchesByVacation(
  */
 export function mergedVacations(
   db: StoreDatabase,
-  changes: readonly PendingChange[]
+  changes: readonly PendingChange[],
+  range?: DayRange
 ): MergedVacation[] {
   const patches = patchesByVacation(db, changes);
+  const inRange = (day: string) => !range || (day >= range.from && day < range.until);
   const stored: MergedVacation[] = selectVacations(db)
+    .where(
+      range
+        ? and(gte(vacations.requestedDay, range.from), lt(vacations.requestedDay, range.until))
+        : undefined
+    )
     .all()
     .map((row) => {
       const patch = patches.get(row.id);
@@ -189,7 +199,8 @@ export function mergedVacations(
 
   const synthetic = changes
     .filter((change) => change.kind === "create")
-    .flatMap((change) => syntheticVacations(db, change));
+    .flatMap((change) => syntheticVacations(db, change))
+    .filter((row) => inRange(row.requestedDay));
 
   return [...stored, ...synthetic].sort(
     (left, right) =>
