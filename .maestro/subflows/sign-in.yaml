@@ -1,0 +1,19 @@
+appId: com.flexiday.app
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- tapOn: "Sign in"
+- assertVisible: "Welcome back"
+- tapOn:
+    id: "sign-in-email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "sign-in-password"
+- inputText: ${PASSWORD}
+- tapOn:
+    id: "sign-in-submit"
+# iOS offers to save the password after a sign-in; the sheet covers the next screen.
+- tapOn:
+    text: "Not Now"
+    optional: true

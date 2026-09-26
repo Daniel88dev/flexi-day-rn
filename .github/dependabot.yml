@@ -1,0 +1,65 @@
+version: 2
+
+updates:
+  # Expo pins the versions of the packages it ships with the SDK, and Dependabot cannot run
+  # `npx expo install --fix`. So Expo moves by patch only, in one group, and whoever handles that
+  # PR runs `npx expo install --fix` on its branch (see README). SDK upgrades are by hand.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      expo-sdk:
+        patterns:
+          - expo
+          - expo-*
+          - "@expo/*"
+          - jest-expo
+        update-types:
+          - patch
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: expo
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: expo-*
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@expo/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: jest-expo
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Exact SDK pins: only `npx expo install --fix` moves these.
+      - dependency-name: react
+      - dependency-name: react-dom
+      - dependency-name: react-native
+      - dependency-name: react-native-reanimated
+      - dependency-name: react-native-worklets
+      - dependency-name: "@react-native-community/datetimepicker"
+      # SDK tilde ranges: patches only.
+      - dependency-name: react-native-screens
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: react-native-gesture-handler
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: react-native-safe-area-context
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Pinned exactly by docs/adr/0001-nativewind-v5-release-candidate.md.
+      - dependency-name: nativewind
+      - dependency-name: react-native-css
+      - dependency-name: tailwindcss
+      - dependency-name: "@tailwindcss/postcss"
+      - dependency-name: lightningcss
+
+  # Actions are pinned to commit SHAs; this is what keeps those pins current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # init and analyze must move together, or the action aborts on two versions of itself.
+      codeql-action:
+        patterns:
+          - github/codeql-action*

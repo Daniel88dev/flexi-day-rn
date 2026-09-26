@@ -169,7 +169,10 @@ without a device.
   go in `src/__tests__/app/`.
 - Every new function in `src/lib/` needs unit tests; every new component needs at least a smoke test.
 - Naming: `describe("functionName")` with `it("returns …")`.
-- CI runs lint, prettier, `tsc --noEmit` and the tests on every PR. There is no native build in CI.
+- CI runs lint, prettier, `tsc --noEmit` and the tests on every PR, then `ios-e2e`: a Release
+  simulator build and the Maestro flows in `.maestro/` against `flexi-day-be` at the commit in the
+  `FLEXI_DAY_BE_REF` repository variable ([`docs/native-ci.md`](docs/native-ci.md)). A new screen
+  adds its own flow there.
 
 ## Formatting is automatic
 
