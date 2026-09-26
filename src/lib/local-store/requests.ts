@@ -1,0 +1,123 @@
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
+
+import { addMonths, type YearMonth } from "@/lib/requests/months";
+
+import type { StoreDatabase } from "./adapter";
+import { readSyncState } from "./apply";
+import type { PendingChange } from "./pending";
+import { mergedVacations, type DayRange, type MergedVacation } from "./queries";
+import { groupMirrors, groups, groupUsers, users } from "./schema";
+
+export type ListedVacation = MergedVacation & {
+  userName: string | null;
+  groupName: string | null;
+};
+
+export type RequestScopeGroup = { groupId: string; groupName: string };
+
+/** A group seen in full, or the viewer's own rows from every group. */
+export type RequestListScope = { kind: "mine" } | { kind: "group"; groupId: string };
+
+export type RequestListQuery = { month: YearMonth; scope: RequestListScope };
+
+/**
+ * The groups the viewer sees in full, the backend's report scope `all`: view or admin access on
+ * their own membership, or managing the group they belong to. It picks which rows the list shows
+ * of what the store already holds; it grants no action.
+ */
+export function requestScopeGroups(db: StoreDatabase): RequestScopeGroup[] {
+  const viewerId = readSyncState(db)?.userId;
+  if (!viewerId) return [];
+
+  return db
+    .select({ groupId: groups.id, groupName: groups.groupName })
+    .from(groupUsers)
+    .innerJoin(groups, eq(groupUsers.groupId, groups.id))
+    .where(
+      and(
+        eq(groupUsers.userId, viewerId),
+        isNull(groupUsers.deletedAt),
+        isNull(groups.deletedAt),
+        or(
+          eq(groupUsers.viewAccess, true),
+          eq(groupUsers.adminAccess, true),
+          eq(groups.managerUserId, viewerId)
+        )
+      )
+    )
+    .orderBy(asc(groups.groupName))
+    .all();
+}
+
+function firstDay({ year, month }: YearMonth): string {
+  return `${year}-${String(month).padStart(2, "0")}-01`;
+}
+
+function monthRange(month: YearMonth): DayRange {
+  return { from: firstDay(month), until: firstDay(addMonths(month, 1)) };
+}
+
+/**
+ * What the web's `/vacation` answers for a group: its own rows, and the rows a live mirror
+ * projects into it from another group, for someone who still belongs to it.
+ */
+function inGroupScope(db: StoreDatabase, groupId: string) {
+  const members = new Set(
+    db
+      .select({ userId: groupUsers.userId })
+      .from(groupUsers)
+      .where(and(eq(groupUsers.groupId, groupId), isNull(groupUsers.deletedAt)))
+      .all()
+      .map((row) => row.userId)
+  );
+  const mirrored = new Set(
+    db
+      .select({ userId: groupMirrors.userId, sourceGroupId: groupMirrors.sourceGroupId })
+      .from(groupMirrors)
+      .where(and(eq(groupMirrors.targetGroupId, groupId), isNull(groupMirrors.deletedAt)))
+      .all()
+      .filter((mirror) => members.has(mirror.userId))
+      .map((mirror) => `${mirror.userId}|${mirror.sourceGroupId}`)
+  );
+
+  return (row: MergedVacation) =>
+    row.groupId === groupId || mirrored.has(`${row.userId}|${row.groupId}`);
+}
+
+function namesById(
+  db: StoreDatabase,
+  table: typeof users | typeof groups,
+  ids: readonly string[]
+): Map<string, string> {
+  if (ids.length === 0) return new Map();
+  const name = table === users ? users.name : groups.groupName;
+  const rows = db
+    .select({ id: table.id, name })
+    .from(table)
+    .where(inArray(table.id, [...ids]))
+    .all();
+  return new Map(rows.map((row) => [row.id, row.name]));
+}
+
+export function requestListVacations(
+  db: StoreDatabase,
+  changes: readonly PendingChange[],
+  query: RequestListQuery
+): ListedVacation[] {
+  const viewerId = readSyncState(db)?.userId ?? null;
+  const { scope } = query;
+  const inScope =
+    scope.kind === "mine"
+      ? (row: MergedVacation) => row.userId === viewerId
+      : inGroupScope(db, scope.groupId);
+
+  const rows = mergedVacations(db, changes, monthRange(query.month)).filter(inScope);
+  const people = namesById(db, users, [...new Set(rows.map((row) => row.userId))]);
+  const teams = namesById(db, groups, [...new Set(rows.map((row) => row.groupId))]);
+
+  return rows.map((row) => ({
+    ...row,
+    userName: people.get(row.userId) ?? null,
+    groupName: teams.get(row.groupId) ?? null,
+  }));
+}

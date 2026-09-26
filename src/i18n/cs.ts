@@ -1,4 +1,4 @@
-import type { Dictionary } from "./en";
+import type { DayMonth, Dictionary } from "./en";
 
 export const cs: Dictionary = {
   nav: {
@@ -107,7 +107,64 @@ export const cs: Dictionary = {
     signOutBody: "Odhlásit se z tohoto telefonu? Kopie vašich dat na něm se smaže.",
     cancel: "Zrušit",
   },
+  requests: {
+    title: "Žádosti",
+    filters: {
+      all: "Vše",
+      mine: "Moje",
+    },
+    scopeLabel: "Zobrazit",
+    scopeMine: "Jen moje žádosti",
+    previousMonth: "Předchozí měsíc",
+    nextMonth: "Další měsíc",
+    empty: "V tomto měsíci nejsou žádné žádosti",
+    emptyFiltered: (filter: string) => `V tomto měsíci nejsou žádné žádosti (${filter})`,
+    you: "Vy",
+    dayCount: (count: number) =>
+      `${count} ${count === 1 ? "den" : count >= 2 && count <= 4 ? "dny" : "dní"}`,
+    sending: "Odesílám…",
+    runDates: (from: DayMonth, to: DayMonth) => {
+      if (from.month !== to.month) return `${from.day}. ${from.month}. - ${to.day}. ${to.month}.`;
+      if (from.day === to.day) return `${from.day}. ${from.month}.`;
+      return `${from.day}.-${to.day}. ${to.month}.`;
+    },
+  },
+  status: {
+    pending: "Čeká",
+    approved: "Schváleno",
+    rejected: "Zamítnuto",
+    cancelled: "Zrušeno",
+  },
+  recordTypes: {
+    VACATION: "Dovolená",
+    HOME_OFFICE: "Home Office",
+    SICK: "Nemoc",
+    SICK_DAY: "Zdravotní volno",
+    PAID_TIME_OFF: "Placené volno",
+    NON_PAID_LEAVE: "Neplacené volno",
+    STUDY_LEAVE: "Studijní volno",
+    BANK_HOLIDAY: "Státní svátek",
+    OTHER: "Ostatní",
+  },
+  calendar: {
+    months: [
+      "Leden",
+      "Únor",
+      "Březen",
+      "Duben",
+      "Květen",
+      "Červen",
+      "Červenec",
+      "Srpen",
+      "Září",
+      "Říjen",
+      "Listopad",
+      "Prosinec",
+    ],
+  },
   common: {
     comingSoon: (screen: string) => `Tady bude: ${screen}.`,
+    halfDay: "Půlden",
+    fullDay: "Celý den",
   },
 };

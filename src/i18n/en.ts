@@ -1,3 +1,21 @@
+/** A calendar day without its year, `month` 1-based. */
+export type DayMonth = { day: number; month: number };
+
+const MONTHS_SHORT_EN = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
 export const en = {
   nav: {
     menu: "Menu",
@@ -105,8 +123,65 @@ export const en = {
     signOutBody: "Sign out of this phone? The copy of your data on it is deleted.",
     cancel: "Cancel",
   },
+  requests: {
+    title: "Requests",
+    filters: {
+      all: "All",
+      mine: "Mine",
+    },
+    scopeLabel: "Show",
+    scopeMine: "Only my requests",
+    previousMonth: "Previous month",
+    nextMonth: "Next month",
+    empty: "No requests in this month",
+    emptyFiltered: (filter: string) => `No requests in this month (${filter})`,
+    you: "You",
+    dayCount: (count: number) => `${count} ${count === 1 ? "day" : "days"}`,
+    sending: "Sending…",
+    runDates: (from: DayMonth, to: DayMonth) => {
+      const month = (day: DayMonth) => MONTHS_SHORT_EN[day.month - 1];
+      if (from.month !== to.month) return `${from.day} ${month(from)} - ${to.day} ${month(to)}`;
+      if (from.day === to.day) return `${from.day} ${month(from)}`;
+      return `${from.day}-${to.day} ${month(to)}`;
+    },
+  },
+  status: {
+    pending: "Pending",
+    approved: "Approved",
+    rejected: "Rejected",
+    cancelled: "Cancelled",
+  },
+  recordTypes: {
+    VACATION: "Vacation",
+    HOME_OFFICE: "Home Office",
+    SICK: "Sick",
+    SICK_DAY: "Sick day",
+    PAID_TIME_OFF: "Paid Time Off",
+    NON_PAID_LEAVE: "Non-Paid Leave",
+    STUDY_LEAVE: "Study Leave",
+    BANK_HOLIDAY: "Bank Holiday",
+    OTHER: "Other",
+  },
+  calendar: {
+    months: [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ],
+  },
   common: {
     comingSoon: (screen: string) => `${screen} lands here.`,
+    halfDay: "Half day",
+    fullDay: "Full day",
   },
 };
 
