@@ -18,6 +18,7 @@ adds only the terms the mobile client coins. Use the backend's words for everyth
 | **Pending change**  | A write shown at once as an overlay on the rows it targets while its request is in flight. Lifts on the server's answer, or after a timeout with a toast. Never stored, never survives a restart. Avoid: optimistic update, outbox.                                                  |
 | **Provisional row** | A row the local store holds in the state the server just confirmed but has not yet sent back, written when a write returns no row. The next sync pull overwrites it. Avoid: optimistic row.                                                                                          |
 | **Clock reminder**  | A local notification the phone schedules for itself: clock in at the user's chosen time, or clock out once today's required time has passed. Never sent by the server. Avoid: shift reminder, alarm.                                                                                 |
+| **Clock sheet**     | The sheet the tab bar's centre disc opens, at `/clock`: the one place the phone clocks in, clocks out and takes breaks. Reminders and deep links open it too. Avoid: clock drawer, clock modal.                                                                                      |
 
 ## Boundaries
 
