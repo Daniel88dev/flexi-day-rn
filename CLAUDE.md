@@ -87,6 +87,12 @@ scheme with the storage prefix `flexi-day` and SecureStore as its storage, keeps
 and the session cache in the Keychain, and the two-factor client plugin rides beside it. Screens
 read the viewer through `useViewer()` rather than the client.
 
+Every Keychain read and write goes through `keychain` in `src/lib/session/keychain.ts`, which
+stores entries as when-unlocked-this-device-only. Backups leave those out, so a phone restored
+from another phone's backup mints its own Device id and signs in again. An entry keeps the class
+it was first written with, so a dev install from before the change keeps the old one until the
+app's Keychain entries are cleared.
+
 `createApiFetch` in `src/lib/api.ts` is the wrapper every `/api/*` call goes through, and no
 screen builds a request of its own. It names the backend, attaches the Device id, the per-launch
 session id, the platform and the app version (`src/lib/session/client-headers.ts`), carries the

@@ -1,7 +1,7 @@
 import { storageAdapter } from "@better-auth/expo/client";
-import * as SecureStore from "expo-secure-store";
 
 import { STORAGE_PREFIX } from "./auth-client";
+import { keychain } from "./keychain";
 
 /** Where the expo plugin writes the last session it saw; its own key, read here to route on. */
 export const SESSION_CACHE_KEY = `${STORAGE_PREFIX}_session_data`;
@@ -36,7 +36,7 @@ export function parseCachedSession(raw: string | null, now: number): CachedSessi
   return Number.isNaN(expiry) || expiry <= now ? null : { userId };
 }
 
-const storage = storageAdapter(SecureStore);
+const storage = storageAdapter(keychain);
 
 /** A Keychain that refuses to answer reads as no session: the app asks the person to sign in. */
 export async function loadCachedSession(): Promise<CachedSession | null> {

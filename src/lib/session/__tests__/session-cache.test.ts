@@ -6,7 +6,10 @@ import {
   parseCachedSession,
 } from "@/lib/session/session-cache";
 
-jest.mock("expo-secure-store", () => ({ getItemAsync: jest.fn(), WHEN_UNLOCKED: "whenUnlocked" }));
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: jest.fn(),
+  WHEN_UNLOCKED_THIS_DEVICE_ONLY: "whenUnlockedThisDeviceOnly",
+}));
 
 // The expo plugin's own storage wrapper only adds chunking and key normalisation over what the
 // secure store holds, so the test hands the store through unchanged.
@@ -77,7 +80,7 @@ describe("loadCachedSession", () => {
     getItemAsync.mockResolvedValue(cacheEntry("2036-01-01T00:00:00.000Z", "a-user"));
 
     await expect(loadCachedSession()).resolves.toEqual({ userId: "a-user" });
-    expect(getItemAsync).toHaveBeenCalledWith(SESSION_CACHE_KEY);
+    expect(getItemAsync).toHaveBeenCalledWith(SESSION_CACHE_KEY, expect.anything());
   });
 
   it("returns no session when the Keychain refuses to answer", async () => {

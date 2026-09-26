@@ -1,5 +1,6 @@
 import { randomUUID } from "expo-crypto";
-import * as SecureStore from "expo-secure-store";
+
+import { keychain } from "./keychain";
 
 export const DEVICE_ID_KEY = "flexi-day_device_id";
 
@@ -23,15 +24,6 @@ export async function readOrMintDeviceId(
   await storage.setItemAsync(DEVICE_ID_KEY, minted);
   return minted;
 }
-
-// Readable while the phone is unlocked, which is whenever the app runs; the id is never read
-// from a background task.
-const KEYCHAIN_OPTIONS = { keychainAccessible: SecureStore.WHEN_UNLOCKED };
-
-const keychain: DeviceIdStorage = {
-  getItemAsync: (key) => SecureStore.getItemAsync(key, KEYCHAIN_OPTIONS),
-  setItemAsync: (key, value) => SecureStore.setItemAsync(key, value, KEYCHAIN_OPTIONS),
-};
 
 let deviceId: string | null = null;
 let loading: Promise<string> | null = null;

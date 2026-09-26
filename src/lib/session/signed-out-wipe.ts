@@ -1,11 +1,11 @@
 import { storageAdapter } from "@better-auth/expo/client";
 import { router } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { useCallback } from "react";
 
 import { destroyStore } from "@/lib/local-store";
 
 import { clearClientSession, SESSION_COOKIE_KEY } from "./auth-client";
+import { keychain } from "./keychain";
 import type { RootRoute } from "./root-route";
 import { useSetRootRoute } from "./root-route-context";
 import { SESSION_CACHE_KEY } from "./session-cache";
@@ -27,7 +27,7 @@ export type SignedOutWipeOptions = {
   replace?: (href: string) => void;
 };
 
-const keychain: SessionStorage = storageAdapter(SecureStore);
+const sessionStorage: SessionStorage = storageAdapter(keychain);
 
 // A foreground can answer twice at once — the sync pull's 401 and the session lookup — and one
 // wipe is enough: the second caller waits on the first rather than closing the database again.
@@ -47,7 +47,7 @@ export function signedOutWipe(options: SignedOutWipeOptions): Promise<void> {
 
 async function wipe({
   setRootRoute,
-  storage = keychain,
+  storage = sessionStorage,
   destroyLocalStore = destroyStore,
   clearSession = clearClientSession,
   showNotice = showSignedOutNotice,

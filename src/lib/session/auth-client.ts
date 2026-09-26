@@ -1,11 +1,11 @@
 import { expoClient } from "@better-auth/expo/client";
 import { twoFactorClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import * as SecureStore from "expo-secure-store";
 
 import { API_URL } from "@/lib/api";
 
 import { attachClientHeaders } from "./client-headers";
+import { keychain } from "./keychain";
 
 /** What the expo plugin names its Keychain entries after: the cookie jar and the session cache. */
 export const STORAGE_PREFIX = "flexi-day";
@@ -26,7 +26,7 @@ export const authClient = createAuthClient({
     },
   },
   plugins: [
-    expoClient({ scheme: "flexiday", storagePrefix: STORAGE_PREFIX, storage: SecureStore }),
+    expoClient({ scheme: "flexiday", storagePrefix: STORAGE_PREFIX, storage: keychain }),
     twoFactorClient(),
   ],
 });
