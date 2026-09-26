@@ -42,6 +42,7 @@ export function SignIn({
             <View className="mt-7 gap-4">
               {form.error ? <Notice tone="error" message={form.error} /> : null}
               <Field
+                testID="sign-in-email"
                 label={t.auth.workEmail}
                 icon={EnvelopeIcon}
                 placeholder={t.auth.emailPlaceholder}
@@ -57,6 +58,7 @@ export function SignIn({
                 onSubmitEditing={() => passwordRef.current?.focus()}
               />
               <Field
+                testID="sign-in-password"
                 label={t.auth.password}
                 labelRight={
                   <TextLink size={13} label={t.auth.signIn.forgot} onPress={onForgotPassword} />
@@ -73,6 +75,7 @@ export function SignIn({
                 inputRef={passwordRef}
               />
               <Button
+                testID="sign-in-submit"
                 className="mt-1"
                 label={form.loading ? t.auth.signIn.submitting : t.auth.signIn.submit}
                 loading={form.loading}
