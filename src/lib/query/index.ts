@@ -1,4 +1,15 @@
 export { rereadAttendance, type Reread } from "./attendance";
+export {
+  useApprovalDecisions,
+  useDashboardSummary,
+  useMyApprovals,
+  useRereadDashboard,
+  useRereadDashboardOnFocus,
+  type ApprovalDecision,
+  type DashboardSummary,
+  type DashboardSummaryRead,
+  type PendingApproval,
+} from "./dashboard";
 export { ApiError, classifyFailure, type FailureClass } from "./failure";
 export { qk } from "./keys";
 export { QueryLayer } from "./query-layer";

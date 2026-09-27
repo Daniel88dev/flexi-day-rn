@@ -104,13 +104,14 @@ afterEach(async () => {
 });
 
 async function renderCalendar({ withOpen = true } = {}) {
-  const handlers = { onOpenRequest: jest.fn(), onBook: jest.fn() };
+  const handlers = { onOpenRequest: jest.fn(), onBook: jest.fn(), onYear: jest.fn() };
   await render(
     <TranslationProvider>
       <DashboardCalendar
         viewerId={VIEWER}
         onOpenRequest={withOpen ? handlers.onOpenRequest : undefined}
         onBook={handlers.onBook}
+        onYear={handlers.onYear}
       />
     </TranslationProvider>
   );
@@ -193,6 +194,15 @@ describe("DashboardCalendar", () => {
 
     await fireEvent.press(screen.getByTestId("calendar-title"));
     expect(screen.getByTestId("calendar-title")).toHaveTextContent("October 2026");
+  });
+
+  it("reports the year of the month on screen as it changes", async () => {
+    const { onYear } = await renderCalendar();
+    expect(onYear).toHaveBeenLastCalledWith(2026);
+
+    for (let step = 0; step < 3; step++) await fireEvent.press(screen.getByTestId("calendar-next"));
+
+    expect(onYear).toHaveBeenLastCalledWith(2027);
   });
 
   it("stops at January of last year", async () => {

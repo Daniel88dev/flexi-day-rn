@@ -105,6 +105,7 @@ export async function rereadAfterVacationWrite(queryClient: QueryClient): Promis
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: qk.vacationDetails() }),
     queryClient.invalidateQueries({ queryKey: qk.myApprovals() }),
+    queryClient.invalidateQueries({ queryKey: qk.dashboardSummary() }),
   ]);
 }
 
