@@ -1,3 +1,9 @@
+export {
+  fetchAttachmentView,
+  useDeleteAttachment,
+  useUploadAttachment,
+  type AttachmentView,
+} from "./attachments";
 export { rereadAfterSelfService, rereadAttendance, type Reread } from "./attendance";
 export { useOffersPasswordChange } from "./auth-accounts";
 export {

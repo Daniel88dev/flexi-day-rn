@@ -44,8 +44,9 @@ Adding a native module — `expo-sqlite`, `expo-secure-store`, `expo-crypto`, `e
 `expo-clipboard` and `@react-native-community/datetimepicker` are the ones here — means
 `npm run prebuild` and then `npm run ios` or `npm run ios:device` to rebuild the dev client. Metro
 alone cannot load them, and the JavaScript fails at the import with a missing native module until
-the rebuild lands. A non-interactive shell has no UTF-8 `LANG`, and CocoaPods quits without one, so
-run `LANG=en_US.UTF-8 npm run prebuild` there.
+the rebuild lands. `expo-file-system` is a direct dependency as well, but `expo` itself already
+links it, so it needs no rebuild. A non-interactive shell has no UTF-8 `LANG`, and CocoaPods quits
+without one, so run `LANG=en_US.UTF-8 npm run prebuild` there.
 
 The backend base URL comes from `src/lib/api.ts`: `EXPO_PUBLIC_API_URL` when set, otherwise the
 Metro host on port 8080. Never hardcode `localhost`; a phone cannot reach it.
@@ -181,7 +182,10 @@ throws `ApiError` with the server's message.
 - Query keys are the web's (`qk` in `keys.ts`, copied from `flexi-day/lib/api/queries.ts`), so a
   prefix invalidates the same reads on both clients.
 - Nothing polls. Every foreground reads again however fresh the answer, through
-  `refetchOnWindowFocus: "always"`, and so do screen focus and the phone's own writes.
+  `refetchOnWindowFocus: "always"`, and so do screen focus and the phone's own writes. The one
+  exception is `useVacationDetail`: while a file on the open screen is still `UPLOADING`, it reads
+  the Request every 3 s (`processingPollInterval` in `src/lib/requests/attachments.ts`). It stops
+  once every file settles, when a read fails, while another screen covers it, and when it closes.
 - Reads and writes run with `networkMode: "always"`: offline they fail at once, so a screen shows
   "can't reach the server" with Retry instead of a paused spinner. The online manager still reads
   again on reconnect, which needs `refetchOnReconnect: true` set by hand under that mode.
@@ -197,7 +201,8 @@ throws `ApiError` with the server's message.
   refusal still reads the group again and starts a sync pull (`useCreateRequest`). The entry
   sheet words a refusal by its `context.reason` inline (`src/lib/attendance/refusals.ts`), turns
   Save into Retry when no answer came, and reads attendance again whether the write landed or not
-  (`useEnterSession`).
+  (`useEnterSession`). An attachment upload words its failure on the file's own row
+  (`useAttachmentUploads`), as the web does, and the Request is read again either way.
 
 ## Testing
 

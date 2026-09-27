@@ -1,9 +1,13 @@
 import { onlineManager } from "@tanstack/react-query";
-import { Stack, router } from "expo-router";
+import { Stack, router, useIsFocused } from "expo-router";
 import { CaretUpDownIcon } from "phosphor-react-native";
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
+import { toast } from "sonner-native";
 
+import { AttachmentsHeading } from "@/components/requests/attachments/attachment-section";
+import { AttachmentUploader } from "@/components/requests/attachments/attachment-uploader";
+import { SentPanel } from "@/components/requests/attachments/sent-panel";
 import { DatesField } from "@/components/requests/fields/dates-field";
 import { HalfDayField } from "@/components/requests/fields/half-day-field";
 import { NoteField } from "@/components/requests/fields/note-field";
@@ -18,7 +22,14 @@ import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
 import { haptic } from "@/lib/haptics";
 import { useMemberGroups } from "@/lib/local-store";
-import { ApiError, useCreateRequest, useGroupDetail, useGroupMembers } from "@/lib/query";
+import {
+  ApiError,
+  useCreateRequest,
+  useGroupDetail,
+  useGroupMembers,
+  useVacationDetail,
+} from "@/lib/query";
+import { MAX_ATTACHMENTS_PER_REQUEST, formUploadsVerdict } from "@/lib/requests/attachments";
 import {
   bookableMembers,
   bookableWindow,
@@ -32,6 +43,8 @@ import {
   withFrom,
   type NewRequestValues,
 } from "@/lib/requests/new-request";
+import { useAttachmentUploads } from "@/lib/requests/use-attachment-uploads";
+import { useNow } from "@/lib/use-now";
 import { useToday } from "@/lib/use-today";
 import { useViewer } from "@/lib/viewer/use-viewer";
 
@@ -101,6 +114,32 @@ export function NewRequestForm({ day }: { day?: string }) {
 
   const { submitting, submit } = useCreateRequest();
 
+  const [created, setCreated] = useState<{ requestId: string; vacationId: string } | null>(null);
+  const createdDetail = useVacationDetail(created?.vacationId ?? null, { poll: useIsFocused() });
+  const uploads = useAttachmentUploads({
+    requestId: created?.requestId ?? null,
+    attachments: createdDetail.data?.attachments ?? [],
+  });
+  const offerAttachments = groupDetail.data?.uploadsAvailable === true;
+  const now = useNow(30_000);
+  const verdict = created
+    ? formUploadsVerdict(uploads, createdDetail.data?.attachments, uploads.failedIds, now)
+    : null;
+  const closedRef = useRef(false);
+  const close = () => {
+    if (closedRef.current) return;
+    closedRef.current = true;
+    router.back();
+  };
+
+  // Closes on the upload that settles the last file, never on a dismissal that leaves the list
+  // clean: that would pull the sheet away under the finger.
+  const settlingRef = useRef(false);
+  useEffect(() => {
+    if (verdict === "clean" && settlingRef.current) close();
+    settlingRef.current = verdict === "settling";
+  });
+
   const resolved: NewRequestValues = { ...values, groupId, memberId: member?.userId ?? null };
   // Only a group read that got no answer means the server is out of reach. Any answer, a 5xx
   // included, leaves Submit to the server, as the web never gates it on this read.
@@ -115,6 +154,8 @@ export function NewRequestForm({ day }: { day?: string }) {
     showGroupPicker({ title: labels.group, groups, cancelLabel: labels.cancel }, (scope) => {
       if (scope.kind !== "group" || scope.groupId === groupId) return;
       // The member, and a Sick day, belonged to the group being left.
+      // So do the picked files: the new group may not take uploads.
+      uploads.reset();
       setValues((current) => ({
         ...current,
         groupId: scope.groupId,
@@ -142,7 +183,13 @@ export function NewRequestForm({ day }: { day?: string }) {
     const outcome = await submit(newRequestDraft(resolved, { canAdmin, offerSickDay }));
     if (outcome.ok) {
       haptic("success");
-      router.back();
+      if (outcome.created && uploads.queued > 0) {
+        uploads.start(outcome.created.requestId);
+        setCreated(outcome.created);
+        return;
+      }
+      if (uploads.queued > 0) toast.error(labels.filesNotSent);
+      close();
       return;
     }
     haptic("error");
@@ -154,40 +201,60 @@ export function NewRequestForm({ day }: { day?: string }) {
     <View testID="new-request" className="flex-1 bg-background">
       <Stack.Screen options={{ gestureEnabled: !submitting }} />
       <View className="h-14 flex-row items-center justify-between border-b border-border px-2">
-        <Pressable
-          testID="new-request-cancel"
-          onPress={() => router.back()}
-          disabled={submitting}
-          hitSlop={8}
-          accessibilityRole="button"
-          className="h-10 justify-center rounded-full px-3 active:opacity-70"
-        >
-          <Text className={cn("text-[16px]", submitting ? "text-faint" : "text-primary")}>
-            {labels.cancel}
-          </Text>
-        </Pressable>
-        <Text className="font-display text-[17px] font-semibold text-foreground">
-          {labels.title}
-        </Text>
-        <Pressable
-          testID="new-request-submit"
-          onPress={() => void send()}
-          disabled={!ready}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !ready, busy: submitting }}
-          className="h-10 min-w-[72px] items-center justify-center rounded-full px-3 active:opacity-70"
-        >
-          {submitting ? (
-            <ActivityIndicator color={primary} />
-          ) : (
-            <Text
-              className={cn("text-[16px] font-semibold", ready ? "text-primary" : "text-faint")}
-            >
-              {labels.submit}
+        {created ? (
+          <>
+            <View className="min-w-[72px]" />
+            <Text className="font-display text-[17px] font-semibold text-foreground">
+              {labels.title}
             </Text>
-          )}
-        </Pressable>
+            <Pressable
+              testID="new-request-done"
+              onPress={close}
+              hitSlop={8}
+              accessibilityRole="button"
+              className="h-10 min-w-[72px] items-center justify-center rounded-full px-3 active:opacity-70"
+            >
+              <Text className="text-[16px] font-semibold text-primary">{labels.done}</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable
+              testID="new-request-cancel"
+              onPress={() => router.back()}
+              disabled={submitting}
+              hitSlop={8}
+              accessibilityRole="button"
+              className="h-10 justify-center rounded-full px-3 active:opacity-70"
+            >
+              <Text className={cn("text-[16px]", submitting ? "text-faint" : "text-primary")}>
+                {labels.cancel}
+              </Text>
+            </Pressable>
+            <Text className="font-display text-[17px] font-semibold text-foreground">
+              {labels.title}
+            </Text>
+            <Pressable
+              testID="new-request-submit"
+              onPress={() => void send()}
+              disabled={!ready}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !ready, busy: submitting }}
+              className="h-10 min-w-[72px] items-center justify-center rounded-full px-3 active:opacity-70"
+            >
+              {submitting ? (
+                <ActivityIndicator color={primary} />
+              ) : (
+                <Text
+                  className={cn("text-[16px] font-semibold", ready ? "text-primary" : "text-faint")}
+                >
+                  {labels.submit}
+                </Text>
+              )}
+            </Pressable>
+          </>
+        )}
       </View>
       <ScrollView
         ref={scrollRef}
@@ -199,102 +266,126 @@ export function NewRequestForm({ day }: { day?: string }) {
         automaticallyAdjustKeyboardInsets
         contentContainerStyle={{ gap: 24, padding: 16, paddingBottom: 48 }}
       >
-        {error ? (
-          <View testID="new-request-error" accessibilityLiveRegion="polite">
-            <Notice tone="error" message={error} />
-          </View>
+        {created && verdict ? (
+          <SentPanel
+            verdict={verdict}
+            uploads={uploads}
+            readFailed={createdDetail.isError}
+            retrying={createdDetail.isFetching}
+            onRetry={() => void createdDetail.refetch()}
+          />
         ) : null}
-        {unreachable ? (
-          <View testID="new-request-offline">
-            <Notice
-              tone="error"
-              message={labels.offline}
-              action={{
-                label: labels.retry,
-                onPress: () => void groupDetail.refetch(),
-                testID: "new-request-retry",
-              }}
-            />
-          </View>
-        ) : null}
-        {group ? null : <Notice tone="accent" message={labels.noGroups} />}
+        {created ? null : (
+          <>
+            {error ? (
+              <View testID="new-request-error" accessibilityLiveRegion="polite">
+                <Notice tone="error" message={error} />
+              </View>
+            ) : null}
+            {unreachable ? (
+              <View testID="new-request-offline">
+                <Notice
+                  tone="error"
+                  message={labels.offline}
+                  action={{
+                    label: labels.retry,
+                    onPress: () => void groupDetail.refetch(),
+                    testID: "new-request-retry",
+                  }}
+                />
+              </View>
+            ) : null}
+            {group ? null : <Notice tone="accent" message={labels.noGroups} />}
 
-        {group ? (
-          <View>
-            <View className="overflow-hidden rounded-[24px] bg-card">
-              <PickerRow
-                testID="new-request-group"
-                label={labels.group}
-                value={group.groupName}
-                onPress={groups.length > 1 && !submitting ? pickGroup : undefined}
-              />
-              {canAdmin ? (
-                <>
-                  <View className="ml-4 h-px bg-border" />
+            {group ? (
+              <View>
+                <View className="overflow-hidden rounded-[24px] bg-card">
                   <PickerRow
-                    testID="new-request-member"
-                    label={labels.forMember}
-                    value={member?.user.name ?? labels.myself}
-                    onPress={members.length > 0 && !submitting ? pickMember : undefined}
+                    testID="new-request-group"
+                    label={labels.group}
+                    value={group.groupName}
+                    onPress={groups.length > 1 && !submitting ? pickGroup : undefined}
                   />
-                </>
-              ) : null}
-              {member ? (
-                <>
-                  <View className="ml-4 h-px bg-border" />
-                  <View className="min-h-[52px] flex-row items-center justify-between px-4">
-                    <Text className="text-[15.5px] text-foreground">
-                      {labels.approveImmediately}
-                    </Text>
-                    <Switch
-                      testID="new-request-auto-approve"
-                      accessibilityLabel={labels.approveImmediately}
-                      value={values.autoApprove}
-                      onValueChange={(autoApprove) => set({ autoApprove })}
-                      trackColor={{ true: primary }}
-                    />
-                  </View>
-                </>
-              ) : null}
-            </View>
-            {member ? (
-              <Text className="px-4 pt-2 text-[12.5px] leading-[18px] text-faint">
-                {labels.approveImmediatelyHint}
-              </Text>
+                  {canAdmin ? (
+                    <>
+                      <View className="ml-4 h-px bg-border" />
+                      <PickerRow
+                        testID="new-request-member"
+                        label={labels.forMember}
+                        value={member?.user.name ?? labels.myself}
+                        onPress={members.length > 0 && !submitting ? pickMember : undefined}
+                      />
+                    </>
+                  ) : null}
+                  {member ? (
+                    <>
+                      <View className="ml-4 h-px bg-border" />
+                      <View className="min-h-[52px] flex-row items-center justify-between px-4">
+                        <Text className="text-[15.5px] text-foreground">
+                          {labels.approveImmediately}
+                        </Text>
+                        <Switch
+                          testID="new-request-auto-approve"
+                          accessibilityLabel={labels.approveImmediately}
+                          value={values.autoApprove}
+                          onValueChange={(autoApprove) => set({ autoApprove })}
+                          trackColor={{ true: primary }}
+                        />
+                      </View>
+                    </>
+                  ) : null}
+                </View>
+                {member ? (
+                  <Text className="px-4 pt-2 text-[12.5px] leading-[18px] text-faint">
+                    {labels.approveImmediatelyHint}
+                  </Text>
+                ) : null}
+                {canAdmin && membersRead.isError ? (
+                  <Text className="px-4 pt-2 text-[12.5px] leading-[18px] text-faint">
+                    {labels.membersFailed}
+                  </Text>
+                ) : null}
+              </View>
             ) : null}
-            {canAdmin && membersRead.isError ? (
-              <Text className="px-4 pt-2 text-[12.5px] leading-[18px] text-faint">
-                {labels.membersFailed}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
 
-        <DatesField
-          from={values.from}
-          to={values.to}
-          window={bookable}
-          onFrom={(from) => setValues((current) => withFrom(current, from))}
-          onTo={(to) => set({ to })}
-        />
-        <TypeField
-          value={type}
-          onChange={(vacationType) => set({ vacationType })}
-          offerSickDay={offerSickDay}
-        />
-        <TimesField
-          startTime={values.startTime}
-          endTime={values.endTime}
-          onChange={(times) => set(times)}
-        />
-        {offersHalfDay(values) ? (
-          <HalfDayField value={values.halfDay} onChange={(halfDay) => set({ halfDay })} />
-        ) : null}
-        <NoteField
-          value={values.note}
-          onChange={(note) => set({ note })}
-          required={type === "OTHER"}
-        />
+            <DatesField
+              from={values.from}
+              to={values.to}
+              window={bookable}
+              onFrom={(from) => setValues((current) => withFrom(current, from))}
+              onTo={(to) => set({ to })}
+            />
+            <TypeField
+              value={type}
+              onChange={(vacationType) => set({ vacationType })}
+              offerSickDay={offerSickDay}
+            />
+            <TimesField
+              startTime={values.startTime}
+              endTime={values.endTime}
+              onChange={(times) => set(times)}
+            />
+            {offersHalfDay(values) ? (
+              <HalfDayField value={values.halfDay} onChange={(halfDay) => set({ halfDay })} />
+            ) : null}
+            <NoteField
+              value={values.note}
+              onChange={(note) => set({ note })}
+              required={type === "OTHER"}
+            />
+            {offerAttachments ? (
+              <View testID="new-request-attachments">
+                <AttachmentsHeading used={MAX_ATTACHMENTS_PER_REQUEST - uploads.remaining} />
+                <View className="overflow-hidden rounded-[24px] bg-card">
+                  <AttachmentUploader uploads={uploads} disabled={submitting} />
+                </View>
+                <Text className="px-4 pt-2 text-[12.5px] leading-[18px] text-faint">
+                  {t.attachments.visibilityNotice}
+                </Text>
+              </View>
+            ) : null}
+          </>
+        )}
       </ScrollView>
     </View>
   );
