@@ -10,18 +10,18 @@ import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import {
   linkedDay,
-  refreshDayView,
+  refreshView,
   useClockRead,
+  type AttendanceView,
   type ClockView,
-  type DayViewReads,
+  type ViewReads,
 } from "@/lib/attendance";
 import { currentMonth, isoDay } from "@/lib/requests/months";
 import { useToday } from "@/lib/use-today";
 
-import { DayStepper, ViewPill, type AttendanceView } from "./day-header";
+import { DayStepper, RangeStepper, ViewPill } from "./day-header";
 import { DayView } from "./day-view";
-
-const BUILT_VIEWS: AttendanceView[] = ["day"];
+import { MonthView, WeekView } from "./range-views";
 
 /** The organization's day once the clock has named it; the phone's own date until then. */
 function useAttendanceToday(view: ClockView): string {
@@ -31,17 +31,20 @@ function useAttendanceToday(view: ClockView): string {
 }
 
 const navigate = (href: Href) => router.navigate(href);
+const openDay = (date: string) => router.push({ pathname: "/attendance/[date]", params: { date } });
 
 /**
- * The Day view with its stepper, over the clock's read. `anchored` stays as it was set and is
- * judged against today on every render, so a link or a step made before the organization's day
- * was known still lands right, and null follows today across midnight.
+ * One view with its stepper, over the clock's read. `anchored` stays as it was set and is judged
+ * against today on every render, so a link or a step made before the organization's day was known
+ * still lands right, and null follows today across midnight.
  */
-function AttendanceDay({
+function AttendanceBody({
+  view = "day",
   anchored,
   onAnchor,
   header,
 }: {
+  view?: AttendanceView;
   anchored: string | null;
   onAnchor: (date: string | null) => void;
   header?: (ready: boolean) => ReactNode;
@@ -49,13 +52,14 @@ function AttendanceDay({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const primary = useTone("primary");
-  const { view, reread } = useClockRead();
-  const today = useAttendanceToday(view);
+  const { view: clock, reread } = useClockRead();
+  const today = useAttendanceToday(clock);
   const date = linkedDay(anchored, today);
   const [refreshing, setRefreshing] = useState(false);
 
-  const reads: DayViewReads = {
-    organizationId: view.kind === "ready" ? view.state.organizationId : null,
+  const reads: ViewReads = {
+    view,
+    organizationId: clock.kind === "ready" ? clock.state.organizationId : null,
     date,
     today,
   };
@@ -66,19 +70,19 @@ function AttendanceDay({
 
   const refresh = () => {
     setRefreshing(true);
-    void refreshDayView(queryClient, reads).finally(() => setRefreshing(false));
+    void refreshView(queryClient, reads).finally(() => setRefreshing(false));
   };
 
   // A tab stays mounted, so coming back to it reads again the way opening it did.
   const focusedBeforeRef = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      if (focusedBeforeRef.current) void refreshDayView(queryClient, readsRef.current);
+      if (focusedBeforeRef.current) void refreshView(queryClient, readsRef.current);
       focusedBeforeRef.current = true;
     }, [queryClient])
   );
 
-  const ready = view.kind === "ready";
+  const ready = clock.kind === "ready";
   return (
     <ScrollView
       testID="my-attendance"
@@ -89,27 +93,48 @@ function AttendanceDay({
       }
     >
       {header?.(ready)}
-      {view.kind === "ready" ? (
-        <>
-          <DayStepper date={date} today={today} onChange={onAnchor} />
-          <DayView date={date} today={today} state={view.state} onNavigate={navigate} />
-        </>
-      ) : view.kind === "no-employment" ? (
+      {clock.kind === "ready" ? (
+        view === "day" ? (
+          <>
+            <DayStepper date={date} today={today} onChange={onAnchor} />
+            <DayView date={date} today={today} state={clock.state} onNavigate={navigate} />
+          </>
+        ) : (
+          <>
+            <RangeStepper view={view} anchor={date} today={today} onChange={onAnchor} />
+            {view === "week" ? (
+              <WeekView
+                anchor={date}
+                today={today}
+                organizationId={clock.state.organizationId}
+                onOpenDay={openDay}
+              />
+            ) : (
+              <MonthView
+                anchor={date}
+                today={today}
+                organizationId={clock.state.organizationId}
+                onOpenDay={openDay}
+              />
+            )}
+          </>
+        )
+      ) : clock.kind === "no-employment" ? (
         <Text testID="attendance-not-set-up" className="py-16 text-center text-[15px] text-faint">
           {t.attendance.notSetUp}
         </Text>
-      ) : view.kind === "loading" ? (
+      ) : clock.kind === "loading" ? (
         <View className="gap-4" testID="attendance-loading">
           <View className="h-9 w-56 rounded-full bg-muted" />
           <View className="h-64 rounded-[24px] bg-card" />
         </View>
       ) : (
         <ClockNotice
-          testID={view.kind === "unreachable" ? "attendance-offline" : "attendance-read-failed"}
-          tone={view.kind === "unreachable" ? "muted" : "danger"}
-          icon={view.kind === "unreachable" ? WifiSlashIcon : WarningCircleIcon}
-          title={view.kind === "unreachable" ? t.clock.unreachable : t.clock.serverError}
-          body={view.kind === "unreachable" ? undefined : t.clock.serverErrorBody}
+          testID={clock.kind === "unreachable" ? "attendance-offline" : "attendance-read-failed"}
+          tone={clock.kind === "unreachable" ? "muted" : "danger"}
+          icon={clock.kind === "unreachable" ? WifiSlashIcon : WarningCircleIcon}
+          title={clock.kind === "unreachable" ? t.clock.unreachable : t.clock.serverError}
+          body={clock.kind === "unreachable" ? undefined : t.clock.serverErrorBody}
         >
           <NoticeAction label={t.clock.tryAgain} icon={ArrowClockwiseIcon} onPress={reread} />
         </ClockNotice>
@@ -119,8 +144,8 @@ function AttendanceDay({
 }
 
 /**
- * My attendance, on Day. A `?date=` link re-anchors it on that day, and is then taken off the
- * route so the same link followed again still lands.
+ * My attendance. A `?date=` link re-anchors it on Day at that day, and is then taken off the route
+ * so the same link followed again still lands.
  */
 export function MyAttendanceScreen({
   linkedDate,
@@ -147,7 +172,8 @@ export function MyAttendanceScreen({
 
   return (
     <View className="flex-1 bg-background pt-safe">
-      <AttendanceDay
+      <AttendanceBody
+        view={view}
         anchored={anchored}
         onAnchor={setAnchored}
         header={(ready) => (
@@ -161,7 +187,6 @@ export function MyAttendanceScreen({
             {ready ? (
               <ViewPill
                 value={view}
-                available={BUILT_VIEWS}
                 onChange={(next) => {
                   setView(next);
                   setAnchored(null);
@@ -177,5 +202,5 @@ export function MyAttendanceScreen({
 
 export function PushedDay({ date }: { date: string }) {
   const [anchored, setAnchored] = useState<string | null>(date);
-  return <AttendanceDay anchored={anchored} onAnchor={setAnchored} />;
+  return <AttendanceBody anchored={anchored} onAnchor={setAnchored} />;
 }

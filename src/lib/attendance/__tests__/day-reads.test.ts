@@ -2,7 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 
 import { qk } from "@/lib/query";
 
-import { refreshDayView } from "../day-reads";
+import { refreshDayView, refreshView } from "../day-reads";
 
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
@@ -76,5 +76,48 @@ describe("refreshDayView", () => {
     await expect(
       refreshDayView(client, { organizationId: ORG, date: TODAY, today: TODAY })
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("refreshView", () => {
+  const october = qk.attendanceMonth(2026, 10, ORG);
+
+  it("reads /current and both months of a week that straddles them", async () => {
+    const { client, reread } = await cacheWith([state, august, september, october, day(TODAY)]);
+
+    await refreshView(client, {
+      view: "week",
+      organizationId: ORG,
+      date: "2026-10-01",
+      today: TODAY,
+    });
+
+    expect(reread().sort()).toEqual(
+      [state, september, october].map((key) => JSON.stringify(key)).sort()
+    );
+  });
+
+  it.each([["week"], ["month"]] as const)(
+    "reads /current alone on the %s view before the clock has named the organization",
+    async (view) => {
+      const { client, reread } = await cacheWith([state, september]);
+
+      await refreshView(client, { view, organizationId: null, date: TODAY, today: TODAY });
+
+      expect(reread()).toEqual([JSON.stringify(state)]);
+    }
+  );
+
+  it("reads /current and the one month on the Month view", async () => {
+    const { client, reread } = await cacheWith([state, august, september, day(TODAY)]);
+
+    await refreshView(client, {
+      view: "month",
+      organizationId: ORG,
+      date: "2026-08-01",
+      today: TODAY,
+    });
+
+    expect(reread().sort()).toEqual([state, august].map((key) => JSON.stringify(key)).sort());
   });
 });

@@ -1,5 +1,5 @@
 import type { DayMonth } from "@/i18n/en";
-import { addDays } from "@/lib/days";
+import { addDays, mondayIndex } from "@/lib/days";
 import type {
   CalendarRecordType,
   DayRange,
@@ -57,6 +57,8 @@ export function dayEntries(
 
 /** `weekday` counts from Monday as 0. */
 export function dayParts(day: string): { weekday: number; date: DayMonth } {
-  const weekday = (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
-  return { weekday, date: { day: Number(day.slice(8, 10)), month: Number(day.slice(5, 7)) } };
+  return {
+    weekday: mondayIndex(day),
+    date: { day: Number(day.slice(8, 10)), month: Number(day.slice(5, 7)) },
+  };
 }

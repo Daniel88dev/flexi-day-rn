@@ -8,3 +8,9 @@ export function dayNumber(iso: string): number {
 export function addDays(iso: string, days: number): string {
   return new Date((dayNumber(iso) + days) * DAY_MS).toISOString().slice(0, 10);
 }
+
+/** A day's place in a Monday-first week: 0 for Monday, 6 for Sunday. */
+export function mondayIndex(iso: string): number {
+  // Day 0 of the epoch was a Thursday.
+  return (((dayNumber(iso) + 3) % 7) + 7) % 7;
+}

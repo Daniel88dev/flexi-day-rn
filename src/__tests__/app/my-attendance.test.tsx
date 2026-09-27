@@ -1,11 +1,11 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, within } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import { router } from "expo-router";
 
 import Screen from "@/app/(app)/my-attendance";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { queryClient } from "@/lib/query";
-import { attendance, pause, session } from "@/test-support/attendance";
+import { attendance, attendanceMonth, pause, session } from "@/test-support/attendance";
 
 const mockFetch = jest.fn();
 const mockParams: { date?: string } = {};
@@ -22,7 +22,7 @@ jest.mock("@/lib/api", () => {
 jest.mock("expo-router", () => {
   const React = jest.requireActual("react");
   return {
-    router: { setParams: jest.fn(), navigate: jest.fn(), back: jest.fn() },
+    router: { setParams: jest.fn(), navigate: jest.fn(), back: jest.fn(), push: jest.fn() },
     useLocalSearchParams: () => mockParams,
     useFocusEffect: (effect: () => void) => React.useEffect(effect, [effect]),
   };
@@ -192,5 +192,146 @@ describe("My attendance", () => {
     expect(readsOf("/api/attendance/day")).toHaveLength(1);
     expect(readsOf("/api/attendance/month")).toHaveLength(1);
     expect(readsOf("/api/attendance/month")[0]).toContain("month=9");
+  });
+});
+
+describe("My attendance, Week and Month", () => {
+  // The backend marks every date after its business date as upcoming.
+  function monthUpTo(year: number, month: number, today: string, fails = false) {
+    const data = attendanceMonth(year, month, { businessDate: today });
+    for (const day of data.days) day.upcoming = day.businessDate > today;
+    return { status: fails ? 500 : 200, body: data };
+  }
+
+  function answerRange(today: string, failing: number | null = null) {
+    mockFetch.mockImplementation(async (url: string) => {
+      const reply = (status: number, body: unknown) => ({ status, json: async () => body });
+      if (url.includes("/api/attendance/current"))
+        return reply(200, attendance({ organizationId: ORG, businessDate: today }));
+      if (url.includes("/api/attendance/month")) {
+        const params = new URLSearchParams(url.split("?")[1]);
+        const month = Number(params.get("month"));
+        const answer = monthUpTo(Number(params.get("year")), month, today, month === failing);
+        return reply(answer.status, answer.body);
+      }
+      return reply(200, { organizationId: ORG, timezone: "Europe/Prague", sessions: [] });
+    });
+  }
+
+  const rowDates = () =>
+    screen
+      .getAllByTestId(/^day-row-/)
+      .map((row) => (row.props.testID as string).replace("day-row-", ""));
+
+  it("shows a straddling week's stat card and seven rows, read from both months", async () => {
+    answerRange("2026-10-01");
+    await renderScreen();
+    await fireEvent.press(await screen.findByTestId("attendance-view-week"));
+
+    expect(await screen.findByTestId("attendance-week")).toBeTruthy();
+    expect(screen.getByText("Sep 28 - Oct 4")).toBeTruthy();
+    expect(within(screen.getByTestId("attendance-stats")).getByText("Flagged")).toBeTruthy();
+    expect(rowDates()).toEqual([
+      "2026-09-28",
+      "2026-09-29",
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+      "2026-10-03",
+      "2026-10-04",
+    ]);
+    expect(screen.getAllByText("To come")).toHaveLength(3);
+    expect(screen.getByTestId("legend-week")).toBeTruthy();
+    const months = readsOf("/api/attendance/month").map((url) =>
+      new URLSearchParams((url as string).split("?")[1]).get("month")
+    );
+    expect(new Set(months)).toEqual(new Set(["9", "10"]));
+  });
+
+  it("shows the error rather than half a week when one of its months fails", async () => {
+    answerRange("2026-10-01", 10);
+    await renderScreen();
+    await fireEvent.press(await screen.findByTestId("attendance-view-week"));
+
+    // A 5xx gets one retry a second later before it counts as failed.
+    expect(
+      await screen.findByTestId("attendance-range-failed", {}, { timeout: 3000 })
+    ).toBeTruthy();
+    expect(screen.queryAllByTestId(/^day-row-/)).toHaveLength(0);
+  });
+
+  it("reads only the failed month again on Retry", async () => {
+    answerRange("2026-10-01", 10);
+    await renderScreen();
+    await fireEvent.press(await screen.findByTestId("attendance-view-week"));
+    await screen.findByTestId("attendance-range-failed", {}, { timeout: 3000 });
+    answerRange("2026-10-01");
+    mockFetch.mockClear();
+
+    await fireEvent.press(screen.getByText("Retry"));
+
+    expect(await screen.findByTestId("attendance-week")).toBeTruthy();
+    const months = readsOf("/api/attendance/month").map((url) =>
+      new URLSearchParams((url as string).split("?")[1]).get("month")
+    );
+    expect(months).toEqual(["10"]);
+  });
+
+  it("shows the month's past days newest first, with the stat card and the legends", async () => {
+    answerRange("2026-09-27");
+    await renderScreen();
+    await fireEvent.press(await screen.findByTestId("attendance-view-month"));
+
+    expect(await screen.findByTestId("attendance-month")).toBeTruthy();
+    expect(screen.getByText("September 2026")).toBeTruthy();
+    expect(within(screen.getByTestId("attendance-stats")).getByText("Excluded days")).toBeTruthy();
+    const dates = rowDates();
+    expect(dates).toHaveLength(27);
+    expect(dates.slice(0, 2)).toEqual(["2026-09-27", "2026-09-26"]);
+    expect(screen.queryByTestId("legend-week")).toBeNull();
+    expect(screen.getByTestId("legend-hatched")).toBeTruthy();
+    expect(screen.getByTestId("legend-entered")).toBeTruthy();
+    expect(screen.getByTestId("legend-changed")).toBeTruthy();
+  });
+
+  it("pushes a past day's Day screen from its row", async () => {
+    answerRange("2026-09-27");
+    await renderScreen();
+    await fireEvent.press(await screen.findByTestId("attendance-view-month"));
+
+    await fireEvent.press(await screen.findByTestId("day-row-2026-09-24"));
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/attendance/[date]",
+      params: { date: "2026-09-24" },
+    });
+  });
+
+  it("resets to today when the view switches", async () => {
+    answerRange("2026-09-27");
+    await renderScreen();
+    await fireEvent.press(await screen.findByTestId("attendance-view-week"));
+    await fireEvent.press(await screen.findByTestId("attendance-range-previous"));
+    expect(await screen.findByText("Sep 14 - Sep 20")).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId("attendance-view-month"));
+    expect(await screen.findByText("September 2026")).toBeTruthy();
+    await fireEvent.press(screen.getByTestId("attendance-view-week"));
+    expect(await screen.findByText("Sep 21 - Sep 27")).toBeTruthy();
+  });
+
+  it("reads /current and both months of a straddling week again on pull-to-refresh", async () => {
+    answerRange("2026-10-01");
+    await renderScreen();
+    await fireEvent.press(await screen.findByTestId("attendance-view-week"));
+    await screen.findByTestId("attendance-week");
+    mockFetch.mockClear();
+
+    const scroll = screen.getByTestId("my-attendance");
+    await act(async () => scroll.props.refreshControl.props.onRefresh());
+
+    expect(readsOf("/api/attendance/current")).toHaveLength(1);
+    expect(readsOf("/api/attendance/month")).toHaveLength(2);
+    expect(readsOf("/api/attendance/day")).toHaveLength(0);
   });
 });

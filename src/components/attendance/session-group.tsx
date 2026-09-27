@@ -1,13 +1,7 @@
-import {
-  ClockCounterClockwiseIcon,
-  NotebookIcon,
-  PencilSimpleLineIcon,
-  PlayIcon,
-  type Icon as PhosphorIcon,
-} from "phosphor-react-native";
+import { ClockCounterClockwiseIcon, PencilSimpleLineIcon, PlayIcon } from "phosphor-react-native";
 import { View } from "react-native";
 
-import { Icon, type Tone } from "@/components/ui/icon";
+import { Icon } from "@/components/ui/icon";
 import { TABULAR, Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import {
@@ -22,51 +16,13 @@ import {
 } from "@/lib/attendance";
 import { cn } from "@/lib/cn";
 
-const FLAG_TEXT: Record<Exclude<Tone, "onPrimary" | "onFill" | "card">, string> = {
-  faint: "text-faint",
-  muted: "text-muted-foreground",
-  foreground: "text-foreground",
-  primary: "text-primary",
-  danger: "text-danger",
-  ok: "text-ok",
-  warm: "text-warm",
-  review: "text-review",
-};
-
-function Flag({
-  icon,
-  tone,
-  label,
-  testID,
-}: {
-  icon: PhosphorIcon;
-  tone: keyof typeof FLAG_TEXT;
-  label: string;
-  testID?: string;
-}) {
-  return (
-    <View testID={testID} className="flex-row items-center gap-1">
-      <Icon icon={icon} tone={tone} size={14} weight="bold" />
-      <Text className={cn("text-[12.5px] font-semibold", FLAG_TEXT[tone])}>{label}</Text>
-    </View>
-  );
-}
+import { EnteredStamp, Flag } from "./chips";
 
 function Mark({ mark }: { mark: SessionMark }) {
   const { t } = useTranslation();
   switch (mark.kind) {
     case "entered":
-      return (
-        <View
-          testID="mark-entered"
-          className="flex-row items-center gap-1 rounded-full border border-input bg-card py-0.5 pr-2 pl-1.5"
-        >
-          <Icon icon={NotebookIcon} tone="muted" size={13} />
-          <Text className="text-[12px] font-semibold text-muted-foreground">
-            {t.attendance.entered}
-          </Text>
-        </View>
-      );
+      return <EnteredStamp testID="mark-entered" />;
     case "changed":
       return (
         <Flag

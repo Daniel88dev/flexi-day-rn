@@ -2,11 +2,9 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { qk } from "@/lib/query";
 
-export type DayViewReads = { organizationId: string | null; date: string; today: string };
+import { monthsOfWeek, yearMonthOf, type AttendanceView } from "./range";
 
-export function yearMonthOf(date: string): { year: number; month: number } {
-  return { year: Number(date.slice(0, 4)), month: Number(date.slice(5, 7)) };
-}
+export type DayViewReads = { organizationId: string | null; date: string; today: string };
 
 /**
  * The reads one Day view shows: the clock's `/current`, the day's `/day` unless it is today, whose
@@ -24,9 +22,28 @@ export function dayViewKeys({ organizationId, date, today }: DayViewReads) {
   ];
 }
 
+/** `date` is the view's anchor: the day, or any day of the week or month shown. */
+export type ViewReads = DayViewReads & { view: AttendanceView };
+
+/** The reads a view shows: a week the one or two months it spans, a month its own. */
+export function viewKeys(reads: ViewReads) {
+  if (reads.view === "day") return dayViewKeys(reads);
+  const state = qk.attendanceState();
+  if (!reads.organizationId) return [state];
+  const months = reads.view === "week" ? monthsOfWeek(reads.date) : [yearMonthOf(reads.date)];
+  return [
+    state,
+    ...months.map(({ year, month }) => qk.attendanceMonth(year, month, reads.organizationId)),
+  ];
+}
+
 /** Pull-to-refresh: the visible reads again, resolving once all have answered or failed. */
-export async function refreshDayView(queryClient: QueryClient, reads: DayViewReads) {
+export async function refreshView(queryClient: QueryClient, reads: ViewReads) {
   await Promise.allSettled(
-    dayViewKeys(reads).map((queryKey) => queryClient.refetchQueries({ queryKey, exact: true }))
+    viewKeys(reads).map((queryKey) => queryClient.refetchQueries({ queryKey, exact: true }))
   );
+}
+
+export function refreshDayView(queryClient: QueryClient, reads: DayViewReads) {
+  return refreshView(queryClient, { ...reads, view: "day" });
 }

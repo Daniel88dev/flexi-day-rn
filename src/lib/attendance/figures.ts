@@ -3,7 +3,7 @@ import type { Dictionary } from "@/i18n";
 import { formatMinutes } from "./format";
 import type { AttendanceBalanceMode, AttendanceExclusion, AttendanceMonthDay } from "./types";
 
-function exclusionLabel(t: Dictionary, exclusion: AttendanceExclusion): string {
+export function exclusionLabel(t: Dictionary, exclusion: AttendanceExclusion): string {
   const label = (() => {
     switch (exclusion.cause) {
       case "NOT_EMPLOYED":
