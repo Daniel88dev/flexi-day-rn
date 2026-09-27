@@ -1,3 +1,4 @@
+import { dayNumber } from "@/lib/days";
 import type { CalendarRecordType, ListedVacation, VacationStatus } from "@/lib/local-store";
 
 /**
@@ -27,11 +28,13 @@ export type RequestRun = {
   pending: boolean;
 };
 
-function dayNumber(iso: string): number {
-  return Math.floor(new Date(`${iso}T00:00:00Z`).getTime() / 86_400_000);
-}
-
-function runKey(row: ListedVacation): string {
+/** What a run shares on every day: contiguous days with the same key are one run. */
+export function runKey(
+  row: Pick<
+    ListedVacation,
+    "userId" | "groupId" | "vacationType" | "status" | "startTime" | "endTime" | "halfDay"
+  >
+): string {
   return [
     row.userId,
     row.groupId,

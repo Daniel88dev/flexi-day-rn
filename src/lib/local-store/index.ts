@@ -27,11 +27,12 @@ const store = createStore({
 });
 
 export type { StoreDatabase } from "./adapter";
+export type { CalendarBankHoliday, CalendarQuery } from "./calendar";
 export type { SyncTableName } from "./envelope";
 export type { StoreChannel } from "./events";
 export type { PendingChange, PendingKind, VacationDraft, VacationUpdateDraft } from "./pending";
 export type { PullOutcome, PullReason } from "./pull";
-export type { VacationStatus } from "./queries";
+export type { DayRange, VacationStatus } from "./queries";
 export type {
   ListedVacation,
   RequestListQuery,
@@ -41,6 +42,7 @@ export type {
 export type { CalendarRecordType, StoreTableName } from "./schema";
 export type { OpenStoreOptions } from "./store";
 export type { VacationUpdate, WriteOutcome } from "./writes";
+export { useCalendarBankHolidays, useCalendarVacations } from "./use-calendar";
 export { usePendingChanges } from "./use-pending-changes";
 export { useRequestListVacations, useRequestScopeGroups } from "./use-request-list";
 export { useStoreQuery } from "./use-store-query";

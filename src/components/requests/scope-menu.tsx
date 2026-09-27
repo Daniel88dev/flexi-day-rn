@@ -1,6 +1,7 @@
 import { CaretDownIcon } from "phosphor-react-native";
-import { ActionSheetIOS, Pressable } from "react-native";
+import { Pressable } from "react-native";
 
+import { showGroupPicker } from "@/components/ui/group-picker";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -22,20 +23,14 @@ export function ScopeMenu({
   const label = selected?.groupName ?? t.requests.scopeMine;
 
   const open = () =>
-    ActionSheetIOS.showActionSheetWithOptions(
+    showGroupPicker(
       {
         title: t.requests.scopeLabel,
-        options: [
-          ...groups.map((group) => group.groupName),
-          t.requests.scopeMine,
-          t.account.cancel,
-        ],
-        cancelButtonIndex: groups.length + 1,
+        groups,
+        cancelLabel: t.account.cancel,
+        mineLabel: t.requests.scopeMine,
       },
-      (index) => {
-        if (index < groups.length) onChange({ kind: "group", groupId: groups[index].groupId });
-        else if (index === groups.length) onChange({ kind: "mine" });
-      }
+      onChange
     );
 
   return (

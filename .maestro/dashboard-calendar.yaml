@@ -1,0 +1,76 @@
+appId: com.flexiday.app
+name: The dashboard calendar steps months and opens a day
+---
+- runFlow: subflows/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: "dashboard"
+    timeout: 60000
+# The calendar shows once the first sync pull has filled the Local store.
+- extendedWaitUntil:
+    visible:
+      id: "calendar-title"
+    timeout: 60000
+- evalScript: ${output.names = ['January','February','March','April','May','June','July','August','September','October','November','December']}
+- evalScript: ${output.now = new Date()}
+- evalScript: ${output.thisMonth = output.names[output.now.getMonth()] + ' ' + output.now.getFullYear()}
+- evalScript: ${output.nextDate = new Date(output.now.getFullYear(), output.now.getMonth() + 1, 1)}
+- evalScript: ${output.nextMonth = output.names[output.nextDate.getMonth()] + ' ' + output.nextDate.getFullYear()}
+- evalScript: ${output.monthKey = output.now.getFullYear() + '-' + String(output.now.getMonth() + 1).padStart(2, '0')}
+- evalScript: ${output.today = output.monthKey + '-' + String(output.now.getDate()).padStart(2, '0')}
+- assertVisible:
+    id: "calendar-title"
+    text: ${output.thisMonth}
+- assertVisible:
+    id: "calendar-month-${output.monthKey}"
+- assertVisible:
+    id: "calendar-day-${output.today}"
+- assertVisible:
+    id: "calendar-legend-pending"
+# The arrows step a month; the title comes back to this one.
+- tapOn:
+    id: "calendar-next"
+- assertVisible:
+    id: "calendar-title"
+    text: ${output.nextMonth}
+- tapOn:
+    id: "calendar-title"
+- assertVisible:
+    id: "calendar-title"
+    text: ${output.thisMonth}
+# A swipe on the grid pages to the next month too. The pager must have settled on this month
+# first, and a quick flick reads as a scroll the paging never catches.
+- waitForAnimationToEnd
+- swipe:
+    start: 85%, 60%
+    end: 10%, 60%
+    duration: 400
+- assertVisible:
+    id: "calendar-title"
+    text: ${output.nextMonth}
+- tapOn:
+    id: "calendar-title"
+- assertVisible:
+    id: "calendar-title"
+    text: ${output.thisMonth}
+# The picker only shows with two groups or more, and CI's owner has one.
+- tapOn:
+    id: "calendar-scope-group"
+- assertVisible:
+    id: "calendar-scope-group"
+    selected: true
+# A tapped day opens its day list with a Book button.
+- tapOn:
+    id: "calendar-day-${output.today}"
+- extendedWaitUntil:
+    visible:
+      id: "day-list"
+    timeout: 10000
+- assertVisible:
+    id: "day-list-book"
+    text: "Book .*"
+# The dimmed screen above the sheet closes it.
+- tapOn:
+    point: 50%, 10%
+- assertNotVisible:
+    id: "day-list"
