@@ -1,7 +1,7 @@
 import { Redirect, router, type Href } from "expo-router";
 import { TabList, TabSlot, TabTrigger, Tabs } from "expo-router/ui";
 import { ListIcon } from "phosphor-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Toaster } from "sonner-native";
@@ -10,8 +10,10 @@ import { ClockDisc } from "@/components/clock/clock-disc";
 import { MoreSheet } from "@/components/shell/more-sheet";
 import { TabButton } from "@/components/shell/tab-button";
 import { useTranslation } from "@/i18n/use-translation";
+import { useClockRead } from "@/lib/attendance";
 import { openStore } from "@/lib/local-store";
 import {
+  attendanceLinkShown,
   buildSections,
   buildUtilityLinks,
   splitForTabBar,
@@ -66,9 +68,7 @@ export default function AppLayout() {
   // the session cache before any of this mounts, so the answer here is never a guess.
   if (rootRoute === "welcome") return <Redirect href="/welcome" />;
 
-  const sections = buildSections(t);
   const utility = buildUtilityLinks(t);
-  const { bar, sheet } = splitForTabBar(sections);
 
   const go = (link: NavLink) => {
     setMoreOpen(false);
@@ -80,43 +80,85 @@ export default function AppLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryLayer onUnauthorized={onUnauthorized}>
         <View className="flex-1 bg-background">
-          {storeOpen ? (
-            <Tabs>
-              <TabSlot />
-              <TabList asChild>
-                <View className="flex-row border-t border-border bg-card pb-safe">
-                  {bar.slice(0, 2).map((link) => (
-                    <TabTrigger key={link.key} name={link.key} href={link.href as Href} asChild>
-                      <TabButton label={link.label} icon={link.icon} />
-                    </TabTrigger>
-                  ))}
+          <ShellLinks>
+            {({ bar, sheet, hiddenTabs }) => (
+              <>
+                {storeOpen ? (
+                  <Tabs>
+                    <TabSlot />
+                    <TabList asChild>
+                      <View className="flex-row border-t border-border bg-card pb-safe">
+                        {bar.slice(0, 2).map((link) => barSlot(link, go))}
 
-                  <ClockDisc onPress={() => router.push("/clock")} />
+                        <ClockDisc onPress={() => router.push("/clock")} />
 
-                  {bar.slice(2).map((link) => (
-                    <TabTrigger key={link.key} name={link.key} href={link.href as Href} asChild>
-                      <TabButton label={link.label} icon={link.icon} />
-                    </TabTrigger>
-                  ))}
+                        {bar.slice(2).map((link) => barSlot(link, go))}
 
-                  <TabButton label={t.nav.more} icon={ListIcon} onPress={() => setMoreOpen(true)} />
-                </View>
-              </TabList>
-            </Tabs>
-          ) : null}
+                        <TabButton
+                          label={t.nav.more}
+                          icon={ListIcon}
+                          onPress={() => setMoreOpen(true)}
+                        />
 
-          <MoreSheet
-            open={moreOpen}
-            onClose={() => setMoreOpen(false)}
-            sections={sheet}
-            utility={utility}
-            viewer={viewer}
-            onNavigate={go}
-            onSignOut={() => void signOut(wipe)}
-          />
+                        {/* A tab kept off the bar stays a route, so a link still reaches it. */}
+                        {hiddenTabs.map((link) => (
+                          <TabTrigger
+                            key={link.key}
+                            name={link.key}
+                            href={link.href as Href}
+                            style={{ display: "none" }}
+                          />
+                        ))}
+                      </View>
+                    </TabList>
+                  </Tabs>
+                ) : null}
+
+                <MoreSheet
+                  open={moreOpen}
+                  onClose={() => setMoreOpen(false)}
+                  sections={sheet}
+                  utility={utility}
+                  viewer={viewer}
+                  onNavigate={go}
+                  onSignOut={() => void signOut(wipe)}
+                />
+              </>
+            )}
+          </ShellLinks>
         </View>
       </QueryLayer>
       <Toaster />
     </GestureHandlerRootView>
   );
+}
+
+/** An element rather than a component: `Tabs` finds its triggers by their element type. */
+function barSlot(link: NavLink, onNavigate: (link: NavLink) => void) {
+  if (!link.tab) {
+    return (
+      <TabButton
+        key={link.key}
+        label={link.label}
+        icon={link.icon}
+        onPress={() => onNavigate(link)}
+      />
+    );
+  }
+  return (
+    <TabTrigger key={link.key} name={link.key} href={link.href as Href} asChild>
+      <TabButton label={link.label} icon={link.icon} />
+    </TabTrigger>
+  );
+}
+
+// The bar follows the clock's read, which needs the query layer above it.
+function ShellLinks({
+  children,
+}: {
+  children: (links: ReturnType<typeof splitForTabBar>) => ReactNode;
+}) {
+  const { t } = useTranslation();
+  const { view } = useClockRead();
+  return children(splitForTabBar(buildSections(t, { attendanceLink: attendanceLinkShown(view) })));
 }

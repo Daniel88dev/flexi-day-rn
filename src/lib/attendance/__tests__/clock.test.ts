@@ -1,4 +1,4 @@
-import { clockView, deriveClock } from "@/lib/attendance/clock";
+import { clockView, dayTotals, deriveClock } from "@/lib/attendance/clock";
 import { ApiError } from "@/lib/query/failure";
 import { attendance, pause, session } from "@/test-support/attendance";
 
@@ -208,6 +208,28 @@ describe("clockView", () => {
 
     expect(clockView({ data: undefined, error, readAt: 0, online: true })).toEqual({
       kind: "read-failed",
+    });
+  });
+});
+
+describe("dayTotals", () => {
+  it("returns presence and breaks over a past day's closed sessions", () => {
+    const closed = session({
+      startedAt: "2026-09-20T06:00:00.000Z",
+      endedAt: "2026-09-20T10:00:00.000Z",
+      open: false,
+      breaks: [
+        pause({
+          startedAt: "2026-09-20T08:00:00.000Z",
+          endedAt: "2026-09-20T08:30:00.000Z",
+          open: false,
+        }),
+      ],
+    });
+    expect(dayTotals([closed], Date.parse("2026-09-27T12:00:00Z"))).toEqual({
+      presenceMinutes: 240,
+      breakMinutes: 30,
+      sessions: 1,
     });
   });
 });

@@ -1,7 +1,10 @@
-import { ComingSoon } from "@/components/shell/coming-soon";
-import { useTranslation } from "@/i18n/use-translation";
+import { router, useLocalSearchParams } from "expo-router";
+import { useCallback } from "react";
+
+import { MyAttendanceScreen } from "@/components/attendance/my-attendance-screen";
 
 export default function Screen() {
-  const { t } = useTranslation();
-  return <ComingSoon screen={t.nav.myAttendance} />;
+  const { date } = useLocalSearchParams<{ date?: string }>();
+  const consumed = useCallback(() => router.setParams({ date: undefined }), []);
+  return <MyAttendanceScreen linkedDate={date ?? null} onLinkConsumed={consumed} />;
 }

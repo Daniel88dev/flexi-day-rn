@@ -5,6 +5,13 @@ export function formatMinutes(minutes: number): string {
   return `${Math.floor(safe / 60)}:${pad(safe % 60)}`;
 }
 
+/** A balance: `+0:11`, `-1:25`, `0:00`. Signed, unlike a length of time. */
+export function formatSignedMinutes(minutes: number): string {
+  const safe = Number.isFinite(minutes) ? Math.round(minutes) : 0;
+  if (safe === 0) return "0:00";
+  return `${safe > 0 ? "+" : "-"}${formatMinutes(Math.abs(safe))}`;
+}
+
 export function formatTimer(ms: number): string {
   const seconds = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(seconds / 3600);
@@ -58,4 +65,18 @@ export function formatBusinessWeekday(businessDate: string, locale: string): str
   const date = new Date(`${businessDate}T12:00:00Z`);
   if (Number.isNaN(date.getTime())) return businessDate;
   return weekdayIn(date, locale, "UTC");
+}
+
+/** A business date spelled out for the Day view's stepper, read at UTC noon like the weekday. */
+export function formatBusinessDay(businessDate: string, locale: string): string {
+  const date = new Date(`${businessDate}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return businessDate;
+  return capitalised(
+    new Intl.DateTimeFormat(locale, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      timeZone: "UTC",
+    }).format(date)
+  );
 }

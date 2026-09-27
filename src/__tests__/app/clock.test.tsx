@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 
 import ClockSheet from "@/app/clock";
@@ -6,6 +6,7 @@ import { TranslationProvider } from "@/i18n/use-translation";
 import { queryClient } from "@/lib/query";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
+import { attendance, session } from "@/test-support/attendance";
 
 const mockFetch = jest.fn();
 
@@ -22,7 +23,7 @@ jest.mock("@/lib/api", () => {
 const mockCanGoBack = jest.fn(() => true);
 
 jest.mock("expo-router", () => ({
-  router: { navigate: jest.fn(), replace: jest.fn(), push: jest.fn() },
+  router: { navigate: jest.fn(), replace: jest.fn(), push: jest.fn(), back: jest.fn() },
   useNavigation: () => ({ canGoBack: mockCanGoBack }),
   Stack: { Screen: () => null },
   Redirect: jest.requireActual("@/test-support/expo-router").RedirectShim,
@@ -78,5 +79,27 @@ describe("ClockSheet", () => {
     expect(router.replace).toHaveBeenCalledWith("/dashboard");
     expect(router.push).toHaveBeenCalledWith("/clock");
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("dismisses itself before Set the time opens My attendance on the swept day", async () => {
+    const swept = session({
+      businessDate: "2026-09-26",
+      startedAt: "2026-09-26T06:00:00.000Z",
+      endedAt: "2026-09-26T22:00:00.000Z",
+      closedBy: "SWEEP",
+      open: false,
+    });
+    mockFetch.mockResolvedValue({
+      status: 200,
+      json: async () => attendance({ autoClosedSession: swept }),
+    });
+    await renderSheet("signed-in");
+
+    await fireEvent.press(await screen.findByText("Set the time"));
+
+    expect(router.navigate).toHaveBeenCalledWith("/my-attendance?date=2026-09-26");
+    const back = (router.back as jest.Mock).mock.invocationCallOrder[0];
+    const navigate = (router.navigate as jest.Mock).mock.invocationCallOrder[0];
+    expect(back).toBeLessThan(navigate);
   });
 });

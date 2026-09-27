@@ -1,7 +1,9 @@
 import {
+  formatBusinessDay,
   formatBusinessWeekday,
   formatClockTime,
   formatMinutes,
+  formatSignedMinutes,
   formatTimer,
   formatWeekday,
 } from "@/lib/attendance/format";
@@ -49,5 +51,24 @@ describe("formatWeekday", () => {
     // 23:30 UTC on Thursday is already Friday in Prague.
     expect(formatWeekday("2026-09-24T23:30:00.000Z", "en", "Europe/Prague")).toBe("Friday");
     expect(formatWeekday("2026-09-24T23:30:00.000Z", "cs", "Europe/Prague")).toBe("Pátek");
+  });
+});
+
+describe("formatSignedMinutes", () => {
+  it("returns a balance with its sign, and a bare zero", () => {
+    expect(formatSignedMinutes(11)).toBe("+0:11");
+    expect(formatSignedMinutes(-85)).toBe("-1:25");
+    expect(formatSignedMinutes(0)).toBe("0:00");
+  });
+});
+
+describe("formatBusinessDay", () => {
+  it("returns the weekday, day and month of a business date, whatever the device's zone", () => {
+    expect(formatBusinessDay("2026-09-27", "en")).toBe("Sunday, September 27");
+    expect(formatBusinessDay("2026-09-27", "cs")).toBe("Neděle 27. září");
+  });
+
+  it("returns the input for something that is no date", () => {
+    expect(formatBusinessDay("nope", "en")).toBe("nope");
   });
 });

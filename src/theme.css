@@ -35,6 +35,8 @@
   --color-danger-soft: var(--danger-soft);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
+  --color-review: var(--review);
+  --color-review-soft: var(--review-soft);
   --color-leave-vacation: var(--c-vacation);
   --color-leave-home: var(--c-home);
   --color-leave-sick: var(--c-sick);
@@ -88,6 +90,8 @@
   --danger-soft: oklch(0.58 0.18 25 / 0.12);
   --ok: oklch(0.58 0.13 155);
   --ok-soft: oklch(0.58 0.13 155 / 0.14);
+  --review: oklch(0.55 0.13 240);
+  --review-soft: oklch(0.55 0.13 240 / 0.12);
 
   /* shadcn slots, mapped onto warm-paper tokens */
   --background: var(--bg);
@@ -130,6 +134,8 @@
     --danger-soft: oklch(0.7 0.16 25 / 0.16);
     --ok: oklch(0.72 0.13 155);
     --ok-soft: oklch(0.72 0.13 155 / 0.16);
+    --review: oklch(0.74 0.11 240);
+    --review-soft: oklch(0.74 0.11 240 / 0.16);
 
     --c-vacation: oklch(0.7 0.15 285);
     --c-home: oklch(0.72 0.13 158);
