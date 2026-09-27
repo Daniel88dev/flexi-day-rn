@@ -14,9 +14,13 @@ const pickGroup = showGroupPicker as jest.MockedFunction<typeof showGroupPicker>
 const DESIGN = { groupId: "g-1", groupName: "Design" };
 const SUPPORT = { groupId: "g-2", groupName: "Support" };
 
-type Stored = Pick<MySettings, "dashboardScope" | "dashboardGroupId">;
+type Stored = Pick<MySettings, "dashboardScope" | "dashboardGroupId" | "dashboardCalendarView">;
 
-const MINE: Stored = { dashboardScope: "MINE", dashboardGroupId: null };
+const MINE: Stored = {
+  dashboardScope: "MINE",
+  dashboardGroupId: null,
+  dashboardCalendarView: "LANES",
+};
 
 async function renderSection(
   options: { settings?: Stored | undefined; groups?: RequestScopeGroup[] } = {}
@@ -57,7 +61,7 @@ describe("DashboardDefaultSection", () => {
 
   it("saves Mine and keeps the stored group", async () => {
     const onChange = await renderSection({
-      settings: { dashboardScope: "GROUP", dashboardGroupId: "g-2" },
+      settings: { ...MINE, dashboardScope: "GROUP", dashboardGroupId: "g-2" },
     });
 
     await fireEvent.press(screen.getByTestId("settings-scope-mine"));
@@ -67,7 +71,7 @@ describe("DashboardDefaultSection", () => {
 
   it("shows the stored group and saves the one picked instead", async () => {
     const onChange = await renderSection({
-      settings: { dashboardScope: "GROUP", dashboardGroupId: "g-2" },
+      settings: { ...MINE, dashboardScope: "GROUP", dashboardGroupId: "g-2" },
     });
 
     expect(screen.getByTestId("settings-scope-group")).toBeSelected();
@@ -87,10 +91,42 @@ describe("DashboardDefaultSection", () => {
     expect(screen.queryByTestId("settings-group-picker")).toBeNull();
   });
 
-  it("disables both choices until the settings have loaded", async () => {
+  it("disables every choice until the settings have loaded", async () => {
     await renderSection({ settings: undefined });
 
     expect(screen.getByTestId("settings-scope-mine")).toBeDisabled();
     expect(screen.getByTestId("settings-scope-group")).toBeDisabled();
+    expect(screen.getByTestId("settings-view-lanes")).toBeDisabled();
+    expect(screen.getByTestId("settings-view-stripes")).toBeDisabled();
+  });
+
+  it("shows the stored layout and saves Stripes when it is picked", async () => {
+    const onChange = await renderSection();
+
+    expect(screen.getByTestId("settings-view-lanes")).toBeSelected();
+    await fireEvent.press(screen.getByTestId("settings-view-stripes"));
+
+    expect(onChange).toHaveBeenCalledWith({ dashboardCalendarView: "STRIPES" });
+  });
+
+  it("saves Lanes over stored stripes, and nothing for the layout already stored", async () => {
+    const onChange = await renderSection({
+      settings: { ...MINE, dashboardCalendarView: "STRIPES" },
+    });
+
+    expect(screen.getByTestId("settings-view-stripes")).toBeSelected();
+    await fireEvent.press(screen.getByTestId("settings-view-stripes"));
+    expect(onChange).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByTestId("settings-view-lanes"));
+    expect(onChange).toHaveBeenCalledWith({ dashboardCalendarView: "LANES" });
+  });
+
+  it("offers the layout when the viewer sees no group in full", async () => {
+    const onChange = await renderSection({ groups: [] });
+
+    await fireEvent.press(screen.getByTestId("settings-view-stripes"));
+
+    expect(onChange).toHaveBeenCalledWith({ dashboardCalendarView: "STRIPES" });
   });
 });

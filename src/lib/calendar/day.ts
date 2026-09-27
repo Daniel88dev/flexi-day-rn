@@ -1,5 +1,6 @@
 import type { DayMonth } from "@/i18n/en";
 import { addDays, mondayIndex } from "@/lib/days";
+import { isoDay, type YearMonth } from "@/lib/requests/months";
 import type {
   CalendarRecordType,
   DayRange,
@@ -64,4 +65,10 @@ export function dayParts(day: string): { weekday: number; date: DayMonth } {
     weekday: mondayIndex(day),
     date: { day: Number(day.slice(8, 10)), month: Number(day.slice(5, 7)) },
   };
+}
+
+/** The day the stripes' day card shows on a month: today if it is in it, otherwise the 1st. */
+export function openingDay(month: YearMonth, today: string): string {
+  const first = isoDay(month, 1);
+  return today.slice(0, 7) === first.slice(0, 7) ? today : first;
 }
