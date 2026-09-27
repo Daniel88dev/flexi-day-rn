@@ -17,10 +17,10 @@ import {
   type CalendarRecordType,
   type RequestListScope,
 } from "@/lib/local-store";
+import { dayOfDate } from "@/lib/days";
 import { useMySettings } from "@/lib/query";
 import {
   currentMonth,
-  isoDay,
   monthOffset,
   monthsWithin,
   requestMonthBounds,
@@ -65,7 +65,7 @@ export function DashboardCalendar({
   const bounds = useMemo(() => requestMonthBounds(now), [now]);
   const months = useMemo(() => monthsWithin(bounds), [bounds]);
   const thisMonth = currentMonth(now);
-  const today = isoDay(thisMonth, now.getDate());
+  const today = dayOfDate(now);
 
   const [picked, setPicked] = useState<YearMonth>(thisMonth);
   const [scopeChoice, setScopeChoice] = useState<RequestListScope["kind"] | null>(null);
@@ -93,6 +93,12 @@ export function DashboardCalendar({
   const choose = (next: RequestListScope) => {
     setScopeChoice(next.kind);
     if (next.kind === "group") setGroupChoice(next.groupId);
+  };
+
+  // The sheet goes first, so the screen that opens is not left under it.
+  const book = (day: string) => {
+    setSheetDay(null);
+    onBook(day);
   };
 
   const openRequest =
@@ -158,7 +164,7 @@ export function DashboardCalendar({
         filter={filter}
         viewerId={viewerId}
         onOpen={openRequest}
-        onBook={onBook}
+        onBook={book}
       />
     </View>
   );

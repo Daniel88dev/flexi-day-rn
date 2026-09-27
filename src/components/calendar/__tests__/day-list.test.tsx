@@ -13,6 +13,7 @@ const ENTRY: DayEntry = {
   halfDay: true,
   from: "2026-10-13",
   to: "2026-10-15",
+  pending: false,
 };
 
 async function renderList(entries: DayEntry[], holidays: string[] = []) {
@@ -59,5 +60,18 @@ describe("DayList", () => {
     await fireEvent.press(screen.getByTestId("day-list-row-v-eva"));
 
     expect(onOpen).toHaveBeenCalledWith("v-eva");
+  });
+
+  it("renders a row held by a change in flight as Sending, and takes its tap away", async () => {
+    const { onOpen } = await renderList([
+      { ...ENTRY, vacationId: "pending-1:2026-10-14", pending: true },
+    ]);
+
+    const row = screen.getByTestId("day-list-row-pending-1:2026-10-14");
+    await fireEvent.press(row);
+
+    expect(onOpen).not.toHaveBeenCalled();
+    expect(row).toBeDisabled();
+    expect(row).toHaveTextContent(/Sending…/);
   });
 });

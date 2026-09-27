@@ -1,7 +1,6 @@
 import type { VacationUpdateDraft } from "@/lib/local-store";
 import type { VacationDetail } from "@/lib/query/vacation-detail";
-
-export type RequestableType = NonNullable<VacationUpdateDraft["vacationType"]>;
+import type { RequestableType } from "@/lib/requests/form";
 
 /** What the form fields hold: times as `HH:MM` or empty, the type null while Others has none. */
 export type EditValues = {
@@ -11,27 +10,6 @@ export type EditValues = {
   halfDay: boolean;
   note: string;
 };
-
-const PRIMARY: readonly RequestableType[] = ["VACATION", "HOME_OFFICE", "SICK"];
-const OTHERS: readonly RequestableType[] = [
-  "PAID_TIME_OFF",
-  "NON_PAID_LEAVE",
-  "STUDY_LEAVE",
-  "OTHER",
-];
-
-export function requestableTypes({
-  offerSickDay,
-  current,
-}: {
-  offerSickDay: boolean;
-  current?: RequestableType;
-}): { primary: RequestableType[]; others: RequestableType[] } {
-  const others: RequestableType[] = offerSickDay ? ["SICK_DAY", ...OTHERS] : [...OTHERS];
-  // An edit must never quietly retype a request to something the list no longer offers.
-  if (current && !PRIMARY.includes(current) && !others.includes(current)) others.push(current);
-  return { primary: [...PRIMARY], others };
-}
 
 const toMinute = (time: string | null) => (time ? time.slice(0, 5) : "");
 

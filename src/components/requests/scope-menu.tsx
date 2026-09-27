@@ -39,7 +39,7 @@ export function ScopeMenu({
       onPress={open}
       accessibilityRole="button"
       accessibilityLabel={`${t.requests.scopeLabel}: ${label}`}
-      className="max-w-[60%] flex-row items-center gap-1 rounded-full border border-input bg-card px-3 py-1.5 active:opacity-70"
+      className="shrink flex-row items-center gap-1 rounded-full border border-input bg-card px-3 py-1.5 active:opacity-70"
     >
       <Text className="shrink text-[14px] font-semibold text-foreground" numberOfLines={1}>
         {label}

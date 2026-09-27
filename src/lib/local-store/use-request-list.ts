@@ -4,7 +4,9 @@ import type { StoreDatabase } from "./adapter";
 import type { StoreChannel } from "./events";
 import { MERGED_VACATION_CHANNELS } from "./queries";
 import {
+  memberGroups,
   requestListVacations,
+  type MemberGroup,
   requestScopeGroups,
   storedRequest,
   type ListedVacation,
@@ -28,6 +30,10 @@ const LIST_CHANNELS = [
   "groupMirrors",
   "syncState",
 ] as const satisfies readonly StoreChannel[];
+
+export function useMemberGroups(): MemberGroup[] {
+  return useStoreQuery(memberGroups, SCOPE_CHANNELS);
+}
 
 export function useRequestScopeGroups(): RequestScopeGroup[] {
   return useStoreQuery(requestScopeGroups, SCOPE_CHANNELS);

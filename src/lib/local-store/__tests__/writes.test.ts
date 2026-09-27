@@ -87,7 +87,10 @@ describe("createVacation", () => {
 
     const outcome = await writes.createVacation(DRAFT);
 
-    expect(outcome).toEqual({ ok: true });
+    expect(outcome).toEqual({
+      ok: true,
+      created: { requestId: "request-1", vacationId: "vacation-1" },
+    });
     expect(storedVacations()).toEqual([
       expect.objectContaining({ id: "vacation-1", organizationId: "org-1", status: "pending" }),
       expect.objectContaining({ id: "vacation-2", organizationId: "org-1", status: "pending" }),
@@ -144,7 +147,10 @@ describe("createVacation", () => {
 
     const outcome = await writes.createVacation({ ...DRAFT, groupId: "group-404" });
 
-    expect(outcome).toEqual({ ok: true });
+    expect(outcome).toEqual({
+      ok: true,
+      created: { requestId: "request-1", vacationId: "vacation-1" },
+    });
     expect(storedVacations()).toEqual([]);
     expect(pending.list()).toEqual([]);
   });
@@ -193,6 +199,50 @@ describe("createVacation", () => {
     expect(storedVacations()).toEqual([]);
   });
 
+  it("returns the request id and the day the server answered first, for what follows the booking", async () => {
+    const { writes } = buildWrites([
+      reply.rows([
+        createdRow({ id: "vacation-7", requestId: "request-3", requestedDay: "2026-09-21" }),
+        createdRow({ id: "vacation-8", requestId: "request-3", requestedDay: "2026-09-22" }),
+      ]),
+    ]);
+
+    const outcome = await writes.createVacation(DRAFT);
+
+    expect(outcome).toEqual({
+      ok: true,
+      created: { requestId: "request-3", vacationId: "vacation-7" },
+    });
+  });
+
+  it("returns ok with no request when the answer carried no rows", async () => {
+    const { writes } = buildWrites([reply.rows([])]);
+
+    expect(await writes.createVacation(DRAFT)).toEqual({ ok: true });
+  });
+
+  it("returns the context the server attached to a refusal, such as the days already booked", async () => {
+    const { writes } = buildWrites([
+      reply.statusWithBody(409, {
+        errors: [
+          {
+            message: "One or more days in the requested range are already booked",
+            context: { conflictingDays: ["2026-09-22"] },
+          },
+        ],
+      }),
+    ]);
+
+    expect(await writes.createVacation(DRAFT)).toEqual({
+      ok: false,
+      reason: "rejected",
+      status: 409,
+      message: "One or more days in the requested range are already booked",
+      context: { conflictingDays: ["2026-09-22"] },
+    });
+    expect(pending.list()).toEqual([]);
+  });
+
   it("returns a rejection with no message when the refusal carried none", async () => {
     const { writes } = buildWrites([reply.statusWithBody(402, { errors: [] })]);
 
@@ -231,7 +281,10 @@ describe("createVacation", () => {
     const written = writes.createVacation(DRAFT);
     await store.lifecycle.closeStore();
 
-    expect(await written).toEqual({ ok: true });
+    expect(await written).toEqual({
+      ok: true,
+      created: { requestId: "request-1", vacationId: "vacation-1" },
+    });
     expect(pending.list()).toEqual([]);
   });
 
@@ -269,7 +322,10 @@ describe("createVacation", () => {
     const outcome = await writes.createVacation(DRAFT);
     await tick();
 
-    expect(outcome).toEqual({ ok: true });
+    expect(outcome).toEqual({
+      ok: true,
+      created: { requestId: "request-1", vacationId: "vacation-1" },
+    });
     expect(storedVacations()).toEqual([expect.objectContaining({ id: "vacation-1" })]);
   });
 });

@@ -22,15 +22,15 @@ export function NoteField({
 
   return (
     <View>
-      <FieldLabel>{required ? t.editRequest.noteRequired : t.editRequest.note}</FieldLabel>
+      <FieldLabel>{required ? t.requestForm.noteRequired : t.requestForm.note}</FieldLabel>
       <TextInput
         testID="note-field"
-        accessibilityLabel={required ? t.editRequest.noteRequired : t.editRequest.note}
+        accessibilityLabel={required ? t.requestForm.noteRequired : t.requestForm.note}
         value={value}
         onChangeText={onChange}
         multiline
         maxLength={1000}
-        placeholder={t.editRequest.notePlaceholder}
+        placeholder={t.requestForm.notePlaceholder}
         placeholderTextColor={faint}
         selectionColor={primary}
         onFocus={() => setFocused(true)}

@@ -2,6 +2,7 @@ import { applyPage } from "../apply";
 import type { SyncEnvelope } from "../envelope";
 import { activePendingChanges } from "../pending";
 import {
+  memberGroups,
   requestListVacations,
   requestScopeGroups,
   storedRequest,
@@ -35,6 +36,55 @@ function pullIn(page: Partial<SyncEnvelope>) {
 }
 
 const NO_ACCESS = { viewAccess: false, adminAccess: false, approverAccess: false };
+
+describe("memberGroups", () => {
+  it("returns every live group the viewer belongs to, whatever the access, ordered by name", () => {
+    pullIn({
+      groups: [
+        groupRow({ id: "g-sales", groupName: "Sales", managerUserId: "boss" }),
+        groupRow({ id: "g-eng", groupName: "Engineering", managerUserId: "boss" }),
+      ],
+      groupUsers: [
+        groupUserRow({ id: "gu-1", groupId: "g-sales", userId: VIEWER, ...NO_ACCESS }),
+        groupUserRow({ id: "gu-2", groupId: "g-eng", userId: VIEWER, viewAccess: true }),
+      ],
+    });
+
+    expect(memberGroups(store.getDatabase())).toEqual([
+      { groupId: "g-eng", groupName: "Engineering" },
+      { groupId: "g-sales", groupName: "Sales" },
+    ]);
+  });
+
+  it("returns nothing for a membership that ended, or a group that is gone", () => {
+    pullIn({
+      groups: [
+        groupRow({ id: "g-left", managerUserId: "boss" }),
+        groupRow({ id: "g-gone", managerUserId: "boss", deletedAt: "2026-09-01T00:00:00.000Z" }),
+      ],
+      groupUsers: [
+        groupUserRow({
+          id: "gu-left",
+          groupId: "g-left",
+          userId: VIEWER,
+          deletedAt: "2026-09-01T00:00:00.000Z",
+        }),
+        groupUserRow({ id: "gu-gone", groupId: "g-gone", userId: VIEWER }),
+      ],
+    });
+
+    expect(memberGroups(store.getDatabase())).toEqual([]);
+  });
+
+  it("returns nothing for someone else's membership", () => {
+    pullIn({
+      groups: [groupRow({ id: "g-other", managerUserId: VIEWER })],
+      groupUsers: [groupUserRow({ groupId: "g-other", userId: "user-2" })],
+    });
+
+    expect(memberGroups(store.getDatabase())).toEqual([]);
+  });
+});
 
 describe("requestScopeGroups", () => {
   it("returns a group the viewer holds view access in", () => {

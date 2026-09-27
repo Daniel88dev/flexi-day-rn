@@ -37,6 +37,7 @@ export type { DayRange, VacationStatus } from "./queries";
 export { vacationStatusOf } from "./queries";
 export type {
   ListedVacation,
+  MemberGroup,
   RequestListQuery,
   RequestListScope,
   RequestScopeGroup,
@@ -45,12 +46,19 @@ export type {
 export type { CalendarRecordType, StoreTableName } from "./schema";
 export type { GroupStanding } from "./standing";
 export type { OpenStoreOptions } from "./store";
-export type { VacationUpdate, WriteOutcome } from "./writes";
+export type {
+  CreatedRequest,
+  CreateOutcome,
+  VacationUpdate,
+  WriteFailure,
+  WriteOutcome,
+} from "./writes";
 export { useBalanceBuckets } from "./use-balance";
 export { useCalendarBankHolidays, useCalendarVacations } from "./use-calendar";
 export { useGroupStanding } from "./use-group-standing";
 export { usePendingChanges } from "./use-pending-changes";
 export {
+  useMemberGroups,
   useRequestListVacations,
   useRequestScopeGroups,
   useStoredRequest,
@@ -73,8 +81,8 @@ export const pull = store.pull;
 
 /**
  * Books leave over a range: the rows show at once as pending, the server's own rows replace them,
- * and a failure lifts them again. Failures answer with the server's message or none of their own;
- * the caller toasts, so no copy lives in here.
+ * and a failure lifts them again. A booking answers with its `requestId` and first day's id;
+ * failures with the server's message and context or none of their own. No copy lives in here.
  */
 export const createVacation = store.createVacation;
 

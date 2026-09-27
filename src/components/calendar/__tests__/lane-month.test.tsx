@@ -19,6 +19,7 @@ function bar(id: string, from: number, to: number, patch: Partial<CalendarRange>
     to,
     vacationIds: [`${id}-${from}`],
     names: [],
+    pending: false,
     ...patch,
   } satisfies CalendarRange;
 }
@@ -118,5 +119,16 @@ describe("LaneMonth", () => {
 
     expect(handlers.onDay).toHaveBeenCalledWith("2026-10-20");
     expect(handlers.onBar).toHaveBeenCalledWith("eva-5");
+  });
+
+  it("renders a bar held by a change in flight faded, and takes its tap away", async () => {
+    const handlers = await renderMonth([bar("eva", 5, 6, { pending: true })]);
+
+    const held = screen.getByTestId("calendar-bar-eva-5");
+    await fireEvent.press(held);
+
+    expect(handlers.onBar).not.toHaveBeenCalled();
+    expect(held).toBeDisabled();
+    expect(held).toHaveStyle({ opacity: 0.55 });
   });
 });

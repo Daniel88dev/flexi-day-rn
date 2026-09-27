@@ -1,12 +1,13 @@
 import { router } from "expo-router";
+import { PlusIcon } from "phosphor-react-native";
 import { useMemo, useState } from "react";
-import { FlatList, RefreshControl, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
 import { FilterChips } from "@/components/requests/filter-chips";
 import { MonthStepper } from "@/components/requests/month-stepper";
 import { RequestCard } from "@/components/requests/request-card";
 import { ScopeMenu } from "@/components/requests/scope-menu";
-import { useTone } from "@/components/ui/icon";
+import { Icon, useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import {
@@ -65,7 +66,18 @@ export default function RequestsScreen() {
           >
             {t.requests.title}
           </Text>
-          <ScopeMenu groups={groups} selected={selected} onChange={setChoice} />
+          <View className="max-w-[65%] flex-row items-center gap-2">
+            <ScopeMenu groups={groups} selected={selected} onChange={setChoice} />
+            <Pressable
+              testID="requests-new-request"
+              onPress={() => router.push("/requests/new")}
+              accessibilityRole="button"
+              accessibilityLabel={t.newRequest.title}
+              className="h-10 w-10 items-center justify-center rounded-full bg-primary active:opacity-90"
+            >
+              <Icon icon={PlusIcon} tone="onPrimary" size={18} weight="bold" />
+            </Pressable>
+          </View>
         </View>
         <MonthStepper
           month={month}

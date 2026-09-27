@@ -7,6 +7,7 @@ export const qk = {
   /** Every request detail: the prefix the web invalidates after a decision. */
   vacationDetails: () => ["vacation"] as const,
   group: (groupId: string) => ["group", groupId] as const,
+  groupUsers: (groupId: string) => ["group-users", groupId] as const,
   myApprovals: () => ["my-approvals"] as const,
   dashboardSummary: () => ["dashboard-summary"] as const,
   notifications: (unreadOnly: boolean) => ["notifications", unreadOnly] as const,

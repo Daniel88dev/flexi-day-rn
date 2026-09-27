@@ -13,6 +13,7 @@ import {
 } from "../test-support/sync-fixtures";
 import { openTestStore } from "../test-support/test-store";
 import {
+  useMemberGroups,
   useRequestListVacations,
   useRequestScopeGroups,
   useStoredRequest,
@@ -33,6 +34,20 @@ async function pullIn(page: Partial<SyncEnvelope>) {
     store.write((transaction) => applyPage(transaction, syncPage(page), 1));
   });
 }
+
+describe("useMemberGroups", () => {
+  it("returns the groups the viewer may book in again once a membership lands", async () => {
+    const { result } = await renderHook(() => useMemberGroups());
+    expect(result.current).toEqual([]);
+
+    await pullIn({
+      groups: [groupRow()],
+      groupUsers: [groupUserRow({ viewAccess: false, adminAccess: false })],
+    });
+
+    expect(result.current).toEqual([{ groupId: "group-1", groupName: "Engineering" }]);
+  });
+});
 
 describe("useRequestScopeGroups", () => {
   it("returns the scope menu's groups again once a membership lands", async () => {

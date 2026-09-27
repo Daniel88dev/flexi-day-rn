@@ -1,4 +1,4 @@
-import { serverMessage } from "@/lib/api";
+import { serverFailure } from "@/lib/api";
 
 import { storeProvisionalVacations, storeWrittenVacations } from "./apply";
 import type { StoreClock } from "./clock";
@@ -24,10 +24,10 @@ export const CANCEL_VACATION_PATH = `${VACATION_PATH}/cancel`;
 /**
  * What a caller learns about the write it asked for. A 401 answers `ok` because the signed-out
  * wipe is the feedback and there is nothing to say. A failure says which kind it was: the caller
- * reaches for its own copy on `unreachable`, and shows the server's words on `rejected`.
+ * reaches for its own copy on `unreachable`, and shows the server's words on `rejected`, reading
+ * `context` where the server said more than words, such as a 409's `conflictingDays`.
  */
-export type WriteOutcome =
-  | { ok: true }
+export type WriteFailure =
   | {
       ok: false;
       reason: "unreachable";
@@ -39,14 +39,28 @@ export type WriteOutcome =
       status: number;
       /** What the server said about refusing, when it said anything at all. */
       message: string | null;
+      context?: Record<string, unknown>;
     };
+
+export type WriteOutcome = { ok: true } | WriteFailure;
+
+/** The booking the server made: every day shares `requestId`, and files hang off it. */
+export type CreatedRequest = { requestId: string; vacationId: string };
+
+/** `created` is missing only when the answer carried no rows, a 401 among them. */
+export type CreateOutcome = { ok: true; created?: CreatedRequest } | WriteFailure;
 
 const WRITTEN: WriteOutcome = { ok: true };
 
 /** The write reached no answer at all: the timeout fired, or the connection or the body broke. */
 type WriteUnreachable = { type: "unreachable" };
 
-type WriteRefused = { type: "rejected"; status: number; message: string | null };
+type WriteRefused = {
+  type: "rejected";
+  status: number;
+  message: string | null;
+  context?: Record<string, unknown>;
+};
 
 type WriteResponse =
   { type: "written"; body: unknown } | { type: "unauthorized" } | WriteUnreachable | WriteRefused;
@@ -58,7 +72,7 @@ export type VacationUpdate = VacationUpdateDraft & { ids: string[] };
 type DecisionKind = Extract<PendingKind, "approve" | "reject" | "cancel">;
 
 export type StoreWrites = {
-  createVacation(draft: VacationDraft): Promise<WriteOutcome>;
+  createVacation(draft: VacationDraft): Promise<CreateOutcome>;
   updateVacation(input: VacationUpdate): Promise<WriteOutcome>;
   approveVacations(ids: string[]): Promise<WriteOutcome>;
   rejectVacations(ids: string[], reason?: string): Promise<WriteOutcome>;
@@ -106,7 +120,7 @@ async function sendJson(
     });
     if (response.status === 401) return { type: "unauthorized" };
     if (response.status < 200 || response.status >= 300) {
-      return { type: "rejected", status: response.status, message: await serverMessage(response) };
+      return { type: "rejected", status: response.status, ...(await serverFailure(response)) };
     }
     return { type: "written", body: await response.json() };
   } catch {
@@ -116,10 +130,17 @@ async function sendJson(
   }
 }
 
-function failureOf(response: WriteUnreachable | WriteRefused): WriteOutcome {
-  return response.type === "unreachable"
-    ? { ok: false, reason: "unreachable", message: null }
-    : { ok: false, reason: "rejected", status: response.status, message: response.message };
+function failureOf(response: WriteUnreachable | WriteRefused): WriteFailure {
+  if (response.type === "unreachable") return { ok: false, reason: "unreachable", message: null };
+  const { status, message, context } = response;
+  return { ok: false, reason: "rejected", status, message, context };
+}
+
+function createdRequestOf(body: unknown): CreatedRequest | null {
+  const [first] = Array.isArray(body) ? (body as { id?: unknown; requestId?: unknown }[]) : [];
+  return typeof first?.id === "string" && typeof first.requestId === "string"
+    ? { requestId: first.requestId, vacationId: first.id }
+    : null;
 }
 
 export function createStoreWrites({
@@ -181,7 +202,9 @@ export function createStoreWrites({
         path: CREATE_VACATION_PATH,
         body: draft,
       });
-      return settle(change, response, (body) => storeWrittenVacations(runtime, body));
+      const outcome = settle(change, response, (body) => storeWrittenVacations(runtime, body));
+      const created = response.type === "written" ? createdRequestOf(response.body) : null;
+      return outcome.ok && created ? { ok: true, created } : outcome;
     },
 
     async updateVacation({ ids, ...update }) {

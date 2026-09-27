@@ -15,6 +15,7 @@ const SICK: CalendarRange = {
   to: 1,
   vacationIds: ["v"],
   names: [],
+  pending: false,
 };
 
 async function renderLegend(ranges: CalendarRange[]) {

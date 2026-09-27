@@ -67,9 +67,12 @@ function LaneBar({
     <Pressable
       testID={`calendar-bar-${range.vacationIds[0]}`}
       onPress={onBar ? () => onBar(range.vacationIds[0]) : undefined}
+      disabled={range.pending}
       accessibilityRole="button"
+      accessibilityState={{ disabled: range.pending }}
       accessibilityLabel={label}
       style={{
+        opacity: range.pending ? 0.55 : 1,
         position: "absolute",
         left,
         width,

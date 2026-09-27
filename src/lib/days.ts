@@ -14,3 +14,16 @@ export function mondayIndex(iso: string): number {
   // Day 0 of the epoch was a Thursday.
   return (((dayNumber(iso) + 3) % 7) + 7) % 7;
 }
+
+const pad = (value: number) => String(value).padStart(2, "0");
+
+/** The phone's own calendar day of a moment, which is the one the person means. */
+export function dayOfDate(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Midday, so no time zone shift can move the day a picker shows. */
+export function dateOfDay(day: string): Date {
+  const [year, month, date] = day.split("-").map(Number);
+  return new Date(year, month - 1, date, 12);
+}

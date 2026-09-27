@@ -8,7 +8,7 @@ import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
-import { requestableTypes, type RequestableType } from "@/lib/requests/edit";
+import { requestableTypes, type RequestableType } from "@/lib/requests/form";
 
 export function TypeField({
   value,
@@ -54,11 +54,11 @@ export function TypeField({
 
   return (
     <View testID="type-field">
-      <FieldLabel>{t.editRequest.type}</FieldLabel>
+      <FieldLabel>{t.requestForm.type}</FieldLabel>
       <View className="overflow-hidden rounded-[24px] bg-card">
         {primary.map(row)}
         <View className="border-t border-border bg-muted px-4 py-1.5">
-          <Text className="text-[12px] font-semibold text-faint">{t.editRequest.others}</Text>
+          <Text className="text-[12px] font-semibold text-faint">{t.requestForm.others}</Text>
         </View>
         {others.map(row)}
       </View>

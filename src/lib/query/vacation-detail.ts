@@ -71,6 +71,14 @@ export type VacationDetail = {
   attachments?: Attachment[];
 };
 
+/** A row of `GET /api/group-user/:groupId`, as much of it as booking on behalf reads. */
+export type GroupMember = {
+  userId: string;
+  controlledUser: boolean;
+  deletedAt: string | null;
+  user: UserSummary;
+};
+
 export type GroupDetail = {
   id: string;
   organization: { sickDayBenefitActive?: boolean } | null;

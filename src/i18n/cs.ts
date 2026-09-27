@@ -397,6 +397,8 @@ export const cs: Dictionary = {
     save: "Uložit",
     appliesTo: (days: number) =>
       days === 1 ? "Změní tento den." : `Změní všechny dny žádosti (${days}).`,
+  },
+  requestForm: {
     type: "Typ",
     others: "Jiné",
     times: "Čas",
@@ -408,6 +410,34 @@ export const cs: Dictionary = {
     note: "Poznámka (nepovinné)",
     noteRequired: "Poznámka (u typu Ostatní povinná)",
     notePlaceholder: "Rodinný výlet, konference, …",
+    dates: "Termín",
+    fromDate: "Od",
+    toDate: "Do",
+  },
+  newRequest: {
+    title: "Nová žádost",
+    cancel: "Zrušit",
+    submit: "Odeslat",
+    group: "Skupina",
+    forMember: "Pro",
+    myself: "Sebe",
+    approveImmediately: "Rovnou schválit",
+    approveImmediatelyHint:
+      "Žádost se vytvoří jako schválená a bude uvedeno, že jste ji schválili vy.",
+    membersFailed: "Členy skupiny se nepodařilo načíst. Pro sebe můžete žádat dál.",
+    noGroups:
+      "Zatím nejste v žádné skupině. Připojte se k nějaké na webu a pak si můžete žádat o volno.",
+    offline:
+      "Server je nedostupný. Žádost potřebuje připojení, proto Odeslat počká, až server odpoví.",
+    retry: "Zkusit znovu",
+    unreachable:
+      "Server se nepodařilo zastihnout. Vyplněné údaje zůstaly, stačí znovu klepnout na Odeslat.",
+    conflict: (days: string) =>
+      `Některé dny v tomto rozsahu jsou již rezervované: ${days}. Vyberte prosím jiná data.`,
+    conflictGeneric: "Některé dny v tomto rozsahu jsou již rezervované. Vyberte prosím jiná data.",
+    createFailed: "Nepodařilo se vytvořit žádost.",
+    readOnlyGroup: "Tato skupina je na vašem tarifu jen pro čtení.",
+    memberLimitReached: (max: number) => `Skupina dosáhla limitu ${max} členů.`,
   },
   status: {
     pending: "Čeká",

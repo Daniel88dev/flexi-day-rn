@@ -17,17 +17,17 @@ export function HalfDayField({
   return (
     <View>
       <View className="min-h-[52px] flex-row items-center justify-between rounded-[16px] bg-card px-4">
-        <Text className="text-[15.5px] text-foreground">{t.editRequest.halfDay}</Text>
+        <Text className="text-[15.5px] text-foreground">{t.requestForm.halfDay}</Text>
         <Switch
           testID="half-day-field"
-          accessibilityLabel={t.editRequest.halfDay}
+          accessibilityLabel={t.requestForm.halfDay}
           value={value}
           onValueChange={onChange}
           trackColor={{ true: primary }}
         />
       </View>
       <Text className="px-4 pt-2 text-[12.5px] leading-[18px] text-faint">
-        {t.editRequest.halfDayHint}
+        {t.requestForm.halfDayHint}
       </Text>
     </View>
   );

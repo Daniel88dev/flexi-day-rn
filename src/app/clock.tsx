@@ -1,10 +1,10 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Redirect, Stack, router, useNavigation, type Href } from "expo-router";
-import { useEffect } from "react";
+import { Redirect, Stack, router, type Href } from "expo-router";
 import { View } from "react-native";
 
 import { ClockWidget } from "@/components/clock/clock-widget";
 import { useTone } from "@/components/ui/icon";
+import { useShellUnderneath } from "@/lib/navigation/use-shell-underneath";
 import { queryClient } from "@/lib/query";
 import { useRootRoute } from "@/lib/session/root-route-context";
 
@@ -16,15 +16,8 @@ export default function ClockSheet() {
   const route = useRootRoute();
   // Without it iOS 26 paints a glass strip under the floating sheet's content.
   const card = useTone("card");
-  const orphaned = !useNavigation().canGoBack();
-
-  // A cold deep link lands here with nothing beneath, and the sheet would fill the screen. The
-  // shell goes under it first, which also mounts the query layer the sheet reads through.
-  useEffect(() => {
-    if (route !== "signed-in" || !orphaned) return;
-    router.replace("/dashboard");
-    router.push("/clock");
-  }, [route, orphaned]);
+  // On its own the sheet would fill the screen.
+  const orphaned = useShellUnderneath("/clock");
 
   if (route === "welcome") return <Redirect href="/welcome" />;
   if (orphaned) return null;

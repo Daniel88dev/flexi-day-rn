@@ -1,6 +1,6 @@
 import { ActionSheetIOS } from "react-native";
 
-import type { RequestListScope, RequestScopeGroup } from "@/lib/local-store";
+import type { MemberGroup, RequestListScope } from "@/lib/local-store";
 
 export function showGroupPicker(
   {
@@ -10,7 +10,7 @@ export function showGroupPicker(
     mineLabel,
   }: {
     title: string;
-    groups: readonly RequestScopeGroup[];
+    groups: readonly MemberGroup[];
     cancelLabel: string;
     mineLabel?: string;
   },

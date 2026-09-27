@@ -2,7 +2,7 @@ import { PlusIcon } from "phosphor-react-native";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { PersonAvatar } from "@/components/calendar/person-avatar";
-import { StatusBadge } from "@/components/requests/badges";
+import { SendingBadge, StatusBadge } from "@/components/requests/badges";
 import { Icon } from "@/components/ui/icon";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
@@ -34,8 +34,11 @@ function EntryRow({
     <Pressable
       testID={`day-list-row-${entry.vacationId}`}
       onPress={onOpen ? () => onOpen(entry.vacationId) : undefined}
+      disabled={entry.pending}
       accessibilityRole="button"
+      accessibilityState={{ disabled: entry.pending }}
       accessibilityLabel={[name, details, t.status[entry.status]].join(", ")}
+      style={entry.pending ? { opacity: 0.55 } : undefined}
       className="flex-row items-center gap-3 rounded-[16px] px-2 py-2.5 active:bg-muted"
     >
       <View className={cn("h-8 w-[3px] rounded-full", LEAVE_CLASSES[entry.type].fill)} />
@@ -48,7 +51,11 @@ function EntryRow({
           {details}
         </Text>
       </View>
-      {entry.status === "pending" ? <StatusBadge status="pending" /> : null}
+      {entry.pending ? (
+        <SendingBadge />
+      ) : entry.status === "pending" ? (
+        <StatusBadge status="pending" />
+      ) : null}
     </Pressable>
   );
 }

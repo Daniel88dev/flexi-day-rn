@@ -410,6 +410,8 @@ export const en = {
     save: "Save",
     appliesTo: (days: number) =>
       days === 1 ? "Changes this day." : `Changes all ${days} days of the request.`,
+  },
+  requestForm: {
     type: "Type",
     others: "Others",
     times: "Times",
@@ -421,6 +423,31 @@ export const en = {
     note: "Note (optional)",
     noteRequired: "Note (required for Other)",
     notePlaceholder: "Family trip, conference, …",
+    dates: "Dates",
+    fromDate: "From",
+    toDate: "To",
+  },
+  newRequest: {
+    title: "New request",
+    cancel: "Cancel",
+    submit: "Submit",
+    group: "Group",
+    forMember: "For",
+    myself: "Myself",
+    approveImmediately: "Approve immediately",
+    approveImmediatelyHint: "The request is created already approved, attributed to you.",
+    membersFailed: "Couldn't load the group's members. You can still book for yourself.",
+    noGroups: "You're not in a group yet. Join one on the web to book time off.",
+    offline:
+      "Can't reach the server. Booking needs a connection, so Submit waits until it answers.",
+    retry: "Retry",
+    unreachable: "Couldn't reach the server. Your entry is still here, so tap Submit to try again.",
+    conflict: (days: string) =>
+      `Some days in that range are already booked: ${days}. Please pick different dates.`,
+    conflictGeneric: "Some days in that range are already booked. Please pick different dates.",
+    createFailed: "Could not create the request.",
+    readOnlyGroup: "This group is read-only on your current plan.",
+    memberLimitReached: (max: number) => `This group is at its ${max}-member limit.`,
   },
   status: {
     pending: "Pending",
