@@ -1,4 +1,5 @@
 export { rereadAttendance, type Reread } from "./attendance";
+export { useOffersPasswordChange } from "./auth-accounts";
 export {
   useApprovalDecisions,
   useDashboardSummary,

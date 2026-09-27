@@ -1,6 +1,6 @@
 import { EyeIcon, EyeSlashIcon, type Icon as PhosphorIcon } from "phosphor-react-native";
-import { useState, type ReactNode, type Ref } from "react";
-import { Pressable, TextInput, View, type TextInputProps } from "react-native";
+import { useEffect, useState, type ReactNode, type Ref } from "react";
+import { AccessibilityInfo, Pressable, TextInput, View, type TextInputProps } from "react-native";
 
 import { Icon, useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -12,6 +12,7 @@ export type FieldProps = TextInputProps & {
   labelRight?: ReactNode;
   icon?: PhosphorIcon;
   secure?: boolean;
+  error?: string | null;
   inputRef?: Ref<TextInput>;
   className?: string;
 };
@@ -21,6 +22,7 @@ export function Field({
   labelRight,
   icon,
   secure,
+  error,
   inputRef,
   className,
   onFocus,
@@ -33,6 +35,11 @@ export function Field({
   const faint = useTone("faint");
   const primary = useTone("primary");
 
+  // iOS has no live regions, so a new error is spoken outright.
+  useEffect(() => {
+    if (error) AccessibilityInfo.announceForAccessibility(error);
+  }, [error]);
+
   return (
     <View className={className}>
       {label || labelRight ? (
@@ -44,7 +51,7 @@ export function Field({
       <View
         className={cn(
           "h-[52px] flex-row items-center gap-3 rounded-[12px] border bg-card px-4",
-          focused ? "border-primary" : "border-input",
+          error ? "border-danger" : focused ? "border-primary" : "border-input",
           props.editable === false && "opacity-50"
         )}
       >
@@ -76,6 +83,14 @@ export function Field({
           </Pressable>
         ) : null}
       </View>
+      {error ? (
+        <Text
+          testID={props.testID ? `${props.testID}-error` : undefined}
+          className="mt-1.5 text-[13px] leading-[18px] text-danger"
+        >
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
