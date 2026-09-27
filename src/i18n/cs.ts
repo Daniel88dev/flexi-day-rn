@@ -377,8 +377,11 @@ export const cs: Dictionary = {
       "Žádosti o schválení, rozhodnutí o vašich žádostech a zrušení schváleného volna. Vypnutím zůstanou pouze v aplikaci. Účtové e-maily, jako je potvrzení adresy, se odesílají vždy.",
     dashboardCalendar: "Kalendář na nástěnce",
     dashboardScope: "Zobrazit",
+    dashboardView: "Rozložení",
+    viewLanes: "Dráhy",
+    viewStripes: "Proužky",
     dashboardScopeHint:
-      "Vyberte, co se v kalendáři na nástěnce zobrazí po otevření. Pro jedno zobrazení to můžete přepnout přímo na nástěnce.",
+      "Vyberte, jak kalendář na nástěnce vypadá a co se v něm po otevření zobrazí. Mezi svým volnem a skupinou můžete na jednu návštěvu přepnout i přímo na nástěnce.",
     dashboardGroup: "Skupina",
     noViewableGroups:
       "Zatím nemůžete zobrazit volno žádné skupiny. Přístup k zobrazení vám může udělit správce skupiny.",
@@ -611,6 +614,7 @@ export const cs: Dictionary = {
     OTHER: "Ostatní",
   },
   calendar: {
+    today: "Dnes",
     weekdaysShort: ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"],
     dayTitle: (weekday: number, date: DayMonth) =>
       `${cs.calendar.weekdaysShort[weekday]} ${date.day}. ${date.month}.`,

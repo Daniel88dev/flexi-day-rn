@@ -1,6 +1,6 @@
-import { act, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
-import { DaySheet } from "@/components/calendar/day-sheet";
+import { DayCard } from "@/components/calendar/day-card";
 import { LEAVE_TYPE_ORDER } from "@/components/ui/leave-classes";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { applyPage } from "@/lib/local-store/apply";
@@ -44,33 +44,45 @@ afterEach(async () => {
   await store.lifecycle.closeStore();
 });
 
-async function renderSheet(day: string | null) {
+async function renderCard(filter = new Set(LEAVE_TYPE_ORDER)) {
+  const onBook = jest.fn();
   await render(
     <TranslationProvider>
-      <DaySheet
-        day={day}
-        onClose={jest.fn()}
+      <DayCard
+        day="2026-10-28"
         scope={{ kind: "mine" }}
-        filter={new Set(LEAVE_TYPE_ORDER)}
+        filter={filter}
         viewerId="me"
-        onBook={jest.fn()}
+        onBook={onBook}
       />
     </TranslationProvider>
   );
+  return onBook;
 }
 
-describe("DaySheet", () => {
-  it("renders the day's holidays and people from the Local store", async () => {
-    await renderSheet("2026-10-28");
+describe("DayCard", () => {
+  it("renders the shared day list inline, with the day's holidays and people", async () => {
+    await renderCard();
 
     expect(await screen.findByText("Statehood")).toBeOnTheScreen();
+    expect(screen.getByTestId("day-card")).toBeOnTheScreen();
     expect(screen.getByTestId("day-list")).toHaveTextContent(/Wed 28 Oct/);
     expect(screen.getByTestId("day-list-row-v-1")).toHaveTextContent(/You/);
   });
 
-  it("renders nothing without a day", async () => {
-    await renderSheet(null);
+  it("leaves out a type the filter hides", async () => {
+    await renderCard(new Set(["HOME_OFFICE"]));
 
-    expect(screen.queryByTestId("day-list")).toBeNull();
+    expect(await screen.findByTestId("day-list")).toHaveTextContent(/Nobody is away/);
+    expect(screen.queryByTestId("day-list-row-v-1")).toBeNull();
+    expect(screen.queryByText("Statehood")).toBeNull();
+  });
+
+  it("books the day it shows", async () => {
+    const onBook = await renderCard();
+
+    await fireEvent.press(await screen.findByTestId("day-list-book"));
+
+    expect(onBook).toHaveBeenCalledWith("2026-10-28");
   });
 });

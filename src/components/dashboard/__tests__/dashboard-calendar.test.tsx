@@ -261,6 +261,91 @@ describe("DashboardCalendar", () => {
     expect(screen.getByTestId("calendar-filter")).toHaveTextContent("8 types");
   });
 
+  it("shows lanes, with no stripes and no day card, while the settings have not answered", async () => {
+    await renderCalendar();
+
+    expect(screen.getByTestId("calendar-bar-mine-14")).toBeOnTheScreen();
+    expect(screen.queryByTestId("calendar-stripe-mine-14")).toBeNull();
+    expect(screen.queryByTestId("day-card")).toBeNull();
+  });
+
+  it("shows lanes when LANES is stored", async () => {
+    answerSettings({ dashboardCalendarView: "LANES" });
+
+    await renderCalendar();
+
+    expect(screen.getByTestId("calendar-bar-mine-14")).toBeOnTheScreen();
+    expect(screen.queryByTestId("calendar-stripe-mine-14")).toBeNull();
+    expect(screen.queryByTestId("day-card")).toBeNull();
+  });
+
+  describe("with STRIPES stored", () => {
+    beforeEach(() =>
+      answerSettings({
+        dashboardScope: "GROUP",
+        dashboardGroupId: "g-design",
+        dashboardCalendarView: "STRIPES",
+      })
+    );
+
+    it("shows the stripes month with the day card on today", async () => {
+      await renderCalendar();
+
+      expect(screen.getByTestId("calendar-stripe-mine-14")).toBeOnTheScreen();
+      expect(screen.getByTestId("calendar-stripe-eva-14")).toHaveStyle({ opacity: 0.4 });
+      expect(screen.queryByTestId("calendar-bar-mine-14")).toBeNull();
+      expect(screen.getByTestId("calendar-holiday-2026-10-28")).toBeOnTheScreen();
+      expect(screen.getByTestId("calendar-day-2026-10-14")).toBeSelected();
+      expect(screen.getByTestId("day-card")).toHaveTextContent(/Wed 14 Oct/);
+      expect(screen.getByTestId("day-list-row-mine-14")).toHaveTextContent(/You/);
+      expect(screen.getByTestId("day-list-row-eva-14")).toBeOnTheScreen();
+    });
+
+    it("shows a tapped day in the card, with no sheet, and books that day", async () => {
+      const { onBook } = await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-28"));
+
+      expect(screen.getByTestId("calendar-day-2026-10-28")).toBeSelected();
+      expect(screen.getByTestId("day-card")).toHaveTextContent(/Wed 28 Oct/);
+      expect(screen.getByTestId("day-card")).toHaveTextContent(/Statehood/);
+      expect(screen.queryByTestId("day-sheet")).toBeNull();
+
+      await fireEvent.press(screen.getByTestId("day-list-book"));
+      expect(onBook).toHaveBeenCalledWith("2026-10-28");
+    });
+
+    it("opens the request from a row of the card", async () => {
+      const { onOpenRequest } = await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("day-list-row-mine-14"));
+
+      expect(onOpenRequest).toHaveBeenCalledWith("mine-14");
+    });
+
+    it("moves the card to the 1st of a month paged to, and back to today on this one", async () => {
+      await renderCalendar();
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-28"));
+
+      await fireEvent.press(screen.getByTestId("calendar-next"));
+      expect(screen.getByTestId("calendar-title")).toHaveTextContent("November 2026");
+      expect(screen.getByTestId("day-card")).toHaveTextContent(/Sun 1 Nov/);
+
+      await fireEvent.press(screen.getByTestId("calendar-previous"));
+      expect(screen.getByTestId("day-card")).toHaveTextContent(/Wed 14 Oct/);
+    });
+
+    it("brings the month and the card back to today from the title", async () => {
+      await renderCalendar();
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-28"));
+
+      await fireEvent.press(screen.getByTestId("calendar-title"));
+
+      expect(screen.getByTestId("calendar-title")).toHaveTextContent("October 2026");
+      expect(screen.getByTestId("day-card")).toHaveTextContent(/Wed 14 Oct/);
+    });
+  });
+
   it("renders the legend with its Pending entry", async () => {
     await renderCalendar();
 

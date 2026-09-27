@@ -1,6 +1,6 @@
 import type { ListedVacation } from "@/lib/local-store";
 
-import { dayEntries, dayParts, dayWindow } from "../day";
+import { dayEntries, dayParts, dayWindow, openingDay } from "../day";
 
 function row(patch: Partial<ListedVacation> & Pick<ListedVacation, "id" | "requestedDay">) {
   return {
@@ -127,5 +127,16 @@ describe("dayParts", () => {
   it("returns the Monday-first weekday and the day and month of an ISO date", () => {
     expect(dayParts("2026-10-14")).toEqual({ weekday: 2, date: { day: 14, month: 10 } });
     expect(dayParts("2026-10-18")).toEqual({ weekday: 6, date: { day: 18, month: 10 } });
+  });
+});
+
+describe("openingDay", () => {
+  it("returns today when the month holds it", () => {
+    expect(openingDay({ year: 2026, month: 10 }, "2026-10-14")).toBe("2026-10-14");
+  });
+
+  it("returns the 1st of any other month", () => {
+    expect(openingDay({ year: 2026, month: 11 }, "2026-10-14")).toBe("2026-11-01");
+    expect(openingDay({ year: 2025, month: 10 }, "2026-10-14")).toBe("2025-10-01");
   });
 });

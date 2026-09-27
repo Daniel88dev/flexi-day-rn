@@ -393,8 +393,11 @@ export const en = {
       "Approval requests, decisions on your requests, and cancellations of approved time off. Turned off, they stay in the app only. Account emails such as address confirmation always send.",
     dashboardCalendar: "Dashboard calendar",
     dashboardScope: "Show",
+    dashboardView: "Layout",
+    viewLanes: "Lanes",
+    viewStripes: "Stripes",
     dashboardScopeHint:
-      "Choose what the dashboard calendar shows when you open it. You can still switch it for a single visit from the dashboard itself.",
+      "Choose how the dashboard calendar looks and what it shows when you open it. You can still switch what it shows for a single visit from the dashboard itself.",
     dashboardGroup: "Group",
     noViewableGroups:
       "You cannot view any group's time off yet. A group admin can grant you view access.",
@@ -624,6 +627,7 @@ export const en = {
     OTHER: "Other",
   },
   calendar: {
+    today: "Today",
     weekdaysShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     /** `weekday` 0 for Monday. */
     dayTitle: (weekday: number, date: DayMonth) =>
