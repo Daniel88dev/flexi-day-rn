@@ -13,6 +13,7 @@ import { SESSION, VIEWER } from "@/test-support/session";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import type { RootRoute } from "@/lib/session/root-route";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 
@@ -89,6 +90,8 @@ jest.mock("@better-auth/expo/client", () => ({ storageAdapter: (storage: unknown
 jest.mock("react-native-gesture-handler", () => ({
   GestureHandlerRootView: jest.requireActual("react-native").View,
 }));
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 // The shell and the sheet share the app's one query client; its garbage collection timers
 // would outlive the test.

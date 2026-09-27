@@ -7,6 +7,7 @@ import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { clearSignedOutNotice, showSignedOutNotice } from "@/lib/session/signed-out-notice";
 import { openWebPage } from "@/lib/web";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 
@@ -20,6 +21,8 @@ jest.mock("expo-localization", () => ({ getLocales: jest.fn(() => [{ languageCod
 const getLocales = jest.requireMock("expo-localization").getLocales as jest.Mock;
 const push = router.push as jest.Mock;
 const openPage = openWebPage as jest.MockedFunction<typeof openWebPage>;
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

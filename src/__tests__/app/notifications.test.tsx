@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import NotificationsRoute from "@/app/notifications";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockCanGoBack = jest.fn(() => true);
 
@@ -32,6 +33,8 @@ function renderRoute(route: RootRoute = "signed-in") {
     </RootRouteProvider>
   );
 }
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

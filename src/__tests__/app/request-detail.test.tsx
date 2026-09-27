@@ -19,6 +19,7 @@ import type { VacationDetail } from "@/lib/query/vacation-detail";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { vacationDetail } from "@/test-support/vacation-detail";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -97,6 +98,8 @@ async function answerPrompt(label: string, text?: string) {
   const button = prompt?.buttons.find((candidate) => candidate.text === label);
   await act(async () => (button?.onPress as (value?: string) => void)(text));
 }
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

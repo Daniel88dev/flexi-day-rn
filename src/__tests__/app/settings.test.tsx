@@ -15,6 +15,7 @@ import { authClient } from "@/lib/session/auth-client";
 import { reminderPrefs } from "@/lib/reminders";
 import { attendance, workingMonth } from "@/test-support/attendance";
 import { SESSION } from "@/test-support/session";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -99,6 +100,8 @@ queryClient.setDefaultOptions({
 function answer(status: number, body: unknown) {
   return { status, json: async () => body, text: async () => JSON.stringify(body) };
 }
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

@@ -11,6 +11,7 @@ import type { Attachment, VacationDetail } from "@/lib/query/vacation-detail";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { fakeFiles } from "@/test-support/fake-file-system";
 import { vacationDetail } from "@/test-support/vacation-detail";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockUpload = fakeFiles.upload;
@@ -121,6 +122,8 @@ function calls(method: string, pattern: RegExp) {
   );
 }
 const detailReads = () => calls("GET", /\/api\/vacation\/vacation-1$/);
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

@@ -6,6 +6,7 @@ import Screen from "@/app/(app)/my-attendance";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { queryClient } from "@/lib/query";
 import { attendance, attendanceMonth, pause, session } from "@/test-support/attendance";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockParams: { date?: string } = {};
@@ -111,6 +112,8 @@ async function renderScreen() {
     </QueryClientProvider>
   );
 }
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

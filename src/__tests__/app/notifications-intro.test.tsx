@@ -7,6 +7,7 @@ import { TranslationProvider } from "@/i18n/use-translation";
 import { reminderPrefs } from "@/lib/reminders";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockCanGoBack = jest.fn(() => true);
 
@@ -24,6 +25,8 @@ jest.mock("@/lib/reminders", () => {
   };
 });
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

@@ -6,6 +6,7 @@ import { queryClient } from "@/lib/query";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { attendance } from "@/test-support/attendance";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -38,6 +39,8 @@ jest.mock("@/lib/local-store", () => ({ pull: jest.fn() }));
 jest.mock("@/lib/app-state", () => ({
   deviceAppState: jest.requireActual("@/test-support/fake-app-state").createFakeAppState(),
 }));
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 afterEach(() => queryClient.clear());
 
