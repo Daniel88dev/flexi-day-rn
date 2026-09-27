@@ -2,7 +2,17 @@ import { useUnstableNativeVariable } from "nativewind";
 import type { Icon as PhosphorIcon, IconWeight } from "phosphor-react-native";
 import { useColorScheme } from "react-native";
 
-export type Tone = "faint" | "muted" | "foreground" | "primary" | "onPrimary" | "danger";
+export type Tone =
+  | "faint"
+  | "muted"
+  | "foreground"
+  | "primary"
+  | "onPrimary"
+  | "danger"
+  | "ok"
+  | "warm"
+  | "onFill"
+  | "card";
 
 const TONE_VAR: Record<Tone, string> = {
   faint: "--text-faint",
@@ -11,6 +21,11 @@ const TONE_VAR: Record<Tone, string> = {
   primary: "--primary",
   onPrimary: "--primary-fg",
   danger: "--danger",
+  ok: "--ok",
+  warm: "--warm",
+  // Text on an ok or warm fill: the page background, as the prototype's disc and buttons use it.
+  onFill: "--bg",
+  card: "--card",
 };
 
 // Only used if the runtime hands back something other than a colour string.
@@ -22,6 +37,10 @@ const FALLBACK: Record<"light" | "dark", Record<Tone, string>> = {
     primary: "#6a5ec6",
     onPrimary: "#fcf9f5",
     danger: "#c6514f",
+    ok: "#2e8a57",
+    warm: "#c86a3f",
+    onFill: "#fbf8f3",
+    card: "#fffdfa",
   },
   dark: {
     faint: "#7a7a81",
@@ -30,6 +49,10 @@ const FALLBACK: Record<"light" | "dark", Record<Tone, string>> = {
     primary: "#8e86f1",
     onPrimary: "#0c0c15",
     danger: "#e1786f",
+    ok: "#5fbb85",
+    warm: "#e68d65",
+    onFill: "#121118",
+    card: "#1b1a22",
   },
 };
 

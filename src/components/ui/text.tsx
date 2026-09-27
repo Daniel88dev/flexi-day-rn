@@ -9,3 +9,5 @@ import { cn } from "@/lib/cn";
 export function Text({ className, ...props }: TextProps & { className?: string }) {
   return <RNText {...props} className={cn("font-sans", className)} />;
 }
+
+export const TABULAR = { fontVariant: ["tabular-nums" as const] };

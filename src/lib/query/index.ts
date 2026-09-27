@@ -1,3 +1,4 @@
+export { rereadAttendance, type Reread } from "./attendance";
 export { ApiError, classifyFailure, type FailureClass } from "./failure";
 export { qk } from "./keys";
 export { QueryLayer } from "./query-layer";
