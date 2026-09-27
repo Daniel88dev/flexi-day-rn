@@ -24,7 +24,7 @@ export type RequestRun = {
   vacationIds: string[];
   /** Calendar days in the run, not allowance days. */
   dayCount: number;
-  /** A pending change holds at least one of its days, so the card waits until it lifts. */
+  /** A pending change or a Provisional row holds one of its days, so the card waits. */
   pending: boolean;
 };
 

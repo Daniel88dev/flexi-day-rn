@@ -7,8 +7,9 @@ import { dayLengthLabel, runDatesLabel } from "@/lib/requests/format";
 import type { RequestRun } from "@/lib/requests/runs";
 
 /**
- * One run of the list. A pending change holding any of its days fades it and takes the tap away
- * until the change lifts, since the rows it would open are not the server's yet.
+ * One run of the list. A pending change or a Provisional row holding any of its days fades it and
+ * takes the tap away until the server's own rows arrive, since the rows it would open are not the
+ * server's yet.
  */
 export function RequestCard({
   run,

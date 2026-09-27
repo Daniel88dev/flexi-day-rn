@@ -730,3 +730,60 @@ describe("cancelVacations", () => {
     expect(storedVacations()).toEqual([]);
   });
 });
+
+describe("provisional rows", () => {
+  function deferredPull() {
+    let settle: (outcome: PullOutcome) => void = () => {};
+    pull.mockImplementation(() => new Promise((resolve) => (settle = resolve)));
+    return { settle: (outcome: PullOutcome = { ok: true }) => settle(outcome) };
+  }
+
+  it("marks the rows a confirmed decision wrote until the pull that follows settles", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const pulled = deferredPull();
+    const { writes } = buildWrites([reply.decided("Vacation approved")]);
+
+    await writes.approveVacations(["vacation-1"]);
+
+    expect(pending.list()).toEqual([]);
+    expect(pending.overlay()).toEqual([
+      expect.objectContaining({ kind: "provisional", vacationIds: ["vacation-1"] }),
+    ]);
+
+    pulled.settle();
+    await tick();
+
+    expect(pending.overlay()).toEqual([]);
+  });
+
+  it("lifts the mark when the pull that follows fails", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const pulled = deferredPull();
+    const { writes } = buildWrites([reply.decided("Vacation cancelled")]);
+
+    await writes.cancelVacations(["vacation-1"], "Plans changed");
+    pulled.settle({ ok: false, message: null });
+    await tick();
+
+    expect(pending.overlay()).toEqual([]);
+  });
+
+  it("marks nothing when the server refuses the decision", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    const { writes } = buildWrites([reply.status(403, "Not an approver")]);
+
+    await writes.rejectVacations(["vacation-1"], "No");
+
+    expect(pending.overlay()).toEqual([]);
+  });
+
+  it("marks nothing for an edit, whose answer carries the server's own rows", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    deferredPull();
+    const { writes } = buildWrites([reply.rows([createdRow({ id: "vacation-1", note: "Noted" })])]);
+
+    await writes.updateVacation({ ids: ["vacation-1"], note: "Noted" });
+
+    expect(pending.overlay()).toEqual([]);
+  });
+});

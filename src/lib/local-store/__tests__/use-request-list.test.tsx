@@ -12,7 +12,11 @@ import {
   vacationRow,
 } from "../test-support/sync-fixtures";
 import { openTestStore } from "../test-support/test-store";
-import { useRequestListVacations, useRequestScopeGroups } from "../use-request-list";
+import {
+  useRequestListVacations,
+  useRequestScopeGroups,
+  useStoredRequest,
+} from "../use-request-list";
 
 let store: StoreRuntime;
 
@@ -70,5 +74,41 @@ describe("useRequestListVacations", () => {
     expect(result.current).toEqual([
       expect.objectContaining({ id: "vacation-1", status: "cancelled", pending: true }),
     ]);
+  });
+
+  it("returns a Provisional row as pending until its mark lifts", async () => {
+    await pullIn({ groups: [groupRow()], vacations: [vacationRow({ approvedAt: "2026-09-20" })] });
+    const { result } = await renderHook(() => useRequestListVacations(QUERY));
+
+    let markId = "";
+    await act(async () => {
+      markId = activePendingChanges().markProvisional(["vacation-1"]).id;
+    });
+    expect(result.current).toEqual([
+      expect.objectContaining({ id: "vacation-1", status: "approved", pending: true }),
+    ]);
+
+    await act(async () => {
+      activePendingChanges().remove(markId);
+    });
+    expect(result.current).toEqual([expect.objectContaining({ pending: false })]);
+  });
+});
+
+describe("useStoredRequest", () => {
+  it("returns the stored run again once the day lands, and marked while a mark holds it", async () => {
+    await pullIn({ users: [userRow()], groups: [groupRow()] });
+    const { result } = await renderHook(() => useStoredRequest("vacation-1"));
+    expect(result.current).toBeNull();
+
+    await pullIn({ vacations: [vacationRow()] });
+    expect(result.current).toEqual(
+      expect.objectContaining({ vacationIds: ["vacation-1"], userName: "Ada", pending: false })
+    );
+
+    await act(async () => {
+      activePendingChanges().markProvisional(["vacation-1"]);
+    });
+    expect(result.current).toEqual(expect.objectContaining({ pending: true }));
   });
 });

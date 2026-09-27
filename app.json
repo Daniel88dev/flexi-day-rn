@@ -51,7 +51,16 @@
       ],
       "expo-sqlite",
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Flexi Day attaches the photos you choose to your time-off requests.",
+          "cameraPermission": "Flexi Day uses the camera to photograph a document for your time-off request.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

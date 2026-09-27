@@ -2,7 +2,7 @@ import { and, asc, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 
 import type { StoreDatabase } from "./adapter";
 import { readSyncState } from "./apply";
-import type { PendingChange } from "./pending";
+import type { OverlayEntry } from "./pending";
 import type { DayRange } from "./queries";
 import { scopedVacations, type ListedVacation, type RequestListScope } from "./requests";
 import { bankHolidays, groups, groupUsers } from "./schema";
@@ -14,7 +14,7 @@ export type CalendarBankHoliday = { date: string; name: string };
 /** What the dashboard calendar draws: rejected and cancelled rows are hidden. */
 export function calendarVacations(
   db: StoreDatabase,
-  changes: readonly PendingChange[],
+  changes: readonly OverlayEntry[],
   { range, scope }: CalendarQuery
 ): ListedVacation[] {
   return scopedVacations(db, changes, scope, range).filter(

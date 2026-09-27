@@ -17,6 +17,7 @@ describe("qk", () => {
   it("returns the web's keys for approvals, request detail, group access, settings and notifications", () => {
     expect(qk.myApprovals()).toEqual(["my-approvals"]);
     expect(qk.vacation("vacation-1")).toEqual(["vacation", "vacation-1"]);
+    expect(qk.vacationDetails()).toEqual(["vacation"]);
     expect(qk.group("group-1")).toEqual(["group", "group-1"]);
     expect(qk.mySettings()).toEqual(["my-settings"]);
     expect(qk.notifications(true)).toEqual(["notifications", true]);

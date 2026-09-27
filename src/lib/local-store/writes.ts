@@ -129,11 +129,14 @@ export function createStoreWrites({
   pending,
   pull,
 }: StoreWriteOptions): StoreWrites {
-  /** Every write ends the same way; only what an answer leaves in the store differs. */
+  /**
+   * Every write ends the same way; only what an answer leaves in the store differs. A commit may
+   * hand back what to undo once the pull after the write settles.
+   */
   const settle = (
     change: PendingChange,
     response: WriteResponse,
-    commit: (body: unknown) => void
+    commit: (body: unknown) => (() => void) | void
   ): WriteOutcome => {
     if (response.type === "unauthorized") {
       pending.remove(change.id);
@@ -148,10 +151,11 @@ export function createStoreWrites({
 
     // The rows land and the change lifts with no await between them, so the bus carries both
     // in one flush and no read falls in the gap and finds the list empty.
-    commit(response.body);
+    const afterPull = commit(response.body);
     pending.remove(change.id);
     // What the server booked around these rows — a quota, a notification's twin — comes next.
-    void pull("after-write");
+    const pulled = pull("after-write");
+    if (afterPull) void pulled.catch(() => undefined).then(afterPull);
     return WRITTEN;
   };
 
@@ -162,7 +166,11 @@ export function createStoreWrites({
     const response = await sendJson(apiFetch, clock, decisionRequest(kind, ids, reason));
     // The answer carries no rows, so the store writes what the change expected and the pull that
     // follows overwrites it with the server's own row.
-    return settle(change, response, () => storeProvisionalVacations(runtime, change));
+    return settle(change, response, () => {
+      storeProvisionalVacations(runtime, change);
+      const mark = pending.markProvisional(ids);
+      return () => pending.remove(mark.id);
+    });
   };
 
   return {
