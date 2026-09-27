@@ -4,7 +4,7 @@ import { deviceAppState, type AppStateSource } from "@/lib/app-state";
 
 import { authClient } from "./auth-client";
 
-const UNAUTHORIZED = 401;
+export const UNAUTHORIZED = 401;
 
 /** Only what the revalidation reads of the answer: a session, or a reason there is none. */
 export type SessionLookup = () => Promise<{

@@ -1,9 +1,12 @@
 import { nativeApplicationVersion, nativeBuildVersion } from "expo-application";
+import { router } from "expo-router";
 import {
   ArrowUpRightIcon,
+  CaretRightIcon,
   EnvelopeSimpleIcon,
   FileTextIcon,
   InfoIcon,
+  LockKeyIcon,
   ShieldCheckIcon,
   TranslateIcon,
 } from "phosphor-react-native";
@@ -18,7 +21,7 @@ import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { appVersionLabel } from "@/lib/app-version";
 import { useRequestScopeGroups } from "@/lib/local-store";
-import { useMySettings, useSaveMySettings } from "@/lib/query";
+import { useMySettings, useOffersPasswordChange, useSaveMySettings } from "@/lib/query";
 import { initials } from "@/lib/viewer/viewer";
 import { useViewer, type Viewer } from "@/lib/viewer/use-viewer";
 import { openWebPage, WEB_PATHS } from "@/lib/web";
@@ -47,6 +50,7 @@ function AccountHeader({ viewer }: { viewer: Viewer }) {
 }
 
 const external = <Icon icon={ArrowUpRightIcon} tone="faint" size={16} />;
+const chevron = <Icon icon={CaretRightIcon} tone="faint" size={16} />;
 
 export function SettingsScreen() {
   const { t } = useTranslation();
@@ -55,6 +59,7 @@ export function SettingsScreen() {
   const loaded = useMySettings();
   const { settings, save } = useSaveMySettings();
   const groups = useRequestScopeGroups();
+  const offersPasswordChange = useOffersPasswordChange();
 
   return (
     <StackScreen title={t.nav.settings}>
@@ -104,7 +109,22 @@ export function SettingsScreen() {
 
         <DashboardDefaultSection settings={settings} groups={groups} onChange={save} />
 
-        {/* Security: Change password (T-57) and Two-factor (T-58) sit here. */}
+        {/* Two-factor (T-58) joins Change password here. */}
+        {offersPasswordChange ? (
+          <Section
+            label={t.settings.security}
+            footer={t.settings.signsOutOthers}
+            testID="settings-security"
+          >
+            <Row
+              testID="settings-change-password"
+              icon={LockKeyIcon}
+              label={t.settings.changePassword}
+              onPress={() => router.push("/settings/password")}
+              accessory={chevron}
+            />
+          </Section>
+        ) : null}
 
         <Section
           label={t.settings.language}

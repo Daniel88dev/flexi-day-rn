@@ -27,14 +27,14 @@ jest.mock("@/lib/api", () => {
 });
 
 jest.mock("expo-router", () => ({
-  router: { back: jest.fn() },
+  router: { back: jest.fn(), push: jest.fn() },
   useNavigation: () => ({ canGoBack: mockCanGoBack }),
   Redirect: jest.requireActual("@/test-support/expo-router").RedirectShim,
 }));
 
 jest.mock("@/lib/session/auth-client", () => ({
   sessionCookie: async () => "",
-  authClient: { useSession: jest.fn() },
+  authClient: { useSession: jest.fn(), listAccounts: jest.fn() },
 }));
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
 jest.mock("@/lib/local-store", () => ({
@@ -53,6 +53,10 @@ jest.mock("expo-web-browser", () => ({
 }));
 
 const useSession = authClient.useSession as unknown as jest.Mock;
+const listAccounts = authClient.listAccounts as unknown as jest.Mock;
+
+const PASSWORD_ACCOUNT = { providerId: "credential" };
+const GOOGLE_ACCOUNT = { providerId: "google" };
 const scopeGroups = useRequestScopeGroups as jest.MockedFunction<typeof useRequestScopeGroups>;
 
 const STORED = {
@@ -78,6 +82,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockCanGoBack.mockReturnValue(true);
   useSession.mockReturnValue(SESSION);
+  listAccounts.mockResolvedValue({ data: [GOOGLE_ACCOUNT, PASSWORD_ACCOUNT], error: null });
   scopeGroups.mockReturnValue([{ groupId: "g-1", groupName: "Design" }]);
   let stored = { ...STORED };
   mockFetch.mockImplementation(async (_url: string, init?: RequestInit) => {
@@ -120,14 +125,16 @@ describe("Settings", () => {
     expect(screen.getByText("/dashboard")).toBeOnTheScreen();
   });
 
-  it("renders the account, Notifications, Dashboard calendar, Language and About in that order", async () => {
+  it("renders the account, Notifications, Dashboard calendar, Security, Language and About in that order", async () => {
     await renderLoaded();
+    await screen.findByTestId("settings-security");
 
     const tree = JSON.stringify(screen.toJSON());
     const order = [
       "settings-account",
       "settings-notifications",
       "settings-dashboard",
+      "settings-security",
       "settings-language-section",
       "settings-about",
     ].map((testID) => tree.indexOf(`"testID":"${testID}"`));
@@ -161,6 +168,33 @@ describe("Settings", () => {
       dashboardScope: "GROUP",
       dashboardGroupId: "g-1",
     });
+  });
+
+  it("pushes the password screen from Change password for an account with a password", async () => {
+    await renderLoaded();
+
+    await fireEvent.press(await screen.findByTestId("settings-change-password"));
+
+    expect(router.push).toHaveBeenCalledWith("/settings/password");
+    expect(screen.getByText(en.settings.signsOutOthers)).toBeOnTheScreen();
+  });
+
+  it("leaves Security out for an account that only signs in with Google or Microsoft", async () => {
+    listAccounts.mockResolvedValue({ data: [GOOGLE_ACCOUNT], error: null });
+    await renderLoaded();
+
+    await waitFor(() => expect(listAccounts).toHaveBeenCalled());
+    await act(async () => undefined);
+    expect(screen.queryByTestId("settings-security")).toBeNull();
+  });
+
+  it("offers Change password anyway when the account list cannot be read", async () => {
+    listAccounts.mockResolvedValue({ data: null, error: { status: 500, message: "boom" } });
+    await renderLoaded();
+
+    expect(
+      await screen.findByTestId("settings-change-password", {}, { timeout: 5000 })
+    ).toBeOnTheScreen();
   });
 
   it("opens the app's page in iOS Settings from Language", async () => {

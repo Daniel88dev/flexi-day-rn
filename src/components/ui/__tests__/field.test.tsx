@@ -1,5 +1,6 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { EnvelopeIcon } from "phosphor-react-native";
+import { AccessibilityInfo } from "react-native";
 
 import { Field } from "@/components/ui/field";
 import { en } from "@/i18n/en";
@@ -39,5 +40,17 @@ describe("Field", () => {
     expect(screen.getByPlaceholderText(en.auth.twoFactor.backupPlaceholder).props.editable).toBe(
       false
     );
+  });
+
+  it("renders an error under the input and announces it, and none without one", async () => {
+    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+    await renderField(<Field testID="field" placeholder="Current password" error="Wrong one." />);
+
+    expect(screen.getByTestId("field-error")).toHaveTextContent("Wrong one.");
+    expect(announce).toHaveBeenCalledWith("Wrong one.");
+
+    await renderField(<Field testID="other" placeholder="New password" />);
+
+    expect(screen.queryByTestId("other-error")).toBeNull();
   });
 });
