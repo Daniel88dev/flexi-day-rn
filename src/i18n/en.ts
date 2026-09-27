@@ -27,14 +27,10 @@ export const en = {
     groups: "Groups",
     calendarSync: "Calendar sync",
     myAttendance: "My attendance",
-    teamAttendance: "Team attendance",
-    organization: "Organization",
-    billing: "Billing",
     settings: "Settings",
     sections: {
       timeOff: "Time off",
       attendance: "Attendance",
-      organization: "Organization",
     },
   },
   dashboard: {
@@ -61,6 +57,11 @@ export const en = {
     hoursAgo: (hours: number) => `${hours} h ago`,
     daysAgo: (days: number) => `${days} d ago`,
     unreachable: "Couldn't reach the server. Try again.",
+  },
+  request: {
+    failed: "The server didn't accept that.",
+    refused: "That changed on the server in the meantime. The screen shows the latest now.",
+    retry: "Retry",
   },
   auth: {
     workEmail: "Work email",

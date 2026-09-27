@@ -186,6 +186,7 @@ describe("createVacation", () => {
     expect(outcome).toEqual({
       ok: false,
       reason: "rejected",
+      status: 422,
       message: "Selected day is not a working day",
     });
     expect(pending.list()).toEqual([]);
@@ -198,6 +199,7 @@ describe("createVacation", () => {
     expect(await writes.createVacation(DRAFT)).toEqual({
       ok: false,
       reason: "rejected",
+      status: 402,
       message: null,
     });
     expect(pending.list()).toEqual([]);
@@ -209,6 +211,7 @@ describe("createVacation", () => {
     expect(await writes.createVacation(DRAFT)).toEqual({
       ok: false,
       reason: "rejected",
+      status: 500,
       message: "Failed to create vacation",
     });
   });
@@ -332,6 +335,7 @@ describe("updateVacation", () => {
     expect(await writes.updateVacation(EDIT)).toEqual({
       ok: false,
       reason: "rejected",
+      status: 409,
       message: "One or more records changed while editing — refresh and retry",
     });
     expect(pending.list()).toEqual([]);
@@ -379,6 +383,7 @@ describe("updateVacation", () => {
     ).toEqual({
       ok: false,
       reason: "rejected",
+      status: 422,
       message: "halfDay: `halfDay` is only valid for a single-day record",
     });
   });
@@ -491,6 +496,7 @@ describe("approveVacations", () => {
     expect(await writes.approveVacations(["vacation-1"])).toEqual({
       ok: false,
       reason: "rejected",
+      status: 409,
       message: "Vacation already approved",
     });
     expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
@@ -587,6 +593,7 @@ describe("rejectVacations", () => {
     expect(await writes.rejectVacations(["vacation-1"], "Understaffed")).toEqual({
       ok: false,
       reason: "rejected",
+      status: 409,
       message: "Vacation already rejected",
     });
     expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);
@@ -679,6 +686,7 @@ describe("cancelVacations", () => {
     expect(await writes.cancelVacations(["vacation-1"])).toEqual({
       ok: false,
       reason: "rejected",
+      status: 409,
       message: "Vacation already cancelled",
     });
     expect(storedVacations()).toEqual([expect.objectContaining({ status: "pending" })]);

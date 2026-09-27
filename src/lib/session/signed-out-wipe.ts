@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useCallback } from "react";
 
 import { destroyStore } from "@/lib/local-store";
+import { queryClient } from "@/lib/query/runtime";
 
 import { clearClientSession, SESSION_COOKIE_KEY } from "./auth-client";
 import { keychain } from "./keychain";
@@ -35,8 +36,8 @@ let running: Promise<void> | null = null;
 
 /**
  * What the app does when the server stops trusting the phone, and what signing out does after
- * the server has been told: the cookie jar, the session cache and the Local store go, the Device
- * id stays, and welcome says why. It never signs out on its own.
+ * the server has been told: the cookie jar, the session cache, the Local store and the query cache
+ * go, the Device id stays, and welcome says why. It never signs out on its own.
  */
 export function signedOutWipe(options: SignedOutWipeOptions): Promise<void> {
   running ??= wipe(options).finally(() => {
@@ -64,6 +65,7 @@ async function wipe({
     console.error("The signed-out wipe did not finish.", cause);
   }
 
+  queryClient.clear();
   clearSession();
   showNotice();
   setRootRoute("welcome");

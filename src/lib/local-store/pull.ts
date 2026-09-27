@@ -1,7 +1,9 @@
+import { serverMessage } from "@/lib/api";
+
 import { applyPage, readSyncState, sweepGenerations, writeSyncState } from "./apply";
 import type { StoreClock } from "./clock";
 import type { SyncEnvelope } from "./envelope";
-import { serverMessage, type StoreFetch } from "./fetch";
+import type { StoreFetch } from "./fetch";
 import type { StoreRuntime } from "./runtime";
 
 export type PullReason = "foreground" | "refresh" | "after-write";

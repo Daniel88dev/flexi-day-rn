@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 
 import AppLayout from "@/app/(app)/_layout";
 import { destroyStore, openStore } from "@/lib/local-store";
+import { apiRequest } from "@/lib/query";
 import type { FakeAppState } from "@/test-support/fake-app-state";
 import { authClient } from "@/lib/session/auth-client";
 import { clearSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
@@ -10,6 +11,18 @@ import { SESSION, VIEWER } from "@/test-support/session";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import type { RootRoute } from "@/lib/session/root-route";
+
+const mockFetch = jest.fn();
+
+// The factory runs before `mockFetch` is assigned, so it reaches it through a closure.
+jest.mock("@/lib/api", () => {
+  const actual = jest.requireActual("@/lib/api");
+  return {
+    ...actual,
+    createApiFetch: (options: object) =>
+      actual.createApiFetch({ ...options, fetchImpl: (...args: unknown[]) => mockFetch(...args) }),
+  };
+});
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn() },
@@ -44,9 +57,15 @@ jest.mock("@/lib/app-state", () => ({
 
 jest.mock("sonner-native", () => ({ Toaster: () => null }));
 
+jest.mock("expo-network", () => ({
+  addNetworkStateListener: () => ({ remove: () => undefined }),
+  getNetworkStateAsync: async () => ({ isConnected: true, isInternetReachable: true }),
+}));
+
 jest.mock("@/lib/session/auth-client", () => ({
   SESSION_COOKIE_KEY: "flexi-day_cookie",
   clearClientSession: jest.fn(),
+  sessionCookie: async () => "",
   authClient: {
     useSession: jest.fn(),
     getSession: jest.fn(),
@@ -115,6 +134,18 @@ describe("AppLayout, signing the phone out", () => {
     await renderShell("signed-in");
 
     await answerUnauthorized();
+
+    expect(destroy).toHaveBeenCalledTimes(1);
+    expect(signedOutNoticeShowing()).toBe(true);
+  });
+
+  it("wipes the phone when a query layer request comes back unauthorized", async () => {
+    await renderShell("signed-in");
+    mockFetch.mockResolvedValue({ status: 401, json: async () => ({}) });
+
+    await act(async () => {
+      await apiRequest("/api/attendance/current").catch(() => undefined);
+    });
 
     expect(destroy).toHaveBeenCalledTimes(1);
     expect(signedOutNoticeShowing()).toBe(true);

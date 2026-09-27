@@ -102,9 +102,9 @@ lookup and sign-out itself, and its request hook attaches the same client header
 
 `signedOutWipe()` in `src/lib/session/signed-out-wipe.ts` is the only way out. A 401 from the
 wrapper, a session lookup that answers with none, and sign-out all end there: the cookie jar, the
-session cache and the local store go, the Device id stays, and welcome says why. `signOut()` is
-the one path that tells the server first, and it wipes whatever the server answers. Never clear a
-piece of the session on its own.
+session cache, the local store and the query cache go, the Device id stays, and welcome says why.
+`signOut()` is the one path that tells the server first, and it wipes whatever the server answers.
+Never clear a piece of the session on its own.
 
 `src/app/_layout.tsx` waits for the Device id, reads the expo plugin's session cache
 (`src/lib/session/session-cache.ts`) and hands both to `rootRoute()`, which decides the launch
@@ -160,6 +160,30 @@ rest of the module.
 The seam is the Drizzle instance: expo-sqlite on the device, `better-sqlite3` in Jest, on the same
 schema and the same DDL. Everything below the adapter is shared code, so the store's SQL is tested
 without a device.
+
+## The query layer
+
+Every read the local store does not hold (attendance, permissions, settings, notifications) goes
+through `@tanstack/react-query` in `src/lib/query/`, whose `index.ts` is the interface screens
+import. Permissions are among those reads: the phone asks the backend, never its own rows.
+`QueryLayer` mounts it in the signed-in shell: the app coming back to the foreground is focus,
+`expo-network` decides online, and a 401 reaches the shell's signed-out wipe.
+Requests go through `apiRequest`, which is `createApiFetch` underneath; an answer outside 2xx
+throws `ApiError` with the server's message.
+
+- The cache lives in memory only and is never persisted. The signed-out wipe clears it.
+- Query keys are the web's (`qk` in `keys.ts`, copied from `flexi-day/lib/api/queries.ts`), so a
+  prefix invalidates the same reads on both clients.
+- Nothing polls. Every foreground reads again however fresh the answer, through
+  `refetchOnWindowFocus: "always"`, and so do screen focus and the phone's own writes.
+- Reads and writes run with `networkMode: "always"`: offline they fail at once, so a screen shows
+  "can't reach the server" with Retry instead of a paused spinner. The online manager still reads
+  again on reconnect, which needs `refetchOnReconnect: true` set by hand under that mode.
+- A failed write goes to `useWriteFailure()`, never to a screen's own toast. A refusal, meaning a
+  402, 403 or 409, shows the server's message, reloads the screen's queries and starts a sync
+  pull. Any other 4xx shows the server's message. Neither offers Retry, because the same tap
+  fails the same way; a 5xx or no answer at all does. It takes a Local store `WriteOutcome` as
+  well as a thrown error.
 
 ## Testing
 

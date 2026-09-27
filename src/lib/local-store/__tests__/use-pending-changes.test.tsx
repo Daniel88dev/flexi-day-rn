@@ -210,6 +210,7 @@ describe("createVacation", () => {
     expect(outcome).toEqual({
       ok: false,
       reason: "rejected",
+      status: 422,
       message: "Booking would exceed the allowance",
     });
   });
@@ -357,6 +358,7 @@ describe("approveVacations", () => {
     expect(outcome).toEqual({
       ok: false,
       reason: "rejected",
+      status: 409,
       message: "Vacation already approved",
     });
   });

@@ -11,14 +11,10 @@ export const cs: Dictionary = {
     groups: "Skupiny",
     calendarSync: "Synchronizace kalendáře",
     myAttendance: "Moje docházka",
-    teamAttendance: "Docházka týmu",
-    organization: "Organizace",
-    billing: "Fakturace",
     settings: "Nastavení",
     sections: {
       timeOff: "Volno",
       attendance: "Docházka",
-      organization: "Organizace",
     },
   },
   dashboard: {
@@ -45,6 +41,11 @@ export const cs: Dictionary = {
     hoursAgo: (hours: number) => `před ${hours} h`,
     daysAgo: (days: number) => `před ${days} d`,
     unreachable: "Nepodařilo se spojit se serverem. Zkuste to znovu.",
+  },
+  request: {
+    failed: "Server tento požadavek nepřijal.",
+    refused: "Na serveru se to mezitím změnilo. Obrazovka už ukazuje aktuální stav.",
+    retry: "Zkusit znovu",
   },
   auth: {
     workEmail: "Pracovní e-mail",

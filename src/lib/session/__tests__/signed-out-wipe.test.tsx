@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import type { ReactNode } from "react";
 
 import { destroyStore } from "@/lib/local-store";
+import { queryClient } from "@/lib/query/runtime";
 import { SESSION_COOKIE_KEY } from "@/lib/session/auth-client";
 import { DEVICE_ID_KEY } from "@/lib/session/device-id";
 import { RootRouteProvider, useRootRoute } from "@/lib/session/root-route-context";
@@ -67,6 +68,8 @@ beforeEach(() => {
   sessionAtom.value = { data: { user: { id: "kXk2Q7pR9sT1vW3yZ5aB7cD9eF1gH3iJ" } } };
 });
 
+afterEach(() => queryClient.clear());
+
 function wipe(overrides: Record<string, unknown> = {}) {
   return signedOutWipe({
     storage: keychain,
@@ -95,6 +98,14 @@ describe("signedOutWipe", () => {
     await wipe();
 
     expect(destroyLocalStore).toHaveBeenCalledTimes(1);
+  });
+
+  it("empties the query client, so no answer the signed-out user read stays in memory", async () => {
+    queryClient.setQueryData(["attendance-state", "own"], { clockedIn: true });
+
+    await wipe();
+
+    expect(queryClient.getQueryCache().getAll()).toEqual([]);
   });
 
   it("drops the session the auth client still holds, so no screen greets the old viewer", async () => {
@@ -160,9 +171,12 @@ describe("signedOutWipe", () => {
     const error = jest.spyOn(console, "error").mockImplementation(() => {});
     destroyLocalStore.mockRejectedValue(new Error("database busy"));
 
+    queryClient.setQueryData(["my-approvals"], []);
+
     await wipe();
 
     expect(keychain.entries()[SESSION_COOKIE_KEY]).toBe("{}");
+    expect(queryClient.getQueryCache().getAll()).toEqual([]);
     expect(replace).toHaveBeenCalledWith("/welcome");
     expect(error).toHaveBeenCalled();
     error.mockRestore();
