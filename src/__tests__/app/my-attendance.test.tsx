@@ -28,6 +28,11 @@ jest.mock("expo-router", () => {
   };
 });
 
+jest.mock("@/components/notifications/notification-bell", () => {
+  const { View } = jest.requireActual("react-native");
+  return { NotificationBell: () => <View testID="notification-bell" /> };
+});
+
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
@@ -116,6 +121,12 @@ beforeEach(() => {
 afterEach(() => queryClient.clear());
 
 describe("My attendance", () => {
+  it("renders the notification bell in the header", async () => {
+    await renderScreen();
+
+    expect(await screen.findByTestId("notification-bell")).toBeOnTheScreen();
+  });
+
   it("opens on today with the clock card over the day", async () => {
     await renderScreen();
 

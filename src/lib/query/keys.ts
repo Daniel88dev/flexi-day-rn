@@ -11,6 +11,7 @@ export const qk = {
   myApprovals: () => ["my-approvals"] as const,
   dashboardSummary: () => ["dashboard-summary"] as const,
   notifications: (unreadOnly: boolean) => ["notifications", unreadOnly] as const,
+  allNotifications: () => ["notifications"] as const,
   mySettings: () => ["my-settings"] as const,
   /** The web keeps this one in `lib/auth/use-linked-accounts.ts`, outside its `qk`. */
   authAccounts: () => ["auth", "accounts"] as const,

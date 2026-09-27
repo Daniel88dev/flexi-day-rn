@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { RefreshControl, ScrollView, View } from "react-native";
 
 import { ClockNotice, NoticeAction } from "@/components/clock/clock-notice";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -178,12 +179,15 @@ export function MyAttendanceScreen({
         onAnchor={setAnchored}
         header={(ready) => (
           <View className="gap-3">
-            <Text
-              className="font-display text-[28px] font-semibold text-foreground"
-              style={{ letterSpacing: -0.56 }}
-            >
-              {t.attendance.title}
-            </Text>
+            <View className="flex-row items-center justify-between gap-3">
+              <Text
+                className="font-display text-[28px] font-semibold text-foreground"
+                style={{ letterSpacing: -0.56 }}
+              >
+                {t.attendance.title}
+              </Text>
+              <NotificationBell />
+            </View>
             {ready ? (
               <ViewPill
                 value={view}

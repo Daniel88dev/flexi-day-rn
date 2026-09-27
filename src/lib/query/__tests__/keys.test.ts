@@ -23,6 +23,7 @@ describe("qk", () => {
     expect(qk.groupUsers("group-1")).toEqual(["group-users", "group-1"]);
     expect(qk.mySettings()).toEqual(["my-settings"]);
     expect(qk.notifications(true)).toEqual(["notifications", true]);
+    expect(qk.allNotifications()).toEqual(["notifications"]);
     expect(qk.authAccounts()).toEqual(["auth", "accounts"]);
   });
 });

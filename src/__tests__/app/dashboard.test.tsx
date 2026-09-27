@@ -53,6 +53,11 @@ jest.mock("@/components/dashboard/balance-card", () => {
   return { BalanceCard: ({ year }: { year: number }) => <Text>{`balance ${year}`}</Text> };
 });
 
+jest.mock("@/components/notifications/notification-bell", () => {
+  const { View } = jest.requireActual("react-native");
+  return { NotificationBell: () => <View testID="notification-bell" /> };
+});
+
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
 
 jest.mock("@/lib/session/auth-client", () => ({ authClient: { useSession: jest.fn() } }));
@@ -244,6 +249,14 @@ describe("DashboardScreen", () => {
     await renderDashboard();
 
     expect(screen.queryByText("month calendar")).toBeNull();
+  });
+
+  it("renders the notification bell in the header", async () => {
+    fakeStore();
+
+    await renderDashboard();
+
+    expect(screen.getByTestId("notification-bell")).toBeOnTheScreen();
   });
 
   it("renders the new-request button in the header", async () => {

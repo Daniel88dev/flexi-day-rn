@@ -2,22 +2,10 @@ import { Text } from "@/components/ui/text";
 import type { Dictionary } from "@/i18n/en";
 import { useTranslation } from "@/i18n/use-translation";
 import { useSyncStatus } from "@/lib/local-store";
-import { ageMs, roughAge, type AgeUnit } from "@/lib/relative-time";
+import { ageMs, relativeAge } from "@/lib/relative-time";
 import { useNow } from "@/lib/use-now";
 
 const AGE_TICK_MS = 30_000;
-
-const AGE_COPY: Record<AgeUnit, (t: Dictionary, value: number) => string> = {
-  seconds: (t) => t.sync.justNow,
-  minutes: (t, value) => t.sync.minutesAgo(value),
-  hours: (t, value) => t.sync.hoursAgo(value),
-  days: (t, value) => t.sync.daysAgo(value),
-};
-
-export function relativeAge(ms: number, t: Dictionary): string {
-  const { unit, value } = roughAge(ms);
-  return AGE_COPY[unit](t, value);
-}
 
 function syncedLine(lastPulledAt: string | null, t: Dictionary, now: number): string {
   if (!lastPulledAt) return t.sync.never;

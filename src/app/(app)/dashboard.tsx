@@ -10,6 +10,7 @@ import { DevelopmentCard } from "@/components/dashboard/development-card";
 import { EmptyDashboard } from "@/components/dashboard/empty-dashboard";
 import { Greeting } from "@/components/dashboard/greeting";
 import { LastSynced } from "@/components/dashboard/last-synced";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { NoGroupsCard } from "@/components/dashboard/no-groups-card";
 import { StatStrip } from "@/components/dashboard/stat-strip";
 import { SyncingDashboard } from "@/components/dashboard/syncing-dashboard";
@@ -67,15 +68,18 @@ export default function DashboardScreen() {
           <View className="flex-1">
             <Greeting viewer={viewer} />
           </View>
-          <Pressable
-            testID="dashboard-new-request"
-            onPress={() => newRequest()}
-            accessibilityRole="button"
-            accessibilityLabel={t.dashboard.newRequest}
-            className="mt-1 h-11 w-11 items-center justify-center rounded-full bg-primary active:opacity-90"
-          >
-            <Icon icon={PlusIcon} tone="onPrimary" size={20} weight="bold" />
-          </Pressable>
+          <View className="mt-1 flex-row items-center gap-2">
+            <NotificationBell />
+            <Pressable
+              testID="dashboard-new-request"
+              onPress={() => newRequest()}
+              accessibilityRole="button"
+              accessibilityLabel={t.dashboard.newRequest}
+              className="h-11 w-11 items-center justify-center rounded-full bg-primary active:opacity-90"
+            >
+              <Icon icon={PlusIcon} tone="onPrimary" size={20} weight="bold" />
+            </Pressable>
+          </View>
         </View>
         <LastSynced />
         <StatStrip
