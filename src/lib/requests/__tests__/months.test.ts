@@ -1,4 +1,13 @@
-import { addMonths, currentMonth, requestMonthBounds, stepMonth } from "../months";
+import {
+  addMonths,
+  currentMonth,
+  isoDay,
+  monthRange,
+  monthOffset,
+  monthsWithin,
+  requestMonthBounds,
+  stepMonth,
+} from "../months";
 
 const TODAY = new Date(2026, 8, 26, 14, 0);
 const BOUNDS = requestMonthBounds(TODAY);
@@ -49,5 +58,38 @@ describe("stepMonth", () => {
 
   it("returns null after December of next year", () => {
     expect(stepMonth({ year: 2027, month: 12 }, 1, BOUNDS)).toBeNull();
+  });
+});
+
+describe("monthsWithin", () => {
+  it("returns every month from January of last year to December of next year", () => {
+    const months = monthsWithin(BOUNDS);
+
+    expect(months).toHaveLength(36);
+    expect(months[0]).toEqual({ year: 2025, month: 1 });
+    expect(months[20]).toEqual({ year: 2026, month: 9 });
+    expect(months[35]).toEqual({ year: 2027, month: 12 });
+  });
+});
+
+describe("monthOffset", () => {
+  it("returns how many months a month lies after the first bound", () => {
+    expect(monthOffset({ year: 2026, month: 9 }, BOUNDS)).toBe(20);
+    expect(monthOffset({ year: 2025, month: 1 }, BOUNDS)).toBe(0);
+  });
+});
+
+describe("isoDay", () => {
+  it("returns the ISO date of a day of the month", () => {
+    expect(isoDay({ year: 2026, month: 3 }, 7)).toBe("2026-03-07");
+  });
+});
+
+describe("monthRange", () => {
+  it("returns the month's first day and the first day after it", () => {
+    expect(monthRange({ year: 2026, month: 12 })).toEqual({
+      from: "2026-12-01",
+      until: "2027-01-01",
+    });
   });
 });

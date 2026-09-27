@@ -27,6 +27,11 @@ jest.mock("@/lib/session/auth-client", () => ({ authClient: { useSession: jest.f
 
 jest.mock("@/components/dashboard/development-card", () => ({ DevelopmentCard: () => null }));
 
+jest.mock("@/components/dashboard/dashboard-calendar", () => {
+  const { Text } = jest.requireActual("react-native");
+  return { DashboardCalendar: () => <Text>month calendar</Text> };
+});
+
 const pullStore = pull as jest.MockedFunction<typeof pull>;
 const rowCounts = useStoreRowCounts as jest.MockedFunction<typeof useStoreRowCounts>;
 const status = useSyncStatus as jest.MockedFunction<typeof useSyncStatus>;
@@ -142,6 +147,32 @@ describe("DashboardScreen", () => {
 
     expect(screen.queryByText(en.dashboard.empty.title)).toBeNull();
     expect(screen.queryByText(en.sync.syncing)).toBeNull();
+  });
+
+  it("renders the month calendar once the store holds rows", async () => {
+    fakeStore({ counts: { ...NO_ROWS, groups: 1 } });
+
+    await renderDashboard();
+
+    expect(screen.getByText("month calendar")).toBeTruthy();
+  });
+
+  it("renders no month calendar while the store is empty", async () => {
+    fakeStore();
+
+    await renderDashboard();
+
+    expect(screen.queryByText("month calendar")).toBeNull();
+  });
+
+  it("renders the new-request button in the header", async () => {
+    fakeStore();
+
+    await renderDashboard();
+
+    expect(screen.getByTestId("dashboard-new-request").props.accessibilityLabel).toBe(
+      en.dashboard.newRequest
+    );
   });
 
   it("renders how fresh what it shows is", async () => {

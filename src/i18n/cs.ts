@@ -31,6 +31,25 @@ export const cs: Dictionary = {
       title: "Zatím není co zobrazit",
       body: "Vaše volno, kalendář týmu a vaše limity se tu objeví, jakmile se telefon sesynchronizuje s webem.",
     },
+    newRequest: "Nová žádost",
+    calendar: {
+      mine: "Moje",
+      group: "Skupina",
+      pickGroup: "Zobrazit skupinu",
+      today: "Přejít na tento měsíc",
+      allTypes: "Všechny typy",
+      noTypes: "Žádné typy",
+      typeCount: (count: number) =>
+        `${count} ${count === 1 ? "typ" : count >= 2 && count <= 4 ? "typy" : "typů"}`,
+      filterTitle: "Zobrazit typy",
+      selectAll: "Vybrat vše",
+      clearAll: "Zrušit výběr",
+      more: (count: number) => `+${count}`,
+      moreOnDay: (count: number, day: string) => `${day}: dalších ${count}`,
+      nobodyAway: "Nikdo není pryč",
+      awayCount: (count: number) => `Pryč nebo z domova: ${count}`,
+      book: (day: string) => `Zadat ${day}`,
+    },
   },
   sync: {
     syncing: "Synchronizuji…",
@@ -148,6 +167,9 @@ export const cs: Dictionary = {
     OTHER: "Ostatní",
   },
   calendar: {
+    weekdaysShort: ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"],
+    dayTitle: (weekday: number, date: DayMonth) =>
+      `${cs.calendar.weekdaysShort[weekday]} ${date.day}. ${date.month}.`,
     months: [
       "Leden",
       "Únor",

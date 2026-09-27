@@ -47,6 +47,24 @@ export const en = {
       title: "Nothing to show yet",
       body: "Your time off, your team's calendar and your quotas appear here once this phone syncs with the web.",
     },
+    newRequest: "New request",
+    calendar: {
+      mine: "Mine",
+      group: "Group",
+      pickGroup: "Show group",
+      today: "Go to this month",
+      allTypes: "All types",
+      noTypes: "No types",
+      typeCount: (count: number) => `${count} ${count === 1 ? "type" : "types"}`,
+      filterTitle: "Show types",
+      selectAll: "Select all",
+      clearAll: "Clear all",
+      more: (count: number) => `+${count}`,
+      moreOnDay: (count: number, day: string) => `${count} more on ${day}`,
+      nobodyAway: "Nobody is away",
+      awayCount: (count: number) => `${count} away or remote`,
+      book: (day: string) => `Book ${day}`,
+    },
   },
   sync: {
     syncing: "Syncing…",
@@ -164,6 +182,10 @@ export const en = {
     OTHER: "Other",
   },
   calendar: {
+    weekdaysShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    /** `weekday` 0 for Monday. */
+    dayTitle: (weekday: number, date: DayMonth) =>
+      `${en.calendar.weekdaysShort[weekday]} ${date.day} ${MONTHS_SHORT_EN[date.month - 1]}`,
     months: [
       "January",
       "February",

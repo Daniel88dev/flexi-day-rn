@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 
-import { addMonths, type YearMonth } from "@/lib/requests/months";
+import { monthRange, type YearMonth } from "@/lib/requests/months";
 
 import type { StoreDatabase } from "./adapter";
 import { readSyncState } from "./apply";
@@ -49,14 +49,6 @@ export function requestScopeGroups(db: StoreDatabase): RequestScopeGroup[] {
     .all();
 }
 
-function firstDay({ year, month }: YearMonth): string {
-  return `${year}-${String(month).padStart(2, "0")}-01`;
-}
-
-function monthRange(month: YearMonth): DayRange {
-  return { from: firstDay(month), until: firstDay(addMonths(month, 1)) };
-}
-
 /**
  * What the web's `/vacation` answers for a group: its own rows, and the rows a live mirror
  * projects into it from another group, for someone who still belongs to it.
@@ -99,19 +91,19 @@ function namesById(
   return new Map(rows.map((row) => [row.id, row.name]));
 }
 
-export function requestListVacations(
+export function scopedVacations(
   db: StoreDatabase,
   changes: readonly PendingChange[],
-  query: RequestListQuery
+  scope: RequestListScope,
+  range: DayRange
 ): ListedVacation[] {
   const viewerId = readSyncState(db)?.userId ?? null;
-  const { scope } = query;
   const inScope =
     scope.kind === "mine"
       ? (row: MergedVacation) => row.userId === viewerId
       : inGroupScope(db, scope.groupId);
 
-  const rows = mergedVacations(db, changes, monthRange(query.month)).filter(inScope);
+  const rows = mergedVacations(db, changes, range).filter(inScope);
   const people = namesById(db, users, [...new Set(rows.map((row) => row.userId))]);
   const teams = namesById(db, groups, [...new Set(rows.map((row) => row.groupId))]);
 
@@ -120,4 +112,12 @@ export function requestListVacations(
     userName: people.get(row.userId) ?? null,
     groupName: teams.get(row.groupId) ?? null,
   }));
+}
+
+export function requestListVacations(
+  db: StoreDatabase,
+  changes: readonly PendingChange[],
+  query: RequestListQuery
+): ListedVacation[] {
+  return scopedVacations(db, changes, query.scope, monthRange(query.month));
 }

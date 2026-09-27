@@ -1,4 +1,4 @@
-import { firstName, initials } from "@/lib/viewer/viewer";
+import { avatarColor, firstName, initials } from "@/lib/viewer/viewer";
 
 describe("firstName", () => {
   it("returns the first word of the name", () => {
@@ -20,5 +20,12 @@ describe("initials", () => {
 
   it("returns an empty string for a missing name", () => {
     expect(initials(undefined)).toBe("");
+  });
+});
+
+describe("avatarColor", () => {
+  it("returns the colour the backend's user summary gives the same id", () => {
+    expect(avatarColor("user-1")).toBe("hsl(225, 65%, 50%)");
+    expect(avatarColor("u-daniel")).toBe("hsl(39, 65%, 50%)");
   });
 });

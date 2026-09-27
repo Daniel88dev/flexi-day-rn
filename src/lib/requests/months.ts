@@ -33,3 +33,21 @@ export function stepMonth(
   if (index(next) < index(bounds.first) || index(next) > index(bounds.last)) return null;
   return next;
 }
+
+export function monthOffset(month: YearMonth, bounds: MonthBounds): number {
+  return index(month) - index(bounds.first);
+}
+
+export function monthsWithin(bounds: MonthBounds): YearMonth[] {
+  const count = monthOffset(bounds.last, bounds) + 1;
+  return Array.from({ length: count }, (_, offset) => addMonths(bounds.first, offset));
+}
+
+export function isoDay({ year, month }: YearMonth, day: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** The month as `YYYY-MM-DD` days, from its first up to, not including, the next month's first. */
+export function monthRange(month: YearMonth): { from: string; until: string } {
+  return { from: isoDay(month, 1), until: isoDay(addMonths(month, 1), 1) };
+}
