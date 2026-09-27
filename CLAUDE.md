@@ -35,12 +35,12 @@ the re-sign loop and how the app finds the backend are in
 Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 27 kills an app
 built with Xcode 27 that lacks it, and only a real phone shows that.
 
-Adding a native module — `expo-sqlite`, `expo-secure-store`, `expo-crypto`, `expo-application`
-and `expo-web-browser` are the ones here — means `npm run prebuild` and then `npm run ios` or
-`npm run ios:device` to rebuild the dev client. Metro alone cannot load them, and the JavaScript
-fails at the import with a missing native module until the rebuild lands. A non-interactive shell
-has no UTF-8 `LANG`, and CocoaPods quits without one, so run `LANG=en_US.UTF-8 npm run prebuild`
-there.
+Adding a native module — `expo-sqlite`, `expo-secure-store`, `expo-crypto`, `expo-application`,
+`expo-web-browser` and `expo-haptics` are the ones here — means `npm run prebuild` and then
+`npm run ios` or `npm run ios:device` to rebuild the dev client. Metro alone cannot load them, and
+the JavaScript fails at the import with a missing native module until the rebuild lands. A
+non-interactive shell has no UTF-8 `LANG`, and CocoaPods quits without one, so run
+`LANG=en_US.UTF-8 npm run prebuild` there.
 
 The backend base URL comes from `src/lib/api.ts`: `EXPO_PUBLIC_API_URL` when set, otherwise the
 Metro host on port 8080. Never hardcode `localhost`; a phone cannot reach it.
@@ -183,7 +183,9 @@ throws `ApiError` with the server's message.
   402, 403 or 409, shows the server's message, reloads the screen's queries and starts a sync
   pull. Any other 4xx shows the server's message. Neither offers Retry, because the same tap
   fails the same way; a 5xx or no answer at all does. It takes a Local store `WriteOutcome` as
-  well as a thrown error.
+  well as a thrown error. The Clock sheet is the one exception: its writes sort failures with
+  `classifyFailure` into notices inside the sheet (`src/lib/attendance/notice.ts`), because that
+  is where the person is looking, and attendance has no sync pull to start.
 
 ## Testing
 
