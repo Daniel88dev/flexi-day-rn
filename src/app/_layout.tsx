@@ -44,6 +44,7 @@ export default function RootLayout() {
               sheetCornerRadius: 28,
             }}
           />
+          <Stack.Screen name="requests/new" options={{ presentation: "modal" }} />
         </Stack>
         <StatusBar style="auto" />
       </TranslationProvider>

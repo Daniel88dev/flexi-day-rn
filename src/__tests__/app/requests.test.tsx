@@ -124,6 +124,14 @@ describe("RequestsScreen", () => {
     });
   });
 
+  it("opens the new-request form from the header's +", async () => {
+    await renderRequests();
+
+    await fireEvent.press(screen.getByTestId("requests-new-request"));
+
+    expect(router.push).toHaveBeenCalledWith("/requests/new");
+  });
+
   it("renders the chips' counts over runs, not days", async () => {
     await renderRequests();
 

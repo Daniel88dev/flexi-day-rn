@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
+import { DatesField } from "@/components/requests/fields/dates-field";
 import { HalfDayField } from "@/components/requests/fields/half-day-field";
 import { NoteField } from "@/components/requests/fields/note-field";
 import { TimesField } from "@/components/requests/fields/times-field";
@@ -10,26 +11,10 @@ import { TranslationProvider } from "@/i18n/use-translation";
 
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
 
-jest.mock("@react-native-community/datetimepicker", () => {
-  const { Pressable } = jest.requireActual("react-native");
-  return function DateTimePicker(props: {
-    testID: string;
-    value: Date;
-    onValueChange: (event: unknown, date: Date) => void;
-  }) {
-    return (
-      <Pressable
-        testID={props.testID}
-        accessibilityValue={{ text: props.value.toTimeString().slice(0, 5) }}
-        onPress={() => {
-          const later = new Date(props.value);
-          later.setMinutes(later.getMinutes() + 30);
-          props.onValueChange({ type: "set" }, later);
-        }}
-      />
-    );
-  };
-});
+jest.mock(
+  "@react-native-community/datetimepicker",
+  () => jest.requireActual("@/test-support/date-time-picker").FakeDateTimePicker
+);
 
 function renderField(field: ReactNode) {
   return render(<TranslationProvider>{field}</TranslationProvider>);
@@ -40,7 +25,7 @@ describe("TypeField", () => {
     await renderField(<TypeField value="HOME_OFFICE" onChange={jest.fn()} offerSickDay={false} />);
 
     expect(screen.getByText(en.recordTypes.VACATION)).toBeOnTheScreen();
-    expect(screen.getByText(en.editRequest.others)).toBeOnTheScreen();
+    expect(screen.getByText(en.requestForm.others)).toBeOnTheScreen();
     expect(screen.getByText(en.recordTypes.STUDY_LEAVE)).toBeOnTheScreen();
     expect(screen.queryByText(en.recordTypes.SICK_DAY)).toBeNull();
     expect(screen.getByTestId("type-field-HOME_OFFICE")).toHaveProp("accessibilityState", {
@@ -92,7 +77,7 @@ describe("HalfDayField", () => {
     const onChange = jest.fn();
     await renderField(<HalfDayField value={false} onChange={onChange} />);
 
-    expect(screen.getByText(en.editRequest.halfDayHint)).toBeOnTheScreen();
+    expect(screen.getByText(en.requestForm.halfDayHint)).toBeOnTheScreen();
     await fireEvent(screen.getByTestId("half-day-field"), "valueChange", true);
 
     expect(onChange).toHaveBeenCalledWith(true);
@@ -104,14 +89,14 @@ describe("NoteField", () => {
     const { rerender } = await renderField(
       <NoteField value="" onChange={jest.fn()} required={false} />
     );
-    expect(screen.getByText(en.editRequest.note)).toBeOnTheScreen();
+    expect(screen.getByText(en.requestForm.note)).toBeOnTheScreen();
 
     await rerender(
       <TranslationProvider>
         <NoteField value="" onChange={jest.fn()} required />
       </TranslationProvider>
     );
-    expect(screen.getByText(en.editRequest.noteRequired)).toBeOnTheScreen();
+    expect(screen.getByText(en.requestForm.noteRequired)).toBeOnTheScreen();
   });
 
   it("answers what was typed", async () => {
@@ -121,5 +106,42 @@ describe("NoteField", () => {
     await fireEvent.changeText(screen.getByTestId("note-field"), "Conference");
 
     expect(onChange).toHaveBeenCalledWith("Conference");
+  });
+});
+
+describe("DatesField", () => {
+  const WINDOW = { min: "2026-01-01", max: "2027-12-31" };
+
+  it("renders From within the bookable window and To from From onwards", async () => {
+    await renderField(
+      <DatesField
+        from="2026-10-05"
+        to="2026-10-07"
+        window={WINDOW}
+        onFrom={jest.fn()}
+        onTo={jest.fn()}
+      />
+    );
+
+    const from = screen.getByTestId("dates-field-from");
+    const to = screen.getByTestId("dates-field-to");
+    expect(from.props.accessibilityValue.text).toBe("2026-10-05");
+    expect(from.props.accessibilityHint).toBe("2026-01-01..2027-12-31");
+    expect(to.props.accessibilityValue.text).toBe("2026-10-07");
+    expect(to.props.accessibilityHint).toBe("2026-10-05..2027-12-31");
+  });
+
+  it("answers a picked day as YYYY-MM-DD", async () => {
+    const onFrom = jest.fn();
+    const onTo = jest.fn();
+    await renderField(
+      <DatesField from="2026-10-05" to="2026-10-07" window={WINDOW} onFrom={onFrom} onTo={onTo} />
+    );
+
+    await fireEvent.press(screen.getByTestId("dates-field-from"));
+    await fireEvent.press(screen.getByTestId("dates-field-to"));
+
+    expect(onFrom).toHaveBeenCalledWith("2026-10-07");
+    expect(onTo).toHaveBeenCalledWith("2026-10-09");
   });
 });

@@ -228,6 +228,8 @@ describe("DashboardCalendar", () => {
 
     await fireEvent.press(screen.getByTestId("day-list-book"));
     expect(onBook).toHaveBeenCalledWith("2026-10-14");
+    // The form opens as a sheet of its own, so the day list goes first.
+    expect(screen.queryByTestId("day-list")).toBeNull();
   });
 
   it("closes the day list and opens the request from a tapped row", async () => {

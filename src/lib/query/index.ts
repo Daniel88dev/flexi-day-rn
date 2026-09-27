@@ -11,6 +11,7 @@ export {
   type DashboardSummaryRead,
   type PendingApproval,
 } from "./dashboard";
+export { useCreateRequest, useGroupMembers } from "./create-request";
 export { ApiError, classifyFailure, type FailureClass } from "./failure";
 export { qk } from "./keys";
 export { QueryLayer } from "./query-layer";
@@ -32,6 +33,7 @@ export {
   useVacationDetail,
   type Attachment,
   type GroupDetail,
+  type GroupMember,
   type UserSummary,
   type VacationDetail,
   type VacationEvent,

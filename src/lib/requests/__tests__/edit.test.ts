@@ -1,6 +1,6 @@
 import { vacationDetail } from "@/test-support/vacation-detail";
 
-import { canSaveEdit, editPatch, editValuesOf, requestableTypes, type EditValues } from "../edit";
+import { canSaveEdit, editPatch, editValuesOf, type EditValues } from "../edit";
 
 describe("editValuesOf", () => {
   it("returns the detail's fields, times to the minute and no note as empty", () => {
@@ -83,24 +83,5 @@ describe("canSaveEdit", () => {
   it("returns false for an end time that is not after the start", () => {
     expect(canSaveEdit({ ...values, startTime: "13:00", endTime: "12:00" })).toBe(false);
     expect(canSaveEdit({ ...values, startTime: "08:00", endTime: "12:00" })).toBe(true);
-  });
-});
-
-describe("requestableTypes", () => {
-  it("returns the everyday types, then the others without Sick day", () => {
-    expect(requestableTypes({ offerSickDay: false })).toEqual({
-      primary: ["VACATION", "HOME_OFFICE", "SICK"],
-      others: ["PAID_TIME_OFF", "NON_PAID_LEAVE", "STUDY_LEAVE", "OTHER"],
-    });
-  });
-
-  it("returns Sick day among the others while the benefit is active", () => {
-    expect(requestableTypes({ offerSickDay: true }).others[0]).toBe("SICK_DAY");
-  });
-
-  it("returns the request's own type even when it is no longer offered", () => {
-    expect(requestableTypes({ offerSickDay: false, current: "SICK_DAY" }).others).toContain(
-      "SICK_DAY"
-    );
   });
 });

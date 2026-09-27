@@ -22,6 +22,25 @@ export type RequestListScope = { kind: "mine" } | { kind: "group"; groupId: stri
 
 export type RequestListQuery = { month: YearMonth; scope: RequestListScope };
 
+/** A group the viewer belongs to, whatever the access: one they may book in. */
+export type MemberGroup = { groupId: string; groupName: string };
+
+/** The viewer's live memberships, by group name. */
+export function memberGroups(db: StoreDatabase): MemberGroup[] {
+  const viewerId = readSyncState(db)?.userId;
+  if (!viewerId) return [];
+
+  return db
+    .select({ groupId: groups.id, groupName: groups.groupName })
+    .from(groupUsers)
+    .innerJoin(groups, eq(groupUsers.groupId, groups.id))
+    .where(
+      and(eq(groupUsers.userId, viewerId), isNull(groupUsers.deletedAt), isNull(groups.deletedAt))
+    )
+    .orderBy(asc(groups.groupName))
+    .all();
+}
+
 /**
  * The groups the viewer sees in full, the backend's report scope `all`: view or admin access on
  * their own membership, or managing the group they belong to. It picks which rows the list shows

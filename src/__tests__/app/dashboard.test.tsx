@@ -66,12 +66,15 @@ jest.mock("@/components/dashboard/dashboard-calendar", () => {
   return {
     DashboardCalendar: ({
       onOpenRequest,
+      onBook,
       onYear,
     }: {
       onOpenRequest?: (vacationId: string) => void;
+      onBook: (day: string) => void;
       onYear?: (year: number) => void;
     }) => (
       <>
+        <Pressable testID="calendar-book-day" onPress={() => onBook("2026-10-14")} />
         <Pressable testID="calendar-open-bar" onPress={() => onOpenRequest?.("vacation-7")}>
           <Text>month calendar</Text>
         </Pressable>
@@ -251,6 +254,27 @@ describe("DashboardScreen", () => {
     expect(screen.getByTestId("dashboard-new-request").props.accessibilityLabel).toBe(
       en.dashboard.newRequest
     );
+  });
+
+  it("opens the new-request form from the header's +", async () => {
+    fakeStore();
+    await renderDashboard();
+
+    await fireEvent.press(screen.getByTestId("dashboard-new-request"));
+
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/requests/new", params: {} });
+  });
+
+  it("opens the new-request form on the day a day list's Book was tapped for", async () => {
+    fakeStore({ counts: { ...NO_ROWS, groups: 1 } });
+    await renderDashboard();
+
+    await fireEvent.press(screen.getByTestId("calendar-book-day"));
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/requests/new",
+      params: { date: "2026-10-14" },
+    });
   });
 
   it("renders how fresh what it shows is", async () => {

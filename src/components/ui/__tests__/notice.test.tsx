@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { Notice } from "@/components/ui/notice";
 
@@ -19,5 +19,27 @@ describe("Notice", () => {
     await render(<Notice tone="accent" message="You're signed out." />);
 
     expect(screen.getByText("You're signed out.")).toBeTruthy();
+  });
+
+  it("renders no action unless given one", async () => {
+    await render(<Notice tone="error" message="Couldn't reach the server." />);
+
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("renders an action below the message and answers its tap", async () => {
+    const onPress = jest.fn();
+    await render(
+      <Notice
+        tone="error"
+        message="Couldn't reach the server."
+        action={{ label: "Retry", onPress, testID: "notice-retry" }}
+      />
+    );
+
+    await fireEvent.press(screen.getByTestId("notice-retry"));
+
+    expect(screen.getByRole("button", { name: "Retry" })).toBeOnTheScreen();
+    expect(onPress).toHaveBeenCalled();
   });
 });

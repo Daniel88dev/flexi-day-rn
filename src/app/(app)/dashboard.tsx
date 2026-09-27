@@ -21,8 +21,8 @@ import { useDashboardSummary, useRereadDashboard, useRereadDashboardOnFocus } fr
 import { useRefreshPull } from "@/lib/use-refresh-pull";
 import { useViewer } from "@/lib/viewer/use-viewer";
 
-// The new-request route lands with its own ticket. Until then Book and "+" go nowhere.
-const noRouteYet = () => undefined;
+const newRequest = (day?: string) =>
+  router.push({ pathname: "/requests/new", params: day ? { date: day } : {} });
 
 const openRequest = (vacationId: string) =>
   router.push({ pathname: "/requests/[vacationId]", params: { vacationId } });
@@ -69,7 +69,7 @@ export default function DashboardScreen() {
           </View>
           <Pressable
             testID="dashboard-new-request"
-            onPress={noRouteYet}
+            onPress={() => newRequest()}
             accessibilityRole="button"
             accessibilityLabel={t.dashboard.newRequest}
             className="mt-1 h-11 w-11 items-center justify-center rounded-full bg-primary active:opacity-90"
@@ -93,7 +93,7 @@ export default function DashboardScreen() {
           <DashboardCalendar
             viewerId={viewer?.id ?? null}
             onOpenRequest={openRequest}
-            onBook={noRouteYet}
+            onBook={newRequest}
             onYear={setYear}
           />
         </View>

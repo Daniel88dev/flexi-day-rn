@@ -17,6 +17,8 @@ export type DayEntry = {
   halfDay: boolean;
   from: string;
   to: string;
+  /** A pending change or a Provisional row holds it, so it opens nothing yet. */
+  pending: boolean;
 };
 
 /** How far either side of a day the day list reads to find where its requests start and end. */
@@ -50,6 +52,7 @@ export function dayEntries(
       type: row.vacationType,
       status: row.status,
       halfDay: row.halfDay,
+      pending: row.pending,
       ...spans.get(spanKey(row))!,
     }))
     .sort((a, b) => rank(a) - rank(b) || (a.userName ?? "").localeCompare(b.userName ?? ""));

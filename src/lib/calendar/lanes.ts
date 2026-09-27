@@ -20,6 +20,7 @@ export type CalendarRow = Pick<
   | "startTime"
   | "endTime"
   | "requestedDay"
+  | "pending"
 >;
 
 /** `from` and `to` are days of the month. A bank holiday has no person; `names` are its holidays. */
@@ -34,6 +35,8 @@ export type CalendarRange = {
   to: number;
   vacationIds: string[];
   names: string[];
+  /** A pending change or a Provisional row holds one of its days, so the bar waits. */
+  pending: boolean;
 };
 
 /** Monday first; null pads the days outside the month. */
@@ -75,9 +78,10 @@ export function groupConsecutiveByRunKey(rows: readonly CalendarRow[]): Calendar
     if (current && key === lastKey && lastDay && isNextDay(lastDay, row.requestedDay)) {
       current.to = dayOfMonth(row.requestedDay);
       current.vacationIds.push(row.id);
+      current.pending ||= row.pending;
     } else {
       current = {
-        id: `${key}|${row.requestedDay}`,
+        id: `${key}|${row.id}`,
         userId: row.userId,
         userName: row.userName,
         type: row.vacationType,
@@ -87,6 +91,7 @@ export function groupConsecutiveByRunKey(rows: readonly CalendarRow[]): Calendar
         to: dayOfMonth(row.requestedDay),
         vacationIds: [row.id],
         names: [],
+        pending: row.pending,
       };
       ranges.push(current);
     }
@@ -132,6 +137,7 @@ export function bankHolidaysToRanges(
         to: dayOfMonth(date),
         vacationIds: [],
         names: [...names],
+        pending: false,
       };
       ranges.push(current);
     }

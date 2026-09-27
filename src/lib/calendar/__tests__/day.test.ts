@@ -81,6 +81,16 @@ describe("dayEntries", () => {
     ]);
   });
 
+  it("returns an entry as pending while a change or a Provisional row holds it", () => {
+    const [entry] = dayEntries(
+      [row({ id: "pending-1:2026-10-14", requestedDay: "2026-10-14", pending: true })],
+      "2026-10-14",
+      null
+    );
+
+    expect(entry.pending).toBe(true);
+  });
+
   it("returns the type, status and half day of each entry", () => {
     const [entry] = dayEntries(
       [

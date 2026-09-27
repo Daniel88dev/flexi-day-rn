@@ -48,6 +48,7 @@ function row(patch: Partial<Row> & Pick<Row, "requestedDay">): Row {
     halfDay: false,
     startTime: null,
     endTime: null,
+    pending: false,
     ...patch,
   };
 }
@@ -111,6 +112,17 @@ describe("groupConsecutiveByRunKey", () => {
     ]);
   });
 
+  it("returns a range as pending while a change or a Provisional row holds any of its days", () => {
+    const [held, free] = groupConsecutiveByRunKey([
+      row({ requestedDay: "2026-06-08" }),
+      row({ requestedDay: "2026-06-09", pending: true }),
+      row({ requestedDay: "2026-06-08", userId: "u2" }),
+    ]);
+
+    expect([held.userId, held.pending]).toEqual(["u1", true]);
+    expect([free.userId, free.pending]).toEqual(["u2", false]);
+  });
+
   it("returns separate ranges for rows of the same person in different groups", () => {
     const ranges = groupConsecutiveByRunKey([
       row({ requestedDay: "2026-06-08" }),
@@ -132,6 +144,21 @@ describe("groupConsecutiveByRunKey", () => {
 
     expect(new Set(before.map((r) => r.id)).size).toBe(3);
     expect(after.map((r) => r.id)).toEqual(before.slice(1).map((r) => r.id));
+  });
+
+  it("returns distinct ids for a create in flight over a day already booked", () => {
+    const ranges = groupConsecutiveByRunKey([
+      row({ requestedDay: "2026-06-08", status: "pending" }),
+      row({
+        id: "pending-1:2026-06-08",
+        requestedDay: "2026-06-08",
+        status: "pending",
+        pending: true,
+      }),
+    ]);
+
+    expect(ranges).toHaveLength(2);
+    expect(new Set(ranges.map((r) => r.id)).size).toBe(2);
   });
 
   it("sorts unsorted input before grouping", () => {
@@ -217,6 +244,7 @@ describe("placeWeek", () => {
       to,
       vacationIds: [`${id}-v`],
       names: [],
+      pending: false,
     };
   }
 

@@ -38,13 +38,13 @@ export function TimesField({
 
   return (
     <View>
-      <FieldLabel>{t.editRequest.times}</FieldLabel>
+      <FieldLabel>{t.requestForm.times}</FieldLabel>
       <View className="overflow-hidden rounded-[24px] bg-card">
         <View className="min-h-[52px] flex-row items-center justify-between px-4">
-          <Text className="text-[15.5px] text-foreground">{t.editRequest.specificTimes}</Text>
+          <Text className="text-[15.5px] text-foreground">{t.requestForm.specificTimes}</Text>
           <Switch
             testID="times-field-switch"
-            accessibilityLabel={t.editRequest.specificTimes}
+            accessibilityLabel={t.requestForm.specificTimes}
             value={on}
             onValueChange={(next) =>
               onChange(next ? DEFAULT_TIMES : { startTime: "", endTime: "" })
@@ -55,9 +55,9 @@ export function TimesField({
         {on ? (
           <>
             <View className="ml-4 h-px bg-border" />
-            {picker("startTime", t.editRequest.startTime, "times-field-start")}
+            {picker("startTime", t.requestForm.startTime, "times-field-start")}
             <View className="ml-4 h-px bg-border" />
-            {picker("endTime", t.editRequest.endTime, "times-field-end")}
+            {picker("endTime", t.requestForm.endTime, "times-field-end")}
           </>
         ) : null}
       </View>

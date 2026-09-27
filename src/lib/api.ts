@@ -58,27 +58,46 @@ function nonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+export type ServerFailure = {
+  message: string | null;
+  /** What the server made public about the failure, such as a 409's `conflictingDays`. */
+  context?: Record<string, unknown>;
+};
+
+function contextOf(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
 /**
- * The backend answers a failure as `{ errors: [{ message }] }`; the first one is the one. A body
- * its validator refused never reaches that middleware and says `{ error, details: [{ message }] }`.
+ * The backend answers a failure as `{ errors: [{ message, context }] }`; the first one is the one.
+ * A body its validator refused never reaches that middleware and says
+ * `{ error, details: [{ message }] }`.
  */
-export async function serverMessage(response: ApiResponse): Promise<string | null> {
+export async function serverFailure(response: ApiResponse): Promise<ServerFailure> {
   try {
     const body = (await response.json()) as {
-      errors?: { message?: unknown }[];
+      errors?: { message?: unknown; context?: unknown }[];
       details?: { message?: unknown }[];
       message?: unknown;
       error?: unknown;
     } | null;
-    return (
-      nonEmptyString(body?.errors?.[0]?.message) ??
-      nonEmptyString(body?.details?.[0]?.message) ??
-      nonEmptyString(body?.message) ??
-      nonEmptyString(body?.error)
-    );
+    return {
+      message:
+        nonEmptyString(body?.errors?.[0]?.message) ??
+        nonEmptyString(body?.details?.[0]?.message) ??
+        nonEmptyString(body?.message) ??
+        nonEmptyString(body?.error),
+      context: contextOf(body?.errors?.[0]?.context),
+    };
   } catch {
-    return null;
+    return { message: null };
   }
+}
+
+export async function serverMessage(response: ApiResponse): Promise<string | null> {
+  return (await serverFailure(response)).message;
 }
 
 const UNAUTHORIZED = 401;

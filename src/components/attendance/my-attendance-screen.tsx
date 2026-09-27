@@ -16,7 +16,7 @@ import {
   type ClockView,
   type ViewReads,
 } from "@/lib/attendance";
-import { currentMonth, isoDay } from "@/lib/requests/months";
+import { dayOfDate } from "@/lib/days";
 import { useToday } from "@/lib/use-today";
 
 import { DayStepper, RangeStepper, ViewPill } from "./day-header";
@@ -27,7 +27,7 @@ import { MonthView, WeekView } from "./range-views";
 function useAttendanceToday(view: ClockView): string {
   const device = useToday();
   if (view.kind === "ready" && view.state.businessDate) return view.state.businessDate;
-  return isoDay(currentMonth(device), device.getDate());
+  return dayOfDate(device);
 }
 
 const navigate = (href: Href) => router.navigate(href);

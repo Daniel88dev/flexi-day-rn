@@ -1,4 +1,10 @@
-import { createApiFetch, resolveApiUrl, resolveWebUrl, type ApiRequestConfig } from "@/lib/api";
+import {
+  createApiFetch,
+  resolveApiUrl,
+  resolveWebUrl,
+  serverFailure,
+  type ApiRequestConfig,
+} from "@/lib/api";
 
 describe("resolveApiUrl", () => {
   it("returns the explicit URL without a trailing slash", () => {
@@ -149,5 +155,46 @@ describe("createApiFetch", () => {
     const { apiFetch } = harness({ status: 401 });
 
     await expect(apiFetch("/api/sync/pull")).resolves.toMatchObject({ status: 401 });
+  });
+});
+
+describe("serverFailure", () => {
+  const answer = (body: unknown) => ({ status: 409, json: async () => body });
+
+  it("returns the first error's message and the context the server made public", async () => {
+    const failure = await serverFailure(
+      answer({
+        errors: [
+          {
+            message: "One or more days in the requested range are already booked",
+            context: { conflictingDays: ["2026-09-21"] },
+          },
+        ],
+      })
+    );
+
+    expect(failure).toEqual({
+      message: "One or more days in the requested range are already booked",
+      context: { conflictingDays: ["2026-09-21"] },
+    });
+  });
+
+  it("returns no context when the error carried none", async () => {
+    expect(await serverFailure(answer({ errors: [{ message: "Nope" }] }))).toStrictEqual({
+      message: "Nope",
+      context: undefined,
+    });
+  });
+
+  it("returns a validator's message, which has no context", async () => {
+    expect(
+      await serverFailure(answer({ error: "Validation failed", details: [{ message: "Bad" }] }))
+    ).toEqual({ message: "Bad" });
+  });
+
+  it("returns nothing for a body that is not JSON", async () => {
+    const broken = { status: 500, json: () => Promise.reject(new Error("Unexpected token")) };
+
+    expect(await serverFailure(broken)).toEqual({ message: null });
   });
 });

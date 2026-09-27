@@ -14,12 +14,13 @@ describe("qk", () => {
     ]);
   });
 
-  it("returns the web's keys for approvals, the dashboard summary, request detail, group access, settings and notifications", () => {
+  it("returns the web's keys for approvals, the dashboard summary, request detail, group access and members, settings and notifications", () => {
     expect(qk.myApprovals()).toEqual(["my-approvals"]);
     expect(qk.dashboardSummary()).toEqual(["dashboard-summary"]);
     expect(qk.vacation("vacation-1")).toEqual(["vacation", "vacation-1"]);
     expect(qk.vacationDetails()).toEqual(["vacation"]);
     expect(qk.group("group-1")).toEqual(["group", "group-1"]);
+    expect(qk.groupUsers("group-1")).toEqual(["group-users", "group-1"]);
     expect(qk.mySettings()).toEqual(["my-settings"]);
     expect(qk.notifications(true)).toEqual(["notifications", true]);
     expect(qk.authAccounts()).toEqual(["auth", "accounts"]);

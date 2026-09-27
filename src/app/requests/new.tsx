@@ -1,18 +1,18 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Redirect, useLocalSearchParams } from "expo-router";
 
-import { RequestDetail } from "@/components/requests/request-detail";
+import { NewRequestForm } from "@/components/requests/new-request-form";
 import { useShellUnderneath } from "@/lib/navigation/use-shell-underneath";
 import { queryClient } from "@/lib/query";
 import { useRootRoute } from "@/lib/session/root-route-context";
 
-/** It sits outside the shell's query layer, so it hands the one client in. */
-export default function RequestDetailScreen() {
+/** A page sheet on the root stack, outside the shell's query layer, so it hands the one client in. */
+export default function NewRequestScreen() {
   const route = useRootRoute();
-  const { vacationId } = useLocalSearchParams<{ vacationId: string }>();
+  const { date } = useLocalSearchParams<{ date?: string }>();
   const orphaned = useShellUnderneath({
-    pathname: "/requests/[vacationId]",
-    params: { vacationId },
+    pathname: "/requests/new",
+    params: date ? { date } : {},
   });
 
   if (route === "welcome") return <Redirect href="/welcome" />;
@@ -20,7 +20,7 @@ export default function RequestDetailScreen() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RequestDetail vacationId={vacationId} />
+      <NewRequestForm day={date} />
     </QueryClientProvider>
   );
 }
