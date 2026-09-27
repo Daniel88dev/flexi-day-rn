@@ -189,6 +189,26 @@ export const en = {
     signOutBody: "Sign out of this phone? The copy of your data on it is deleted.",
     cancel: "Cancel",
   },
+  settings: {
+    notifications: "Notifications",
+    emailNotifications: "Email notifications",
+    emailNotificationsHint:
+      "Approval requests, decisions on your requests, and cancellations of approved time off. Turned off, they stay in the app only. Account emails such as address confirmation always send.",
+    dashboardCalendar: "Dashboard calendar",
+    dashboardScope: "Show",
+    dashboardScopeHint:
+      "Choose what the dashboard calendar shows when you open it. You can still switch it for a single visit from the dashboard itself.",
+    dashboardGroup: "Group",
+    noViewableGroups:
+      "You cannot view any group's time off yet. A group admin can grant you view access.",
+    language: "Language",
+    languageName: "English",
+    languageHint: "Flexi Day follows the language iOS Settings sets for it.",
+    about: "About",
+    version: "Version",
+    privacy: "Privacy policy",
+    terms: "Terms",
+  },
   requests: {
     title: "Requests",
     filters: {
