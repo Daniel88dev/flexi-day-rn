@@ -1,4 +1,5 @@
-import { act, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { router } from "expo-router";
 import { toast } from "sonner-native";
 
 import DashboardScreen from "@/app/(app)/dashboard";
@@ -27,9 +28,17 @@ jest.mock("@/lib/session/auth-client", () => ({ authClient: { useSession: jest.f
 
 jest.mock("@/components/dashboard/development-card", () => ({ DevelopmentCard: () => null }));
 
+jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+
 jest.mock("@/components/dashboard/dashboard-calendar", () => {
-  const { Text } = jest.requireActual("react-native");
-  return { DashboardCalendar: () => <Text>month calendar</Text> };
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    DashboardCalendar: ({ onOpenRequest }: { onOpenRequest?: (vacationId: string) => void }) => (
+      <Pressable testID="calendar-open-bar" onPress={() => onOpenRequest?.("vacation-7")}>
+        <Text>month calendar</Text>
+      </Pressable>
+    ),
+  };
 });
 
 const pullStore = pull as jest.MockedFunction<typeof pull>;
@@ -155,6 +164,18 @@ describe("DashboardScreen", () => {
     await renderDashboard();
 
     expect(screen.getByText("month calendar")).toBeTruthy();
+  });
+
+  it("opens a request's detail from a bar or a day row of the calendar", async () => {
+    fakeStore({ counts: { ...NO_ROWS, groups: 1 } });
+    await renderDashboard();
+
+    await fireEvent.press(screen.getByTestId("calendar-open-bar"));
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/requests/[vacationId]",
+      params: { vacationId: "vacation-7" },
+    });
   });
 
   it("renders no month calendar while the store is empty", async () => {

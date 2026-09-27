@@ -1,7 +1,12 @@
 import { applyPage } from "../apply";
 import type { SyncEnvelope } from "../envelope";
 import { activePendingChanges } from "../pending";
-import { requestListVacations, requestScopeGroups, type RequestListQuery } from "../requests";
+import {
+  requestListVacations,
+  requestScopeGroups,
+  storedRequest,
+  type RequestListQuery,
+} from "../requests";
 import type { StoreRuntime } from "../runtime";
 import {
   groupMirrorRow,
@@ -228,5 +233,53 @@ describe("requestListVacations", () => {
     expect(listed(MINE)).toEqual([
       expect.objectContaining({ requestedDay: "2026-09-30", pending: true, userName: "Dana" }),
     ]);
+  });
+});
+
+describe("storedRequest", () => {
+  beforeEach(() => {
+    pullIn({
+      groups: [groupRow()],
+      users: [userRow({ id: "user-2", name: "Eva Horáková" })],
+      vacations: [
+        vacationRow({ id: "eva-1", userId: "user-2", requestedDay: "2026-09-21", note: "Trip" }),
+        vacationRow({ id: "eva-2", userId: "user-2", requestedDay: "2026-09-22" }),
+        vacationRow({ id: "eva-3", userId: "user-2", requestedDay: "2026-09-23" }),
+        vacationRow({
+          id: "eva-sick",
+          userId: "user-2",
+          requestedDay: "2026-09-24",
+          vacationType: "SICK",
+        }),
+      ],
+    });
+  });
+
+  it("returns the run the day belongs to, with its person, group and note", () => {
+    expect(storedRequest(store.getDatabase(), [], "eva-2")).toEqual(
+      expect.objectContaining({
+        userName: "Eva Horáková",
+        groupName: "Engineering",
+        from: "2026-09-21",
+        to: "2026-09-23",
+        vacationIds: ["eva-1", "eva-2", "eva-3"],
+        note: null,
+        status: "pending",
+      })
+    );
+  });
+
+  it("returns the run as a change in flight holds it", () => {
+    const overlay = [
+      { id: "p", kind: "approve" as const, vacationIds: ["eva-1", "eva-2", "eva-3"], startedAt: 0 },
+    ];
+
+    expect(storedRequest(store.getDatabase(), overlay, "eva-1")).toEqual(
+      expect.objectContaining({ status: "approved", pending: true, note: "Trip" })
+    );
+  });
+
+  it("returns null for a day the store does not hold", () => {
+    expect(storedRequest(store.getDatabase(), [], "gone")).toBeNull();
   });
 });

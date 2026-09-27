@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { FlatList, RefreshControl, View } from "react-native";
 
@@ -15,9 +16,12 @@ import {
 } from "@/lib/local-store";
 import { filterCounts, filterLabel, filterRuns, type RequestFilter } from "@/lib/requests/filters";
 import { currentMonth, requestMonthBounds, stepMonth } from "@/lib/requests/months";
-import { collapseRuns } from "@/lib/requests/runs";
+import { collapseRuns, type RequestRun } from "@/lib/requests/runs";
 import { useRefreshPull } from "@/lib/use-refresh-pull";
 import { useViewer } from "@/lib/viewer/use-viewer";
+
+const openRun = (run: RequestRun) =>
+  router.push({ pathname: "/requests/[vacationId]", params: { vacationId: run.vacationIds[0] } });
 
 export default function RequestsScreen() {
   const { t } = useTranslation();
@@ -79,7 +83,7 @@ export default function RequestsScreen() {
         testID="requests-list"
         data={shown}
         keyExtractor={(run) => run.id}
-        renderItem={({ item }) => <RequestCard run={item} viewerId={viewerId} />}
+        renderItem={({ item }) => <RequestCard run={item} viewerId={viewerId} onPress={openRun} />}
         ItemSeparatorComponent={Gap}
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
         ListEmptyComponent={

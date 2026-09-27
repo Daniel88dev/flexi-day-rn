@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { router } from "expo-router";
 import { ActionSheetIOS } from "react-native";
 
 import RequestsScreen from "@/app/(app)/requests";
@@ -20,6 +21,8 @@ jest.mock("@/lib/local-store", () => ({
 }));
 
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
+
+jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 
 jest.mock("@/lib/session/auth-client", () => ({ authClient: { useSession: jest.fn() } }));
 
@@ -108,6 +111,17 @@ describe("RequestsScreen", () => {
     expect(screen.getByTestId("request-run-eva-1")).toHaveTextContent(/14-15 Sep/);
     expect(screen.getByTestId("request-run-mine-1")).toHaveTextContent(/You · Engineering/);
     expect(screen.queryByTestId("request-run-eva-2")).toBeNull();
+  });
+
+  it("opens the detail of the run's first day when a card is tapped", async () => {
+    await renderRequests();
+
+    await fireEvent.press(screen.getByTestId("request-run-eva-1"));
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/requests/[vacationId]",
+      params: { vacationId: "eva-1" },
+    });
   });
 
   it("renders the chips' counts over runs, not days", async () => {

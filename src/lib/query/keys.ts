@@ -4,6 +4,8 @@
  */
 export const qk = {
   vacation: (id: string) => ["vacation", id] as const,
+  /** Every request detail: the prefix the web invalidates after a decision. */
+  vacationDetails: () => ["vacation"] as const,
   group: (groupId: string) => ["group", groupId] as const,
   myApprovals: () => ["my-approvals"] as const,
   notifications: (unreadOnly: boolean) => ["notifications", unreadOnly] as const,

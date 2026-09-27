@@ -2,7 +2,13 @@ import { eq } from "drizzle-orm";
 
 import { applyPage } from "../apply";
 import { activePendingChanges, type PendingChange, type VacationDraft } from "../pending";
-import { mergedVacations, selectVacations, storeRowCounts, type MergedVacation } from "../queries";
+import {
+  mergedVacations,
+  selectVacations,
+  storeRowCounts,
+  vacationStatusOf,
+  type MergedVacation,
+} from "../queries";
 import type { StoreRuntime } from "../runtime";
 import { vacations } from "../schema";
 import {
@@ -94,6 +100,19 @@ describe("selectVacations", () => {
 
   it("returns every booking the store holds when nothing narrows it", () => {
     expect(selectVacations(store.getDatabase()).all()).toHaveLength(5);
+  });
+});
+
+describe("vacationStatusOf", () => {
+  const UNDECIDED = { approvedAt: null, rejectedAt: null, deletedAt: null };
+
+  it("returns the same word the stored column derives, cancellation first", () => {
+    expect(vacationStatusOf(UNDECIDED)).toBe("pending");
+    expect(vacationStatusOf({ ...UNDECIDED, approvedAt: APPROVED })).toBe("approved");
+    expect(vacationStatusOf({ ...UNDECIDED, rejectedAt: REJECTED })).toBe("rejected");
+    expect(vacationStatusOf({ ...UNDECIDED, approvedAt: APPROVED, deletedAt: CANCELLED })).toBe(
+      "cancelled"
+    );
   });
 });
 
@@ -413,6 +432,21 @@ describe("mergedVacations", () => {
     });
 
     expect(merged().map((row) => row.status)).toEqual(["approved", "approved"]);
+  });
+
+  it("returns a provisional row as stored, marked pending with its actions off", () => {
+    storeVacations(store, vacationRow({ approvedAt: APPROVED, approvedBy: "user-1" }));
+    activePendingChanges().markProvisional(["vacation-1"]);
+
+    expect(mergedVacations(store.getDatabase(), activePendingChanges().overlay())).toEqual([
+      expect.objectContaining({
+        id: "vacation-1",
+        status: "approved",
+        approvedAt: APPROVED,
+        pending: true,
+        actionsDisabled: true,
+      }),
+    ]);
   });
 
   it("returns no row for a change holding an id the store has never pulled", () => {

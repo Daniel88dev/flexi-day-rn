@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { PlusIcon } from "phosphor-react-native";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 
@@ -13,9 +14,11 @@ import { useStoreRowCounts, useSyncStatus } from "@/lib/local-store";
 import { useRefreshPull } from "@/lib/use-refresh-pull";
 import { useViewer } from "@/lib/viewer/use-viewer";
 
-// The request detail and new-request routes land with the Requests tickets. Until then a bar or
-// a row has no tap at all, and Book and "+" go nowhere.
+// The new-request route lands with its own ticket. Until then Book and "+" go nowhere.
 const noRouteYet = () => undefined;
+
+const openRequest = (vacationId: string) =>
+  router.push({ pathname: "/requests/[vacationId]", params: { vacationId } });
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
@@ -56,7 +59,11 @@ export default function DashboardScreen() {
       </View>
       {empty ? null : (
         <View className="mt-5">
-          <DashboardCalendar viewerId={viewer?.id ?? null} onBook={noRouteYet} />
+          <DashboardCalendar
+            viewerId={viewer?.id ?? null}
+            onOpenRequest={openRequest}
+            onBook={noRouteYet}
+          />
         </View>
       )}
       <View className="mt-5 px-4">

@@ -1,12 +1,14 @@
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 
+import { addDays } from "@/lib/days";
 import { monthRange, type YearMonth } from "@/lib/requests/months";
+import { collapseRuns, type RequestRun } from "@/lib/requests/runs";
 
 import type { StoreDatabase } from "./adapter";
 import { readSyncState } from "./apply";
-import type { PendingChange } from "./pending";
-import { mergedVacations, type DayRange, type MergedVacation } from "./queries";
-import { groupMirrors, groups, groupUsers, users } from "./schema";
+import type { OverlayEntry } from "./pending";
+import { mergedVacations, selectVacations, type DayRange, type MergedVacation } from "./queries";
+import { groupMirrors, groups, groupUsers, users, vacations } from "./schema";
 
 export type ListedVacation = MergedVacation & {
   userName: string | null;
@@ -93,7 +95,7 @@ function namesById(
 
 export function scopedVacations(
   db: StoreDatabase,
-  changes: readonly PendingChange[],
+  changes: readonly OverlayEntry[],
   scope: RequestListScope,
   range: DayRange
 ): ListedVacation[] {
@@ -116,8 +118,41 @@ export function scopedVacations(
 
 export function requestListVacations(
   db: StoreDatabase,
-  changes: readonly PendingChange[],
+  changes: readonly OverlayEntry[],
   query: RequestListQuery
 ): ListedVacation[] {
   return scopedVacations(db, changes, query.scope, monthRange(query.month));
+}
+
+/** What the phone holds of a request when the server cannot be asked: the run its day sits in. */
+export type StoredRequest = RequestRun & { note: string | null };
+
+/** No run the web groups is longer than this either side of a day. */
+const RUN_REACH_DAYS = 62;
+
+export function storedRequest(
+  db: StoreDatabase,
+  changes: readonly OverlayEntry[],
+  vacationId: string
+): StoredRequest | null {
+  const [row] = selectVacations(db).where(eq(vacations.id, vacationId)).all();
+  if (!row) return null;
+
+  const range = {
+    from: addDays(row.requestedDay, -RUN_REACH_DAYS),
+    until: addDays(row.requestedDay, RUN_REACH_DAYS + 1),
+  };
+  const rows = mergedVacations(db, changes, range).filter(
+    (other) => other.userId === row.userId && other.groupId === row.groupId
+  );
+  const people = namesById(db, users, [row.userId]);
+  const teams = namesById(db, groups, [row.groupId]);
+  const listed = rows.map((other) => ({
+    ...other,
+    userName: people.get(other.userId) ?? null,
+    groupName: teams.get(other.groupId) ?? null,
+  }));
+  const run = collapseRuns(listed).find((candidate) => candidate.vacationIds.includes(vacationId));
+  const merged = rows.find((other) => other.id === vacationId);
+  return run && merged ? { ...run, note: merged.note } : null;
 }

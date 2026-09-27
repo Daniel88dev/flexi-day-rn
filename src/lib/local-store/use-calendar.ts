@@ -10,7 +10,7 @@ import {
 import type { StoreChannel } from "./events";
 import { MERGED_VACATION_CHANNELS } from "./queries";
 import type { ListedVacation } from "./requests";
-import { usePendingChanges } from "./use-pending-changes";
+import { useStoreOverlay } from "./use-pending-changes";
 import { useStoreQuery } from "./use-store-query";
 
 const VACATION_CHANNELS = [
@@ -29,7 +29,7 @@ const HOLIDAY_CHANNELS = [
 ] as const satisfies readonly StoreChannel[];
 
 export function useCalendarVacations({ range, scope }: CalendarQuery): ListedVacation[] {
-  const changes = usePendingChanges();
+  const changes = useStoreOverlay();
   const { from, until } = range;
   const groupId = scope.kind === "group" ? scope.groupId : null;
   const build = useCallback(

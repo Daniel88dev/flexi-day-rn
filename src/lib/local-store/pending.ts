@@ -95,11 +95,27 @@ export function expectedVacationPatch(change: PendingChange, userId: string): Va
   }
 }
 
+/**
+ * A Provisional row, marked in memory only so a screen reads it the way it reads a change in
+ * flight, from the confirmed write that stored it until the pull after that write settles.
+ */
+export type ProvisionalMark = {
+  id: string;
+  kind: "provisional";
+  vacationIds: string[];
+  startedAt: number;
+};
+
+export type OverlayEntry = PendingChange | ProvisionalMark;
+
 export type PendingChangeInput = Omit<PendingChange, "id" | "startedAt">;
 
 export type PendingChanges = {
   list(): readonly PendingChange[];
+  overlay(): readonly OverlayEntry[];
   add(change: PendingChangeInput): PendingChange;
+  markProvisional(vacationIds: string[]): ProvisionalMark;
+  /** Lifts a change or a mark. */
   remove(id: string): void;
 };
 
@@ -115,26 +131,50 @@ export type PendingChangesOptions = {
  */
 export function createPendingChanges({ runtime, clock }: PendingChangesOptions): PendingChanges {
   let changes: readonly PendingChange[] = [];
+  let marks: readonly ProvisionalMark[] = [];
+  let overlay: readonly OverlayEntry[] = [];
   let sequence = 0;
 
-  const publish = (next: readonly PendingChange[]) => {
-    changes = next;
+  const publish = (
+    nextChanges: readonly PendingChange[],
+    nextMarks: readonly ProvisionalMark[]
+  ) => {
+    changes = nextChanges;
+    marks = nextMarks;
+    overlay = [...changes, ...marks];
     runtime.events.emit([PENDING_CHANGES_CHANNEL]);
   };
 
   return {
     list: () => changes,
 
+    overlay: () => overlay,
+
     add(change) {
       sequence += 1;
       const added: PendingChange = { ...change, id: `pending-${sequence}`, startedAt: clock.now() };
-      publish([...changes, added]);
+      publish([...changes, added], marks);
       return added;
     },
 
+    markProvisional(vacationIds) {
+      sequence += 1;
+      const mark: ProvisionalMark = {
+        id: `provisional-${sequence}`,
+        kind: "provisional",
+        vacationIds,
+        startedAt: clock.now(),
+      };
+      publish(changes, [...marks, mark]);
+      return mark;
+    },
+
     remove(id) {
-      const next = changes.filter((change) => change.id !== id);
-      if (next.length !== changes.length) publish(next);
+      const nextChanges = changes.filter((change) => change.id !== id);
+      const nextMarks = marks.filter((mark) => mark.id !== id);
+      if (nextChanges.length !== changes.length || nextMarks.length !== marks.length) {
+        publish(nextChanges, nextMarks);
+      }
     },
   };
 }

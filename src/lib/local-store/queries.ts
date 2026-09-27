@@ -6,6 +6,7 @@ import { SYNC_TABLE_NAMES, type SyncTableName } from "./envelope";
 import { PENDING_CHANGES_CHANNEL, type StoreChannel } from "./events";
 import {
   expectedVacationPatch,
+  type OverlayEntry,
   type PendingChange,
   type VacationDraft,
   type VacationPatch,
@@ -140,8 +141,8 @@ function syntheticVacations(db: StoreDatabase, change: PendingChange): MergedVac
   }));
 }
 
-/** The same case as `vacationStatus`, over a row a change has already been laid over. */
-function statusOf(
+/** The same case as `vacationStatus`, over a row already in memory. */
+export function vacationStatusOf(
   row: Pick<StoredVacation, "approvedAt" | "rejectedAt" | "deletedAt">
 ): VacationStatus {
   if (row.deletedAt != null) return "cancelled";
@@ -150,17 +151,20 @@ function statusOf(
   return "pending";
 }
 
-/** What each held row will look like if the server confirms, latest change over the ones before. */
+/**
+ * What each held row will look like if the server confirms, latest change over the ones before.
+ * A provisional row already holds what its write confirmed, so its mark patches nothing.
+ */
 function patchesByVacation(
   db: StoreDatabase,
-  changes: readonly PendingChange[]
+  changes: readonly OverlayEntry[]
 ): Map<string, VacationPatch> {
   const patches = new Map<string, VacationPatch>();
   if (changes.length === 0) return patches;
 
   const userId = readSyncState(db)?.userId ?? "";
   for (const change of changes) {
-    const patch = expectedVacationPatch(change, userId);
+    const patch = change.kind === "provisional" ? {} : expectedVacationPatch(change, userId);
     for (const id of change.vacationIds ?? []) {
       patches.set(id, { ...patches.get(id), ...patch });
     }
@@ -178,7 +182,7 @@ export type DayRange = { from: string; until: string };
  */
 export function mergedVacations(
   db: StoreDatabase,
-  changes: readonly PendingChange[],
+  changes: readonly OverlayEntry[],
   range?: DayRange
 ): MergedVacation[] {
   const patches = patchesByVacation(db, changes);
@@ -194,11 +198,16 @@ export function mergedVacations(
       const patch = patches.get(row.id);
       if (!patch) return { ...row, pending: false, actionsDisabled: false };
       const patched = { ...row, ...patch };
-      return { ...patched, status: statusOf(patched), pending: true, actionsDisabled: true };
+      return {
+        ...patched,
+        status: vacationStatusOf(patched),
+        pending: true,
+        actionsDisabled: true,
+      };
     });
 
   const synthetic = changes
-    .filter((change) => change.kind === "create")
+    .filter((change): change is PendingChange => change.kind === "create")
     .flatMap((change) => syntheticVacations(db, change))
     .filter((row) => inRange(row.requestedDay));
 

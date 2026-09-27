@@ -14,7 +14,7 @@ import { createFakeSync, reply } from "../test-support/fake-sync";
 import { tick } from "../test-support/pull-harness";
 import { groupRow, storeVacations, syncPage, vacationRow } from "../test-support/sync-fixtures";
 import { flushStoreEvents, openTestStore } from "../test-support/test-store";
-import { usePendingChanges } from "../use-pending-changes";
+import { usePendingChanges, useStoreOverlay } from "../use-pending-changes";
 import { useStoreQuery } from "../use-store-query";
 import {
   createStoreWrites,
@@ -118,6 +118,37 @@ describe("usePendingChanges", () => {
     await act(async () => {
       pending.remove(change.id);
       await flushStoreEvents();
+    });
+
+    expect(result.current).toEqual([]);
+  });
+});
+
+describe("useStoreOverlay", () => {
+  it("returns the Provisional rows a confirmed decision wrote until the pull after it settles", async () => {
+    storeVacations(store, vacationRow({ id: "vacation-1" }));
+    let settlePull: () => void = () => {};
+    const writes = createStoreWrites({
+      runtime: store,
+      apiFetch: createFakeSync([reply.decided("Vacation approved")]).apiFetch,
+      clock,
+      pending,
+      pull: () => new Promise((resolve) => (settlePull = () => resolve({ ok: true }))),
+    });
+    const { result } = await renderHook(() => useStoreOverlay());
+
+    await act(async () => {
+      await writes.approveVacations(["vacation-1"]);
+      await flushStoreEvents();
+    });
+
+    expect(result.current).toEqual([
+      expect.objectContaining({ kind: "provisional", vacationIds: ["vacation-1"] }),
+    ]);
+
+    await act(async () => {
+      settlePull();
+      await tick();
     });
 
     expect(result.current).toEqual([]);

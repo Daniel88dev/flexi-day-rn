@@ -36,7 +36,8 @@ Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 
 built with Xcode 27 that lacks it, and only a real phone shows that.
 
 Adding a native module — `expo-sqlite`, `expo-secure-store`, `expo-crypto`, `expo-application`,
-`expo-web-browser` and `expo-haptics` are the ones here — means `npm run prebuild` and then
+`expo-web-browser`, `expo-haptics`, `expo-image-picker` and `@react-native-community/datetimepicker`
+are the ones here — means `npm run prebuild` and then
 `npm run ios` or `npm run ios:device` to rebuild the dev client. Metro alone cannot load them, and
 the JavaScript fails at the import with a missing native module until the rebuild lands. A
 non-interactive shell has no UTF-8 `LANG`, and CocoaPods quits without one, so run
