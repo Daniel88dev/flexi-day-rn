@@ -4,12 +4,15 @@ import type { WriteOutcome } from "@/lib/local-store";
 export class ApiError extends Error {
   readonly status: number;
   readonly serverMessage: string | null;
+  /** What the server made public about it, where a refusal names its `reason`. */
+  readonly context?: Record<string, unknown>;
 
-  constructor(status: number, serverMessage: string | null) {
+  constructor(status: number, serverMessage: string | null, context?: Record<string, unknown>) {
     super(serverMessage ?? `The server answered ${status}.`);
     this.name = "ApiError";
     this.status = status;
     this.serverMessage = serverMessage;
+    this.context = context;
   }
 }
 

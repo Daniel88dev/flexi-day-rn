@@ -1,3 +1,5 @@
+import type { SelfServiceWindow } from "./self-service";
+
 export type AttendanceBreak = {
   id: string;
   sessionId: string;
@@ -6,6 +8,8 @@ export type AttendanceBreak = {
   autoClosed: boolean;
   open: boolean;
 };
+
+export type AttendanceBreakSpan = { startedAt: string; endedAt: string };
 
 export type AttendanceSession = {
   id: string;
@@ -34,6 +38,8 @@ export type AttendanceState = {
   employmentEnded: boolean;
   active: boolean;
   locationEnabled: boolean;
+  /** Optional, as a backend older than this build sends none; absent offers no self-service. */
+  selfService?: SelfServiceWindow;
   timezone: string | null;
   businessDate: string | null;
   openSession: AttendanceSession | null;

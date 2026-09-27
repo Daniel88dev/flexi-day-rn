@@ -15,11 +15,11 @@ jest.mock("expo-router", () => ({
 
 const HREF = { pathname: "/requests/new", params: { date: "2026-10-05" } } as const;
 
-function renderShell(route: RootRoute) {
+function renderShell(route: RootRoute, underneath?: Parameters<typeof useShellUnderneath>[1]) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <RootRouteProvider route={route}>{children}</RootRouteProvider>
   );
-  return renderHook(() => useShellUnderneath(HREF), { wrapper });
+  return renderHook(() => useShellUnderneath(HREF, underneath), { wrapper });
 }
 
 beforeEach(() => {
@@ -43,6 +43,16 @@ describe("useShellUnderneath", () => {
 
     expect(result.current).toBe(true);
     expect(router.replace).toHaveBeenCalledWith("/dashboard");
+    expect(router.push).toHaveBeenCalledWith(HREF);
+  });
+
+  it("puts the tab the screen names under it instead of the dashboard", async () => {
+    mockCanGoBack.mockReturnValue(false);
+    const tab = { pathname: "/my-attendance", params: { date: "2026-09-24" } } as const;
+
+    await renderShell("signed-in", tab);
+
+    expect(router.replace).toHaveBeenCalledWith(tab);
     expect(router.push).toHaveBeenCalledWith(HREF);
   });
 

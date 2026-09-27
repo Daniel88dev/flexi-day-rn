@@ -195,6 +195,110 @@ describe("My attendance", () => {
   });
 });
 
+describe("My attendance, self-service", () => {
+  const WINDOW = { enabled: true, days: 7 };
+
+  // A day with `pastSession` on the 24th, nothing on the 25th, and the whole month in /month.
+  function serve(state: ReturnType<typeof attendance>) {
+    mockFetch.mockImplementation(async (url: string) => {
+      const reply = (status: number, body: unknown) => ({ status, json: async () => body });
+      if (url.includes("/api/attendance/current")) return reply(200, state);
+      if (url.includes("/api/attendance/day")) {
+        const date = new URLSearchParams(url.split("?")[1]).get("businessDate");
+        return reply(200, {
+          organizationId: ORG,
+          timezone: "Europe/Prague",
+          sessions: date === "2026-09-24" ? [pastSession] : [],
+        });
+      }
+      if (url.includes("/api/attendance/month")) return reply(200, attendanceMonth(2026, 9));
+      return reply(404, {});
+    });
+  }
+
+  const own = (overrides: Parameters<typeof attendance>[0] = {}) =>
+    attendance({
+      organizationId: ORG,
+      businessDate: "2026-09-27",
+      selfService: WINDOW,
+      ...overrides,
+    });
+
+  it("offers Add session under a past day's sessions, with the window's hint at the foot", async () => {
+    serve(own());
+    mockParams.date = "2026-09-24";
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByTestId("add-session-row"));
+
+    expect(router.navigate).toHaveBeenCalledWith({
+      pathname: "/my-attendance/entry",
+      params: { date: "2026-09-24" },
+    });
+    expect(screen.getByTestId("window-hint")).toHaveTextContent(
+      "You can enter and correct your attendance for today and the 7 days before it. Earlier days go through your admin."
+    );
+  });
+
+  it("asks about a forgotten clock on an empty past day, with a filled Add", async () => {
+    serve(own());
+    mockParams.date = "2026-09-25";
+    await renderScreen();
+
+    expect(
+      await screen.findByText("Forgot to clock? Add the session with its start and end.")
+    ).toBeTruthy();
+    await fireEvent.press(screen.getByTestId("empty-day-add"));
+    expect(router.navigate).toHaveBeenCalledWith({
+      pathname: "/my-attendance/entry",
+      params: { date: "2026-09-25" },
+    });
+    expect(screen.queryByTestId("add-session-row")).toBeNull();
+  });
+
+  it("offers Add on an empty today without the forgotten-clock prompt", async () => {
+    serve(own());
+    await renderScreen();
+
+    expect(await screen.findByTestId("empty-day-add")).toBeTruthy();
+    expect(screen.getByText("Nothing recorded today yet.")).toBeTruthy();
+    expect(
+      screen.queryByText("Forgot to clock? Add the session with its start and end.")
+    ).toBeNull();
+  });
+
+  it("locks a day before the window, with no Add", async () => {
+    serve(own({ selfService: { enabled: true, days: 1 } }));
+    mockParams.date = "2026-09-24";
+    await renderScreen();
+
+    expect(await screen.findByTestId("window-lock")).toHaveTextContent(
+      "Only an admin can change a day this old. You can enter and correct today and the 1 day before it. For anything earlier, ask a group admin or an organization admin."
+    );
+    expect(screen.queryByTestId("add-session-row")).toBeNull();
+  });
+
+  it("shows the quiet off notice and no Add while the window is off", async () => {
+    serve(own({ selfService: { enabled: false, days: 7 } }));
+    await renderScreen();
+
+    expect(await screen.findByTestId("window-off")).toBeTruthy();
+    expect(screen.queryByTestId("empty-day-add")).toBeNull();
+  });
+
+  it("says nothing about the window while the plan has lapsed", async () => {
+    serve(own({ active: false }));
+    await renderScreen();
+
+    await screen.findByTestId("attendance-day-card");
+    expect(await screen.findByText("Worked 5:14 of 8:00")).toBeTruthy();
+    expect(screen.queryByTestId("window-hint")).toBeNull();
+    expect(screen.queryByTestId("window-lock")).toBeNull();
+    expect(screen.queryByTestId("window-off")).toBeNull();
+    expect(screen.queryByTestId("empty-day-add")).toBeNull();
+  });
+});
+
 describe("My attendance, Week and Month", () => {
   // The backend marks every date after its business date as upcoming.
   function monthUpTo(year: number, month: number, today: string, fails = false) {

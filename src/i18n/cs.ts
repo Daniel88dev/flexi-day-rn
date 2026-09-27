@@ -208,6 +208,102 @@ export const cs: Dictionary = {
     changedLegend:
       "Změněno po skončení dne, dokud to správce neopraví nebo neoznačí jako zkontrolované",
   },
+  selfService: {
+    windowDaysHint: (days: number) =>
+      `Docházku za dnešek a ${days} ${days === 1 ? "den" : days >= 2 && days <= 4 ? "dny" : "dní"} předtím si můžeš doplnit a opravit sám. Starší dny řeší tvůj správce.`,
+    windowZeroHint:
+      "Dnešní docházku si můžeš doplnit a opravit sám, stejně jako směnu otevřenou z dřívějšího dne. Starší dny řeší tvůj správce.",
+    windowNoLimitHint: "Kterýkoli den svého pracovního poměru si můžeš doplnit a opravit sám.",
+    windowOffNotice:
+      "Opravy docházky ve tvé organizaci řeší správce. Pokud chceš změnit čas nebo doplnit zapomenutý den, obrať se na správce skupiny nebo organizace.",
+    windowOutsideDaysNotice: (days: number) =>
+      `Takto starý den může změnit jen správce. Sám si můžeš doplnit a opravit dnešek a ${days} ${days === 1 ? "den" : days >= 2 && days <= 4 ? "dny" : "dní"} předtím. S čímkoli starším se obrať na správce skupiny nebo organizace.`,
+    windowOutsideZeroNotice:
+      "Takto starý den může změnit jen správce. Sám si můžeš doplnit a opravit jen dnešek. S čímkoli starším se obrať na správce skupiny nebo organizace.",
+    windowEndedNotice:
+      "Tvůj pracovní poměr tady skončil. Docházku si můžeš dál prohlížet, změnit ji ale může jen správce.",
+    addSession: "Přidat směnu",
+    emptyPastDayPrompt: "Zapomněl(a) ses zapsat? Přidej směnu s jejím začátkem a koncem.",
+  },
+  entry: {
+    title: "Přidat směnu",
+    cancel: "Zrušit",
+    save: "Uložit",
+    retry: "Zkusit znovu",
+    date: "Datum",
+    start: "Začátek",
+    end: "Konec",
+    setStart: "Nastavit začátek",
+    setEnd: "Nastavit konec",
+    nextDay: "Končí další den",
+    nextDayHint: (end: string, start: string) =>
+      `Končí ${end}. Zůstává u dne ${start}, kdy začala.`,
+    hintToday: "Dnes",
+    hintDays: (days: number) =>
+      `Dnes nebo až ${days} ${days === 1 ? "den" : days >= 2 && days <= 4 ? "dny" : "dní"} zpátky`,
+    hintNoLimit: "Kterýkoli den tvého pracovního poměru",
+    breaks: "Pauzy",
+    optional: "(nepovinné)",
+    addBreak: "Přidat pauzu",
+    removeBreak: "Odebrat pauzu",
+    breakLabel: (index: number) => `Pauza ${index}`,
+    presence: "Přítomnost",
+    worked: "Odpracováno",
+    ownNote: "Natrvalo označeno jako zadané. Tvůj správce to tak uvidí.",
+    discardTitle: "Zahodit změny?",
+    discard: "Zahodit změny",
+    keepEditing: "Pokračovat v úpravách",
+    unreachable: "Nepodařilo se spojit se serverem",
+    unreachableBody: "Zkontroluj signál a pak klepni na Zkusit znovu.",
+    serverError: "Server měl potíže",
+    serverErrorBody: "Za chvíli klepni na Zkusit znovu.",
+    failed: "Směnu se nepodařilo přidat.",
+    overCeiling: (limit: string) => `Nesmí být delší než ${limit}, limit směny ve tvé organizaci.`,
+    errors: {
+      OUTSIDE_WINDOW: "Takto starý den může změnit jen správce.",
+      FUTURE_DATE: "Vyber dnešek nebo dřívější den.",
+      END_BEFORE_START:
+        "Konec musí být po začátku. Pokud směna běžela přes půlnoc, zapni Končí další den.",
+      endInFuture: (now: string) =>
+        `Nemůže skončit později než teď, ${now}. Pořád pracuješ? Zapiš příchod a pak oprav začátek.`,
+      overlapsOwn: (from: string, to: string) =>
+        `Překrývá tvou směnu od ${from} do ${to} v tento den.`,
+      overlapsOpenOwn: (from: string) => `Překrývá tvou směnu, která běží od ${from}.`,
+      breakOutside: (from: string, to: string) => `Pauza musí být uvnitř směny, ${from} až ${to}.`,
+      breakOverlaps: (from: string, to: string) => `Překrývá se s pauzou od ${from} do ${to}.`,
+    },
+    refusals: {
+      END_BEFORE_START: "Konec musí být po začátku.",
+      BREAK_OUTSIDE_SESSION: "Pauza musí být uvnitř směny.",
+      BREAK_OVERLAPS: "Tento čas už pokrývá jiná pauza.",
+      SESSION_STILL_OPEN: "Pauzu jde přidat, až směna skončí. Do té doby použij Jít na pauzu.",
+      SELF_SERVICE_WINDOW:
+        "Takto starý den může změnit jen správce. Obrať se na správce skupiny nebo organizace.",
+      SESSION_ALREADY_OPEN: "Jiná směna je stále otevřená, tuhle proto nelze znovu otevřít.",
+      SESSION_OVERLAPS: "Jiná směna už tento čas pokrývá.",
+      BREAK_ALREADY_OPEN: "Jiná pauza této směny je stále otevřená.",
+      SELF_SERVICE_OFF:
+        "Opravy docházky ve tvé organizaci řeší správce. Obrať se na správce skupiny nebo organizace.",
+      SELF_SERVICE_DELETE:
+        "Tato směna byla zapsána v dřívější den. Její časy můžeš opravit, smazat ji ale může jen správce.",
+      EMPLOYMENT_ENDED:
+        "Tvůj pracovní poměr tady skončil. Docházku si můžeš dál prohlížet, změnit ji ale může jen správce.",
+      SELF_SERVICE_DELETE_ENTERED:
+        "Tuto směnu zadal správce. Její časy můžeš opravit, smazat ji ale může jen správce.",
+      START_OFF_DATE: "Směna musí začínat v den, pro který ji zadáváš.",
+      OUTSIDE_EMPLOYMENT: "Tento den je mimo pracovní poměr. Vyber den uvnitř něj.",
+      END_IN_FUTURE:
+        "Zadaná směna už musí být u konce. Pořád pracuješ? Zapiš příchod a pak oprav začátek.",
+      PLAN_LIMIT:
+        "Docházka je ve tvé organizaci pozastavená, takže historii jde číst, ale ne měnit. Obrať se na správce organizace.",
+      ADMIN_ONLY: "Jako zkontrolovanou může směnu označit jen správce.",
+      SESSION_NOT_CHANGED: "Tato směna nemá žádnou změnu po skončení dne ke kontrole.",
+      NOT_YOUR_SESSION: "Tato směna patří někomu jinému.",
+      OWN_EMPLOYMENT_ONLY: "Tady si můžeš prohlížet jen svou vlastní docházku.",
+      NO_OPEN_SESSION: "Nemáš zapsaný příchod.",
+      NO_OPEN_BREAK: "Nejsi na pauze.",
+    },
+  },
   request: {
     failed: "Server tento požadavek nepřijal.",
     refused: "Na serveru se to mezitím změnilo. Obrazovka už ukazuje aktuální stav.",

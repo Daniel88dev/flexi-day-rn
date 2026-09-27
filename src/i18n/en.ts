@@ -222,6 +222,104 @@ export const en = {
     enteredLegend: "Entered after the fact",
     changedLegend: "Changed after the day, until an admin corrects it or marks it checked",
   },
+  selfService: {
+    windowDaysHint: (days: number) =>
+      `You can enter and correct your attendance for today and the ${days} ${days === 1 ? "day" : "days"} before it. Earlier days go through your admin.`,
+    windowZeroHint:
+      "You can enter and correct today's attendance, and a session still open from an earlier day. Earlier days go through your admin.",
+    windowNoLimitHint: "You can enter and correct any day of your own employment.",
+    windowOffNotice:
+      "Your organization manages attendance corrections through an admin. To change a time or add a missed day, ask a group admin or an organization admin.",
+    windowOutsideDaysNotice: (days: number) =>
+      `Only an admin can change a day this old. You can enter and correct today and the ${days} ${days === 1 ? "day" : "days"} before it. For anything earlier, ask a group admin or an organization admin.`,
+    windowOutsideZeroNotice:
+      "Only an admin can change a day this old. You can enter and correct today. For anything earlier, ask a group admin or an organization admin.",
+    windowEndedNotice:
+      "Your employment here has ended. Your attendance stays readable, and only an admin can change it.",
+    addSession: "Add session",
+    emptyPastDayPrompt: "Forgot to clock? Add the session with its start and end.",
+  },
+  entry: {
+    title: "Add a session",
+    cancel: "Cancel",
+    save: "Save",
+    retry: "Retry",
+    date: "Date",
+    start: "Start",
+    end: "End",
+    setStart: "Set start",
+    setEnd: "Set end",
+    nextDay: "Ends the next day",
+    nextDayHint: (end: string, start: string) =>
+      `Ends ${end}. It stays on ${start}, the day it started.`,
+    hintToday: "Today",
+    hintDays: (days: number) => `Today or up to ${days} ${days === 1 ? "day" : "days"} back`,
+    hintNoLimit: "Any day of your employment",
+    breaks: "Breaks",
+    optional: "(optional)",
+    addBreak: "Add break",
+    removeBreak: "Remove break",
+    breakLabel: (index: number) => `Break ${index}`,
+    presence: "Presence",
+    worked: "Worked",
+    ownNote: "Marked as entered for good. Your admin sees it that way.",
+    discardTitle: "Discard changes?",
+    discard: "Discard changes",
+    keepEditing: "Keep editing",
+    unreachable: "Can't reach the server",
+    unreachableBody: "Check your signal, then tap Retry.",
+    serverError: "The server had a problem",
+    serverErrorBody: "Tap Retry in a moment.",
+    failed: "Could not add the session.",
+    overCeiling: (limit: string) =>
+      `Can't be longer than ${limit}, your organization's session limit.`,
+    errors: {
+      OUTSIDE_WINDOW: "Only an admin can change a day this old.",
+      FUTURE_DATE: "Pick today or an earlier day.",
+      END_BEFORE_START:
+        "Has to end after it starts. If it ran past midnight, switch on Ends the next day.",
+      endInFuture: (now: string) =>
+        `Can't end later than now, ${now}. Still working? Clock in, then correct the start.`,
+      overlapsOwn: (from: string, to: string) =>
+        `Overlaps your session from ${from} to ${to} on this day.`,
+      overlapsOpenOwn: (from: string) => `Overlaps your session still running since ${from}.`,
+      breakOutside: (from: string, to: string) =>
+        `Has to stay inside the session, ${from} to ${to}.`,
+      breakOverlaps: (from: string, to: string) => `Overlaps the break from ${from} to ${to}.`,
+    },
+    refusals: {
+      END_BEFORE_START: "Has to end after it starts.",
+      BREAK_OUTSIDE_SESSION: "Has to stay inside the session.",
+      BREAK_OVERLAPS: "Another break already covers that time.",
+      SESSION_STILL_OPEN:
+        "A break can be added once the session has ended. Until then, use Take a break.",
+      SELF_SERVICE_WINDOW:
+        "Only an admin can change a day this old. Ask a group admin, or an organization admin.",
+      SESSION_ALREADY_OPEN: "Another session is still open, so this one cannot reopen.",
+      SESSION_OVERLAPS: "Another session already covers that time.",
+      BREAK_ALREADY_OPEN: "Another break on this session is still open.",
+      SELF_SERVICE_OFF:
+        "Your organization manages attendance corrections through an admin. Ask a group admin, or an organization admin.",
+      SELF_SERVICE_DELETE:
+        "This session was clocked on an earlier day. You can correct its times, but only an admin can delete it.",
+      EMPLOYMENT_ENDED:
+        "Your employment here has ended. Your attendance stays readable, and only an admin can change it.",
+      SELF_SERVICE_DELETE_ENTERED:
+        "An admin entered this session. You can correct its times, but only an admin can delete it.",
+      START_OFF_DATE: "The session has to start on the day it is entered for.",
+      OUTSIDE_EMPLOYMENT: "That day is outside the employment. Pick a day inside it.",
+      END_IN_FUTURE:
+        "An entered session has to have ended already. Still working? Clock in, then correct the start.",
+      PLAN_LIMIT:
+        "Attendance is paused for your organization, so its history can be read but not changed. Ask an org admin about it.",
+      ADMIN_ONLY: "Only an admin can mark a session as checked.",
+      SESSION_NOT_CHANGED: "This session has no change after its day to check.",
+      NOT_YOUR_SESSION: "That session belongs to someone else.",
+      OWN_EMPLOYMENT_ONLY: "You can only read your own attendance here.",
+      NO_OPEN_SESSION: "You are not clocked in.",
+      NO_OPEN_BREAK: "You are not on a break.",
+    },
+  },
   request: {
     failed: "The server didn't accept that.",
     refused: "That changed on the server in the meantime. The screen shows the latest now.",
