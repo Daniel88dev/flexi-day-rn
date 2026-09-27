@@ -1,9 +1,0 @@
-appId: com.flexiday.app
-name: Sign in lands on the dashboard
----
-- runFlow: subflows/sign-in.yaml
-- extendedWaitUntil:
-    visible:
-      id: "dashboard"
-    timeout: 60000
-- assertVisible: ".*Olivia.*"

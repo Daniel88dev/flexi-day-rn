@@ -16,7 +16,7 @@ async function renderChips(onChange = jest.fn()) {
 }
 
 describe("FilterChips", () => {
-  it("renders a chip per filter, by the testID the Maestro flow taps", async () => {
+  it("renders a chip per filter, by testID", async () => {
     await renderChips();
 
     for (const filter of REQUEST_FILTERS) {

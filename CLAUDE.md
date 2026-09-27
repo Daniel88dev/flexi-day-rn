@@ -195,10 +195,9 @@ throws `ApiError` with the server's message.
   go in `src/__tests__/app/`.
 - Every new function in `src/lib/` needs unit tests; every new component needs at least a smoke test.
 - Naming: `describe("functionName")` with `it("returns …")`.
-- CI runs lint, prettier, `tsc --noEmit` and the tests on every PR, then `ios-e2e`: a Release
-  simulator build and the Maestro flows in `.maestro/` against `flexi-day-be` at the commit in the
-  `FLEXI_DAY_BE_REF` repository variable ([`docs/native-ci.md`](docs/native-ci.md)). A new screen
-  adds its own flow there.
+- CI runs lint, prettier, `tsc --noEmit` and the tests on every PR. There is no native build in
+  CI, so a change that touches native code or a native module is checked by hand in the simulator
+  before it merges ([`docs/ci-and-dependabot.md`](docs/ci-and-dependabot.md)).
 
 ## Formatting is automatic
 
