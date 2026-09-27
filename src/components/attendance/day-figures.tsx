@@ -2,8 +2,9 @@ import { View } from "react-native";
 
 import { TABULAR, Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
-import { figuresLine, formatSignedMinutes, type AttendanceMonth } from "@/lib/attendance";
-import { cn } from "@/lib/cn";
+import { figuresLine, type AttendanceMonth } from "@/lib/attendance";
+
+import { BalanceChip, TagChip } from "./chips";
 
 /**
  * The day's figures from its `/month` entry: the backend's worked time, never the phone's. It
@@ -34,29 +35,9 @@ export function DayFigures({
         {line.text}
       </Text>
       {line.balance !== null ? (
-        <View
-          testID="figures-balance"
-          className={cn(
-            "rounded-full px-2 py-0.5",
-            line.balance >= 0 ? "bg-ok-soft" : "bg-danger-soft"
-          )}
-        >
-          <Text
-            className={cn(
-              "text-[12.5px] font-semibold",
-              line.balance >= 0 ? "text-ok" : "text-danger"
-            )}
-            style={TABULAR}
-          >
-            {formatSignedMinutes(line.balance)}
-          </Text>
-        </View>
+        <BalanceChip testID="figures-balance" minutes={line.balance} />
       ) : null}
-      {line.tag ? (
-        <View testID="figures-tag" className="rounded-full bg-muted px-2 py-0.5">
-          <Text className="text-[12.5px] font-semibold text-muted-foreground">{line.tag}</Text>
-        </View>
-      ) : null}
+      {line.tag ? <TagChip testID="figures-tag" label={line.tag} /> : null}
     </View>
   );
 }

@@ -3,6 +3,8 @@ import {
   formatBusinessWeekday,
   formatClockTime,
   formatMinutes,
+  formatRangeLabel,
+  formatRowDay,
   formatSignedMinutes,
   formatTimer,
   formatWeekday,
@@ -70,5 +72,23 @@ describe("formatBusinessDay", () => {
 
   it("returns the input for something that is no date", () => {
     expect(formatBusinessDay("nope", "en")).toBe("nope");
+  });
+});
+
+describe("formatRangeLabel", () => {
+  it("returns a week as its Monday and Sunday", () => {
+    expect(formatRangeLabel("week", "2026-09-24", "en")).toBe("Sep 21 - Sep 27");
+    expect(formatRangeLabel("week", "2026-10-01", "en")).toBe("Sep 28 - Oct 4");
+  });
+
+  it("returns a month with its year, capitalised", () => {
+    expect(formatRangeLabel("month", "2026-09-24", "en")).toBe("September 2026");
+    expect(formatRangeLabel("month", "2026-09-24", "cs")).toBe("Září 2026");
+  });
+});
+
+describe("formatRowDay", () => {
+  it("returns a business date's short weekday and its day and month", () => {
+    expect(formatRowDay("2026-09-27", "en")).toEqual({ weekday: "Sun", date: "Sep 27" });
   });
 });

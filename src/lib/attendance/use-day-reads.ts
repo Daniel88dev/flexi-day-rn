@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiRequest, qk } from "@/lib/query";
 
-import { yearMonthOf } from "./day-reads";
+import { yearMonthOf } from "./range";
 import type { AttendanceDayRead, AttendanceMonth } from "./types";
 
 /** One past business date's sessions. Today's come from the clock's `/current` instead. */
@@ -21,7 +21,11 @@ export function useDayRead(organizationId: string | null, businessDate: string, 
   });
 }
 
-export function useMonthRead(organizationId: string | null, businessDate: string) {
+export function useMonthRead(
+  organizationId: string | null,
+  businessDate: string,
+  { enabled = true }: { enabled?: boolean } = {}
+) {
   const { year, month } = yearMonthOf(businessDate);
   return useQuery({
     queryKey: qk.attendanceMonth(year, month, organizationId),
@@ -34,6 +38,6 @@ export function useMonthRead(organizationId: string | null, businessDate: string
         }).toString()}`,
         { signal }
       ),
-    enabled: organizationId !== null,
+    enabled: enabled && organizationId !== null,
   });
 }

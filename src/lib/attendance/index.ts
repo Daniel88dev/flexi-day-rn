@@ -7,7 +7,15 @@ export {
   type DerivedClock,
 } from "./clock";
 export { linkedDay, stepDay } from "./day-anchor";
-export { dayViewKeys, refreshDayView, type DayViewReads } from "./day-reads";
+export {
+  dayViewKeys,
+  refreshDayView,
+  refreshView,
+  viewKeys,
+  type DayViewReads,
+  type ViewReads,
+} from "./day-reads";
+export { dayRow, type DayRow, type RowChip } from "./day-row";
 export { discFace, type DiscFace } from "./disc";
 export { figuresLine, type FiguresLine } from "./figures";
 export {
@@ -15,6 +23,8 @@ export {
   formatBusinessWeekday,
   formatClockTime,
   formatMinutes,
+  formatRangeLabel,
+  formatRowDay,
   formatSignedMinutes,
   formatTimer,
   formatWeekday,
@@ -29,6 +39,18 @@ export {
 export { anySessionLocated, locationText, type SessionEnd } from "./location";
 export { formatRadius, locationNoticeShown, type LocationStatus } from "./location-capture";
 export { sessionMarks, type SessionMark } from "./marks";
+export {
+  holdsToday,
+  monthsOfWeek,
+  pastDaysNewestFirst,
+  stepRange,
+  weekDates,
+  weekRead,
+  type AttendanceView,
+  type MonthAnswer,
+  type WeekRead,
+} from "./range";
+export { monthStats, weekStats, type Stat } from "./stats";
 export {
   shownNotice,
   type ClockAction,

@@ -1,4 +1,4 @@
-import { dayNumber } from "@/lib/days";
+import { dayNumber, mondayIndex } from "@/lib/days";
 import type {
   CalendarBankHoliday,
   CalendarRecordType,
@@ -6,7 +6,7 @@ import type {
   VacationStatus,
 } from "@/lib/local-store";
 import { runKey } from "@/lib/requests/runs";
-import type { YearMonth } from "@/lib/requests/months";
+import { isoDay, type YearMonth } from "@/lib/requests/months";
 
 export type CalendarRow = Pick<
   ListedVacation,
@@ -41,7 +41,7 @@ export type Week = (number | null)[];
 
 export function buildWeeks({ year, month }: YearMonth): Week[] {
   const days = new Date(year, month, 0).getDate();
-  const first = (new Date(year, month - 1, 1).getDay() + 6) % 7;
+  const first = mondayIndex(isoDay({ year, month }, 1));
   const cells: Week = [];
   for (let i = 0; i < first; i++) cells.push(null);
   for (let day = 1; day <= days; day++) cells.push(day);

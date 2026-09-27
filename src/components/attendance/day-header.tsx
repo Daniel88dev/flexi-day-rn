@@ -4,21 +4,23 @@ import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
-import { formatBusinessDay, stepDay } from "@/lib/attendance";
+import {
+  formatBusinessDay,
+  formatRangeLabel,
+  holdsToday,
+  stepDay,
+  stepRange,
+  type AttendanceView,
+} from "@/lib/attendance";
 import { cn } from "@/lib/cn";
-
-export type AttendanceView = "day" | "week" | "month";
 
 const VIEWS: AttendanceView[] = ["day", "week", "month"];
 
-/** Views not built yet show, and cannot be picked. */
 export function ViewPill({
   value,
-  available,
   onChange,
 }: {
   value: AttendanceView;
-  available: AttendanceView[];
   onChange: (view: AttendanceView) => void;
 }) {
   const { t } = useTranslation();
@@ -26,19 +28,16 @@ export function ViewPill({
     <View accessibilityRole="tablist" className="flex-row rounded-full bg-muted p-1">
       {VIEWS.map((view) => {
         const selected = view === value;
-        const enabled = available.includes(view);
         return (
           <Pressable
             key={view}
             testID={`attendance-view-${view}`}
             accessibilityRole="tab"
-            accessibilityState={{ selected, disabled: !enabled }}
-            disabled={!enabled}
+            accessibilityState={{ selected }}
             onPress={() => onChange(view)}
             className={cn(
               "h-9 flex-1 items-center justify-center rounded-full",
-              selected && "bg-card",
-              !enabled && "opacity-40"
+              selected && "bg-card"
             )}
           >
             <Text
@@ -56,34 +55,42 @@ export function ViewPill({
   );
 }
 
-export function DayStepper({
-  date,
+function Stepper({
+  label,
+  testID,
+  previous,
+  next,
+  offToday,
+  labels,
   today,
   onChange,
 }: {
-  date: string;
+  label: string;
+  testID: string;
+  previous: string | null;
+  next: string | null;
+  offToday: boolean;
+  labels: { previous: string; next: string };
   today: string;
-  onChange: (date: string | null) => void;
+  onChange: (anchor: string | null) => void;
 }) {
-  const { t, locale } = useTranslation();
-  const previous = stepDay(date, -1, today);
-  const next = stepDay(date, 1, today);
+  const { t } = useTranslation();
   const steps = [
-    { key: "previous", to: previous, icon: CaretLeftIcon, label: t.attendance.previousDay },
-    { key: "next", to: next, icon: CaretRightIcon, label: t.attendance.nextDay },
+    { key: "previous", to: previous, icon: CaretLeftIcon, label: labels.previous },
+    { key: "next", to: next, icon: CaretRightIcon, label: labels.next },
   ];
 
   return (
     <View className="flex-row items-center gap-2">
       <Text
-        testID="attendance-day"
+        testID={testID}
         className="font-display flex-1 text-[20px] font-semibold text-foreground"
         numberOfLines={1}
         adjustsFontSizeToFit
       >
-        {formatBusinessDay(date, locale)}
+        {label}
       </Text>
-      {date !== today ? (
+      {offToday ? (
         <Pressable
           testID="attendance-today"
           accessibilityRole="button"
@@ -99,7 +106,7 @@ export function DayStepper({
       {steps.map((step) => (
         <Pressable
           key={step.key}
-          testID={`attendance-day-${step.key}`}
+          testID={`${testID}-${step.key}`}
           disabled={step.to === null}
           // Null follows today, so a view left on it moves on at midnight.
           onPress={() => onChange(step.to === today ? null : step.to)}
@@ -116,5 +123,60 @@ export function DayStepper({
         </Pressable>
       ))}
     </View>
+  );
+}
+
+export function DayStepper({
+  date,
+  today,
+  onChange,
+}: {
+  date: string;
+  today: string;
+  onChange: (date: string | null) => void;
+}) {
+  const { t, locale } = useTranslation();
+  return (
+    <Stepper
+      label={formatBusinessDay(date, locale)}
+      testID="attendance-day"
+      previous={stepDay(date, -1, today)}
+      next={stepDay(date, 1, today)}
+      offToday={date !== today}
+      labels={{ previous: t.attendance.previousDay, next: t.attendance.nextDay }}
+      today={today}
+      onChange={onChange}
+    />
+  );
+}
+
+/** The Week or Month stepper. It never steps past the range holding today. */
+export function RangeStepper({
+  view,
+  anchor,
+  today,
+  onChange,
+}: {
+  view: "week" | "month";
+  anchor: string;
+  today: string;
+  onChange: (anchor: string | null) => void;
+}) {
+  const { t, locale } = useTranslation();
+  const labels =
+    view === "week"
+      ? { previous: t.attendance.previousWeek, next: t.attendance.nextWeek }
+      : { previous: t.attendance.previousMonth, next: t.attendance.nextMonth };
+  return (
+    <Stepper
+      label={formatRangeLabel(view, anchor, locale)}
+      testID="attendance-range"
+      previous={stepRange(view, anchor, -1, today)}
+      next={stepRange(view, anchor, 1, today)}
+      offToday={!holdsToday(view, anchor, today)}
+      labels={labels}
+      today={today}
+      onChange={onChange}
+    />
   );
 }

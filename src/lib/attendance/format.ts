@@ -1,3 +1,5 @@
+import { weekDates } from "./range";
+
 const pad = (value: number) => String(value).padStart(2, "0");
 
 export function formatMinutes(minutes: number): string {
@@ -79,4 +81,25 @@ export function formatBusinessDay(businessDate: string, locale: string): string 
       timeZone: "UTC",
     }).format(date)
   );
+}
+
+const atNoon = (businessDate: string) => new Date(`${businessDate}T12:00:00Z`);
+
+const format = (businessDate: string, locale: string, options: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(atNoon(businessDate));
+
+export function formatRangeLabel(view: "week" | "month", anchor: string, locale: string): string {
+  if (view === "month") {
+    return capitalised(format(anchor, locale, { month: "long", year: "numeric" }));
+  }
+  const [monday, , , , , , sunday] = weekDates(anchor);
+  const short = { day: "numeric", month: "short" } as const;
+  return `${format(monday!, locale, short)} - ${format(sunday!, locale, short)}`;
+}
+
+export function formatRowDay(businessDate: string, locale: string) {
+  return {
+    weekday: capitalised(format(businessDate, locale, { weekday: "short" })),
+    date: format(businessDate, locale, { day: "numeric", month: "short" }),
+  };
 }
