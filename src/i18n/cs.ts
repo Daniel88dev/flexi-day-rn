@@ -127,6 +127,26 @@ export const cs: Dictionary = {
     signOutBody: "Odhlásit se z tohoto telefonu? Kopie vašich dat na něm se smaže.",
     cancel: "Zrušit",
   },
+  settings: {
+    notifications: "Oznámení",
+    emailNotifications: "E-mailová oznámení",
+    emailNotificationsHint:
+      "Žádosti o schválení, rozhodnutí o vašich žádostech a zrušení schváleného volna. Vypnutím zůstanou pouze v aplikaci. Účtové e-maily, jako je potvrzení adresy, se odesílají vždy.",
+    dashboardCalendar: "Kalendář na nástěnce",
+    dashboardScope: "Zobrazit",
+    dashboardScopeHint:
+      "Vyberte, co se v kalendáři na nástěnce zobrazí po otevření. Pro jedno zobrazení to můžete přepnout přímo na nástěnce.",
+    dashboardGroup: "Skupina",
+    noViewableGroups:
+      "Zatím nemůžete zobrazit volno žádné skupiny. Přístup k zobrazení vám může udělit správce skupiny.",
+    language: "Jazyk",
+    languageName: "Čeština",
+    languageHint: "Flexi Day používá jazyk, který mu nastavíte v Nastavení iOS.",
+    about: "O aplikaci",
+    version: "Verze",
+    privacy: "Zásady ochrany osobních údajů",
+    terms: "Podmínky",
+  },
   requests: {
     title: "Žádosti",
     filters: {
