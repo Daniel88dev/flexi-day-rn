@@ -40,12 +40,12 @@ Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 
 built with Xcode 27 that lacks it, and only a real phone shows that.
 
 Adding a native module — `expo-sqlite`, `expo-secure-store`, `expo-crypto`, `expo-application`,
-`expo-web-browser`, `expo-haptics`, `expo-image-picker`, `expo-location`, `expo-notifications`
-and `@react-native-community/datetimepicker` are the ones here — means `npm run prebuild` and then
-`npm run ios` or `npm run ios:device` to rebuild the dev client. Metro alone cannot load them, and
-the JavaScript fails at the import with a missing native module until the rebuild lands. A
-non-interactive shell has no UTF-8 `LANG`, and CocoaPods quits without one, so run
-`LANG=en_US.UTF-8 npm run prebuild` there.
+`expo-web-browser`, `expo-haptics`, `expo-image-picker`, `expo-location`, `expo-notifications`,
+`expo-clipboard` and `@react-native-community/datetimepicker` are the ones here — means
+`npm run prebuild` and then `npm run ios` or `npm run ios:device` to rebuild the dev client. Metro
+alone cannot load them, and the JavaScript fails at the import with a missing native module until
+the rebuild lands. A non-interactive shell has no UTF-8 `LANG`, and CocoaPods quits without one, so
+run `LANG=en_US.UTF-8 npm run prebuild` there.
 
 The backend base URL comes from `src/lib/api.ts`: `EXPO_PUBLIC_API_URL` when set, otherwise the
 Metro host on port 8080. Never hardcode `localhost`; a phone cannot reach it.

@@ -5,10 +5,7 @@ import { haptic } from "@/lib/haptics";
 
 import { authClient } from "./auth-client";
 import { changePasswordRefusal, newPasswordProblem } from "./change-password";
-import { revalidateSession, UNAUTHORIZED } from "./revalidate-session";
-import { useSignedOutWipe } from "./signed-out-wipe";
-
-const SERVER_ERROR = 500;
+import { readsSessionBack, UNAUTHORIZED, useRefreshSession } from "./revalidate-session";
 
 export type ChangePasswordAnswer = {
   data?: unknown;
@@ -34,12 +31,6 @@ export type UseChangePasswordOptions = {
   change?: ChangePassword;
   refreshSession?: () => Promise<void>;
 };
-
-/** Reads the session back after the server swapped it, and wipes the phone if none came. */
-export function useRefreshSession(): () => Promise<void> {
-  const wipe = useSignedOutWipe();
-  return useCallback(() => revalidateSession(() => authClient.getSession(), wipe), [wipe]);
-}
 
 // `revokeOtherSessions` deletes this phone's Native session too; the answer carries its
 // replacement, which the expo plugin puts in the cookie jar.
@@ -100,8 +91,10 @@ export function useChangePassword({
       }
       haptic("error");
       const status = answer.error.status ?? 0;
-      // A 5xx can land after the new hash is written and the old sessions are gone.
-      if (status === UNAUTHORIZED || status >= SERVER_ERROR) await refresh();
+      // The change always swaps the session, whether or not the rest of it landed.
+      if (readsSessionBack({ sessionLost: status === UNAUTHORIZED, status, swapping: true })) {
+        await refresh();
+      }
       if (status !== UNAUTHORIZED) {
         const refusal = changePasswordRefusal(answer.error.code);
         setErrors(

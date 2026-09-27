@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 import { deviceAppState, type AppStateSource } from "@/lib/app-state";
 
 import { authClient } from "./auth-client";
+import { useSignedOutWipe } from "./signed-out-wipe";
 
 export const UNAUTHORIZED = 401;
+const SERVER_ERROR = 500;
 
 /** Only what the revalidation reads of the answer: a session, or a reason there is none. */
 export type SessionLookup = () => Promise<{
@@ -66,4 +68,26 @@ export function useSessionRevalidation(
     void revalidateSession(lookup, wipe);
     return appState.subscribe(() => void revalidateSession(lookup, wipe));
   }, [appState, enabled, lookup, wipe]);
+}
+
+/**
+ * Whether a failed call leaves the phone unsure it still holds a session: the server said it has
+ * none, or a call that swaps it answered 5xx, which can land after the old one is gone.
+ */
+export function readsSessionBack({
+  sessionLost,
+  status,
+  swapping,
+}: {
+  sessionLost: boolean;
+  status: number | undefined;
+  swapping: boolean;
+}): boolean {
+  return sessionLost || (swapping && (status ?? 0) >= SERVER_ERROR);
+}
+
+/** Reads the session back after the server swapped it, and wipes the phone if none came. */
+export function useRefreshSession(): () => Promise<void> {
+  const wipe = useSignedOutWipe();
+  return useCallback(() => revalidateSession(lookupThroughAuthClient, wipe), [wipe]);
 }

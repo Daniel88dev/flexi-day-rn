@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import * as WebBrowser from "expo-web-browser";
-import { Linking } from "react-native";
+import { ActionSheetIOS, Linking } from "react-native";
 
 import { router } from "expo-router";
 
@@ -208,6 +208,47 @@ describe("Settings", () => {
     await waitFor(() => expect(listAccounts).toHaveBeenCalled());
     await act(async () => undefined);
     expect(screen.queryByTestId("settings-security")).toBeNull();
+    expect(screen.queryByTestId("settings-two-factor")).toBeNull();
+  });
+
+  it("shows Two-factor as Off and opens the enable sheet from it", async () => {
+    await renderLoaded();
+
+    const row = await screen.findByTestId("settings-two-factor");
+    expect(row).toHaveTextContent(new RegExp(en.settings.twoFactor.off));
+    await fireEvent.press(row);
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/settings/two-factor",
+      params: { flow: "enable" },
+    });
+  });
+
+  it("shows Two-factor as On and offers its three flows, Turn off last", async () => {
+    useSession.mockReturnValue({
+      data: { user: { ...SESSION.data.user, twoFactorEnabled: true } },
+    });
+    const sheet = jest
+      .spyOn(ActionSheetIOS, "showActionSheetWithOptions")
+      .mockImplementation((_options, pick) => pick(2));
+    await renderLoaded();
+
+    const row = await screen.findByTestId("settings-two-factor");
+    expect(row).toHaveTextContent(new RegExp(en.settings.twoFactor.on));
+    await fireEvent.press(row);
+
+    const [options] = sheet.mock.calls[0];
+    expect(options.options).toEqual([
+      en.settings.twoFactor.setupTotp,
+      en.settings.twoFactor.regenerateBackup,
+      en.settings.twoFactor.disable,
+      en.settings.twoFactor.cancel,
+    ]);
+    expect(options.destructiveButtonIndex).toBe(2);
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/settings/two-factor",
+      params: { flow: "disable" },
+    });
   });
 
   it("offers Change password anyway when the account list cannot be read", async () => {
