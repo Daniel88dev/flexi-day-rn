@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 
 import { CalendarHeader } from "@/components/calendar/calendar-header";
@@ -53,10 +53,12 @@ export function DashboardCalendar({
   viewerId,
   onOpenRequest,
   onBook,
+  onYear,
 }: {
   viewerId: string | null;
   onOpenRequest?: (vacationId: string) => void;
   onBook: (day: string) => void;
+  onYear?: (year: number) => void;
 }) {
   const { width } = useWindowDimensions();
   const now = useToday();
@@ -75,6 +77,8 @@ export function DashboardCalendar({
   // The bounds move with the year, so a month picked before New Year can fall outside them.
   const index = Math.min(Math.max(monthOffset(picked, bounds), 0), months.length - 1);
   const month = months[index];
+
+  useEffect(() => onYear?.(month.year), [onYear, month.year]);
 
   const settings = useMySettings().data;
   const groups = useRequestScopeGroups();

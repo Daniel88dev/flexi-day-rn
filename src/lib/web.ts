@@ -6,6 +6,7 @@ import { WEB_URL } from "@/lib/api";
 export const WEB_PATHS = {
   signUp: "/sign-up/",
   forgotPassword: "/forgot-password/",
+  groups: "/groups/",
   privacy: "/privacy/",
   terms: "/terms/",
 } as const;
