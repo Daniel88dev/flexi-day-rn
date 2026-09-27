@@ -35,11 +35,16 @@ jest.mock("@/lib/api", () => {
 jest.mock("expo-router", () => ({
   router: { back: jest.fn(), replace: jest.fn(), push: jest.fn() },
   useNavigation: () => ({ canGoBack: mockCanGoBack }),
+  useIsFocused: () => true,
   useLocalSearchParams: () => ({ vacationId: "vacation-1" }),
   Redirect: jest.requireActual("@/test-support/expo-router").RedirectShim,
 }));
 
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
+let mockViewerId = "user-9";
+jest.mock("@/lib/viewer/use-viewer", () => ({
+  useViewer: () => ({ id: mockViewerId, name: "Viewer", email: "viewer@dev.local" }),
+}));
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
 jest.mock("@/lib/local-store", () => ({
   pull: jest.fn().mockResolvedValue({ ok: true }),
@@ -96,6 +101,7 @@ async function answerPrompt(label: string, text?: string) {
 beforeEach(() => {
   jest.clearAllMocks();
   prompt = null;
+  mockViewerId = "user-9";
   mockCanGoBack.mockReturnValue(true);
   detail = vacationDetail();
   storedRequest.mockReturnValue(null);

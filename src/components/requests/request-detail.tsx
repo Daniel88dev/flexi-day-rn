@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useIsFocused } from "expo-router";
 import { CaretLeftIcon, PaperPlaneRightIcon } from "phosphor-react-native";
 import { useState, type ReactNode } from "react";
 import {
@@ -13,7 +13,7 @@ import {
 
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { SendingBadge, StatusBadge, TypeBadge } from "@/components/requests/badges";
-import { DetailAttachments } from "@/components/requests/detail-attachments";
+import { AttachmentSection } from "@/components/requests/attachments/attachment-section";
 import { DetailTimeline } from "@/components/requests/detail-timeline";
 import { EditRequestSheet } from "@/components/requests/edit-request-sheet";
 import { askForReason } from "@/components/requests/reason-prompt";
@@ -33,7 +33,6 @@ import {
   type FailureClass,
   type VacationDetail,
 } from "@/lib/query";
-import { shownAttachments } from "@/lib/requests/attachments";
 import { dayLengthLabel, runDatesLabel } from "@/lib/requests/format";
 import { mergeTimeline } from "@/lib/requests/timeline";
 import { dayNumber } from "@/lib/days";
@@ -303,7 +302,6 @@ function DetailBody({
 
   const status = vacationStatusOf(detail);
   const busy = actions.running !== null;
-  const attachments = shownAttachments(detail.attachments);
   const lines = [
     detail.createdByUser && detail.createdByUser.id !== detail.userId
       ? labels.createdBy(detail.createdByUser.name)
@@ -405,12 +403,7 @@ function DetailBody({
             lines={lines}
           />
           {detail.note ? <NoteCard note={detail.note} /> : null}
-          {attachments.length > 0 ? (
-            <View>
-              <SectionLabel>{labels.attachments}</SectionLabel>
-              <DetailAttachments attachments={attachments} />
-            </View>
-          ) : null}
+          <AttachmentSection detail={detail} readOnly={readOnly} />
           <View>
             <SectionLabel>{labels.history}</SectionLabel>
             <DetailTimeline entries={mergeTimeline(detail)} />
@@ -560,7 +553,7 @@ function Loading() {
 /** Push notifications land here too, so a request decided, cancelled or deleted since must render. */
 export function RequestDetail({ vacationId }: { vacationId: string }) {
   const { t } = useTranslation();
-  const query = useVacationDetail(vacationId);
+  const query = useVacationDetail(vacationId, { poll: useIsFocused() });
 
   // A request that is gone, or no longer the viewer's to see, outranks whatever was shown before.
   const refused = query.error instanceof ApiError ? query.error.status : null;

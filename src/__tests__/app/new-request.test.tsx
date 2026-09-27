@@ -1,14 +1,18 @@
 import { onlineManager } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { ActionSheetIOS } from "react-native";
+import { toast } from "sonner-native";
 
 import NewRequestRoute from "@/app/requests/new";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { createVacation, pull, useMemberGroups, type CreateOutcome } from "@/lib/local-store";
 import { queryClient } from "@/lib/query";
-import type { GroupDetail, GroupMember } from "@/lib/query";
+import type { Attachment, GroupDetail, GroupMember, VacationDetail } from "@/lib/query";
+import { fakeFiles } from "@/test-support/fake-file-system";
+import { vacationDetail } from "@/test-support/vacation-detail";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 
@@ -29,6 +33,7 @@ jest.mock("@/lib/api", () => {
 jest.mock("expo-router", () => ({
   router: { back: jest.fn(), replace: jest.fn(), push: jest.fn() },
   useNavigation: () => ({ canGoBack: mockCanGoBack }),
+  useIsFocused: () => true,
   useLocalSearchParams: () => mockParams(),
   Redirect: jest.requireActual("@/test-support/expo-router").RedirectShim,
   Stack: {
@@ -56,6 +61,31 @@ jest.mock(
   "@react-native-community/datetimepicker",
   () => jest.requireActual("@/test-support/date-time-picker").FakeDateTimePicker
 );
+
+const mockUpload = fakeFiles.upload;
+jest.mock(
+  "expo-file-system",
+  () => jest.requireActual("@/test-support/fake-file-system").fakeFileSystem
+);
+jest.mock("expo-image-picker", () => ({
+  requestCameraPermissionsAsync: jest.fn(),
+  launchCameraAsync: jest.fn(),
+  launchImageLibraryAsync: jest.fn(),
+  UIImagePickerPreferredAssetRepresentationMode: { Compatible: "compatible" },
+}));
+jest.mock("expo-web-browser", () => ({
+  openBrowserAsync: jest.fn(),
+  WebBrowserPresentationStyle: { PAGE_SHEET: "pageSheet" },
+}));
+
+const launchLibrary = ImagePicker.launchImageLibraryAsync as jest.Mock;
+
+// A finished upload mutation waits five minutes to be collected, and that timer keeps Jest running.
+const defaults = queryClient.getDefaultOptions();
+queryClient.setDefaultOptions({
+  ...defaults,
+  mutations: { ...defaults.mutations, gcTime: Infinity },
+});
 
 const create = createVacation as jest.MockedFunction<typeof createVacation>;
 const memberGroups = useMemberGroups as jest.MockedFunction<typeof useMemberGroups>;
@@ -468,5 +498,273 @@ describe("NewRequest route", () => {
 
     expect(router.back).toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe("NewRequest attachments", () => {
+  let created: VacationDetail;
+  /** How the backend's check settles each uploaded file. */
+  let verdict: Attachment["status"];
+
+  function photos(...names: string[]) {
+    for (const name of names) fakeFiles.put(`file:///tmp/${name}`, 2048);
+    launchLibrary.mockResolvedValue({
+      canceled: false,
+      assets: names.map((name) => ({
+        uri: `file:///tmp/${name}`,
+        fileName: name,
+        mimeType: "image/jpeg",
+        fileSize: 2048,
+      })),
+    });
+  }
+
+  async function choosePhotos() {
+    await fireEvent.press(await screen.findByTestId("attachment-add"));
+    await act(async () => choose(sheetOptions.indexOf(en.attachments.choosePhoto)));
+  }
+
+  const registrations = () =>
+    mockFetch.mock.calls.filter(
+      ([url, init]) => init?.method === "POST" && /\/api\/attachments$/.test(String(url))
+    );
+
+  beforeEach(() => {
+    fakeFiles.reset();
+    verdict = "READY";
+    created = vacationDetail({ attachments: [], canAttach: true });
+    groupDetails["group-1"] = { ...groupDetails["group-1"], uploadsAvailable: true };
+    mockUpload.mockImplementation(async () => {
+      created = {
+        ...created,
+        attachments: (created.attachments ?? []).map((row) =>
+          row.status === "UPLOADING" ? { ...row, status: verdict } : row
+        ),
+      };
+      return { status: 200, body: "", headers: {} };
+    });
+    mockFetch.mockImplementation(async (url: string, init?: { method?: string; body?: string }) => {
+      const path = String(url);
+      if (init?.method === "POST" && /\/api\/attachments$/.test(path)) {
+        const body = JSON.parse(init.body ?? "{}");
+        const row: Attachment = {
+          id: `attachment-${(created.attachments ?? []).length + 1}`,
+          fileName: body.fileName,
+          contentType: body.contentType,
+          size: body.size,
+          status: "UPLOADING",
+          rejectionReason: null,
+          uploadedByUserId: "user-9",
+          createdAt: new Date().toISOString(),
+          deletedAt: null,
+          deletedByUserId: null,
+        };
+        created = { ...created, attachments: [...(created.attachments ?? []), row] };
+        return answer(201, {
+          attachment: row,
+          upload: { url: "http://store/put", method: "PUT", headers: {}, expiresAt: "" },
+        });
+      }
+      if (path.endsWith("/api/vacation/vacation-1")) return answer(200, created);
+      if (path.includes("/api/group-user/")) return answer(200, [SELF, EVA]);
+      return answer(200, groupDetails[path.split("/api/group/")[1]]);
+    });
+  });
+
+  it("offers no files where the group's plan takes none", async () => {
+    groupDetails["group-1"] = { ...groupDetails["group-1"], uploadsAvailable: false };
+    await renderLoaded();
+
+    expect(screen.queryByTestId("new-request-attachments")).toBeNull();
+  });
+
+  it("queues picked photos until the Request exists, sending nothing before Submit", async () => {
+    photos("IMG_1.jpg", "IMG_2.jpg");
+    await renderLoaded();
+
+    await choosePhotos();
+
+    expect(await screen.findAllByTestId("attachment-job")).toHaveLength(2);
+    expect(screen.getAllByText(/Sends when you submit/)).toHaveLength(2);
+    expect(screen.getByTestId("attachments-count")).toHaveTextContent("2 of 5");
+    expect(registrations()).toHaveLength(0);
+  });
+
+  it("uploads the queued files to the new Request, then closes itself once all are accepted", async () => {
+    photos("IMG_1.jpg", "IMG_2.jpg");
+    await renderLoaded();
+    await choosePhotos();
+    await screen.findAllByTestId("attachment-job");
+
+    await submit();
+
+    await waitFor(() => expect(registrations()).toHaveLength(2));
+    expect(registrations().map(([, init]) => JSON.parse(init.body).requestId)).toEqual([
+      "request-1",
+      "request-1",
+    ]);
+    await waitFor(() => expect(router.back).toHaveBeenCalledTimes(1));
+  });
+
+  it("stays open with the verdict when a file is rejected, until Done closes it", async () => {
+    verdict = "REJECTED";
+    photos("IMG_1.jpg");
+    await renderLoaded();
+    await choosePhotos();
+    await screen.findAllByTestId("attachment-job");
+
+    await submit();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("new-request-sent-status")).toHaveTextContent(
+        en.newRequest.uploadProblems
+      )
+    );
+    expect(screen.getByText(en.attachments.rejectedPlain)).toBeOnTheScreen();
+    expect(router.back).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByTestId("new-request-done"));
+    expect(router.back).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows progress while the files are still going, and Done closes it early", async () => {
+    let land: () => void = () => {};
+    mockUpload.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          land = () => resolve({ status: 200, body: "", headers: {} });
+        })
+    );
+    photos("IMG_1.jpg");
+    await renderLoaded();
+    await choosePhotos();
+    await screen.findAllByTestId("attachment-job");
+
+    await submit();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("new-request-sent-status")).toHaveTextContent(
+        en.newRequest.uploadingFiles
+      )
+    );
+    expect(screen.queryByTestId("new-request-submit")).toBeNull();
+    await fireEvent.press(screen.getByTestId("new-request-done"));
+    expect(router.back).toHaveBeenCalledTimes(1);
+    await act(async () => land());
+  });
+
+  it("closes at once after a Submit with no files", async () => {
+    await renderLoaded();
+
+    await submit();
+
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("new-request-sent")).toBeNull();
+  });
+
+  it("drops the picked files when the group changes", async () => {
+    memberGroups.mockReturnValue([ENGINEERING, DESIGN]);
+    groupDetails["group-2"] = { ...groupDetails["group-2"], uploadsAvailable: true };
+    photos("IMG_1.jpg");
+    await renderLoaded();
+    await choosePhotos();
+    await screen.findAllByTestId("attachment-job");
+
+    await fireEvent.press(screen.getByTestId("new-request-group"));
+    await act(async () => choose(sheetOptions.indexOf("Design")));
+
+    await waitFor(() => expect(screen.queryByTestId("attachment-job")).toBeNull());
+  });
+
+  it("says so and offers Retry when the new Request cannot be read, and Done still closes", async () => {
+    photos("IMG_1.jpg");
+    await renderLoaded();
+    await choosePhotos();
+    await screen.findAllByTestId("attachment-job");
+    const answering = mockFetch.getMockImplementation()!;
+    let readable = false;
+    mockFetch.mockImplementation(async (url: string, init?: { method?: string; body?: string }) =>
+      String(url).endsWith("/api/vacation/vacation-1") && !readable
+        ? answer(503, { errors: [{ message: "Down for a moment" }] })
+        : answering(url, init)
+    );
+
+    await submit();
+
+    expect(
+      await screen.findByTestId("new-request-sent-failed", {}, { timeout: 5000 })
+    ).toBeOnTheScreen();
+    expect(router.back).not.toHaveBeenCalled();
+    readable = true;
+    await fireEvent.press(screen.getByTestId("new-request-sent-retry"));
+    await waitFor(() => expect(router.back).toHaveBeenCalledTimes(1));
+  }, 15000);
+
+  it("keeps Done working while the new Request cannot be read", async () => {
+    photos("IMG_1.jpg");
+    await renderLoaded();
+    await choosePhotos();
+    await screen.findAllByTestId("attachment-job");
+    const answering = mockFetch.getMockImplementation()!;
+    mockFetch.mockImplementation(async (url: string, init?: { method?: string; body?: string }) =>
+      String(url).endsWith("/api/vacation/vacation-1")
+        ? answer(503, { errors: [{ message: "Down for a moment" }] })
+        : answering(url, init)
+    );
+
+    await submit();
+    await screen.findByTestId("new-request-sent-failed", {}, { timeout: 5000 });
+    await fireEvent.press(screen.getByTestId("new-request-done"));
+
+    expect(router.back).toHaveBeenCalledTimes(1);
+  }, 15000);
+
+  it("does not close under the finger when the last failed file is dismissed", async () => {
+    photos("IMG_1.jpg", "IMG_2.jpg");
+    await renderLoaded();
+    await choosePhotos();
+    await screen.findAllByTestId("attachment-job");
+    const answering = mockFetch.getMockImplementation()!;
+    let registered = 0;
+    mockFetch.mockImplementation(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === "POST" && /\/api\/attachments$/.test(String(url))) {
+        registered += 1;
+        if (registered === 1) {
+          return answer(422, {
+            errors: [{ message: "No", context: { reason: "FILE_TOO_LARGE" } }],
+          });
+        }
+      }
+      return answering(url, init);
+    });
+
+    await submit();
+    await waitFor(() =>
+      expect(screen.getByTestId("new-request-sent-status")).toHaveTextContent(
+        en.newRequest.uploadProblems
+      )
+    );
+    await fireEvent.press(screen.getByLabelText(en.attachments.dismiss("IMG_1.jpg")));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("new-request-sent-status")).toHaveTextContent(
+        en.newRequest.uploadsAccepted
+      )
+    );
+    expect(router.back).not.toHaveBeenCalled();
+  });
+
+  it("closes and says the files were not sent when the booking answers without its Request", async () => {
+    create.mockResolvedValue({ ok: true });
+    photos("IMG_1.jpg");
+    await renderLoaded();
+    await choosePhotos();
+    await screen.findAllByTestId("attachment-job");
+
+    await submit();
+
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith(en.newRequest.filesNotSent);
+    expect(registrations()).toHaveLength(0);
   });
 });

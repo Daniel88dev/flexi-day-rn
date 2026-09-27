@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
 import type { CalendarRecordType } from "@/lib/local-store";
+import { processingPollInterval } from "@/lib/requests/attachments";
 
 import { qk } from "./keys";
 import { apiRequest } from "./runtime";
@@ -69,6 +70,9 @@ export type VacationDetail = {
   history: VacationEvent[];
   /** Absent, not empty, for a viewer who may see the day but not its files. */
   attachments?: Attachment[];
+  /** Standing, plan, the five-file cap and retention together, as the backend reckons them. */
+  canAttach?: boolean;
+  canDeleteAnyAttachment?: boolean;
 };
 
 /** A row of `GET /api/group-user/:groupId`, as much of it as booking on behalf reads. */
@@ -83,20 +87,32 @@ export type GroupDetail = {
   id: string;
   organization: { sickDayBenefitActive?: boolean } | null;
   access?: { canAdmin: boolean };
+  uploadsAvailable?: boolean;
 };
 
 const vacationPath = (vacationId: string) => `/api/vacation/${encodeURIComponent(vacationId)}`;
 
 /**
  * Fresh on every open: nothing is kept once the screen lets go, so the permissions a screen shows
- * are never an earlier screen's answer.
+ * are never an earlier screen's answer. `null` reads nothing.
  */
-export function useVacationDetail(vacationId: string) {
+export function useVacationDetail(
+  vacationId: string | null,
+  { poll = true }: { poll?: boolean } = {}
+) {
   return useQuery({
-    queryKey: qk.vacation(vacationId),
-    queryFn: ({ signal }) => apiRequest<VacationDetail>(vacationPath(vacationId), { signal }),
+    queryKey: qk.vacation(vacationId ?? ""),
+    queryFn: ({ signal }) => apiRequest<VacationDetail>(vacationPath(vacationId ?? ""), { signal }),
+    enabled: vacationId !== null,
     staleTime: 0,
     gcTime: 0,
+    // The first narrow exception to T-28's no-polling: while a file on the open screen is still
+    // being checked, read the Request every 3 s. It stops once every file settles, when a read
+    // fails, while another screen covers this one (`poll`), and with the screen itself.
+    refetchInterval: (query) =>
+      poll && query.state.status !== "error"
+        ? processingPollInterval(query.state.data?.attachments, [], Date.now())
+        : false,
   });
 }
 
