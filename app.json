@@ -12,6 +12,9 @@
       "supportsTablet": false,
       "appleTeamId": "7DD5F92WWS"
     },
+    "locales": {
+      "cs": "./locales/cs.json"
+    },
     "plugins": [
       "expo-router",
       [
@@ -52,6 +55,15 @@
       "expo-sqlite",
       "expo-secure-store",
       "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Flexi Day records where you clock in and out when your organization asks for it.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
+        }
+      ],
       "@react-native-community/datetimepicker",
       [
         "expo-image-picker",

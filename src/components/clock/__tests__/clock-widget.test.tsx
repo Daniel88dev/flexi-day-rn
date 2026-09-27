@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import * as Haptics from "expo-haptics";
+import * as Location from "expo-location";
+import { toast } from "sonner-native";
 
 import { ClockWidget } from "@/components/clock/clock-widget";
 import { TranslationProvider } from "@/i18n/use-translation";
@@ -27,8 +29,17 @@ jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" 
 jest.mock("expo-haptics", () => ({
   impactAsync: jest.fn().mockResolvedValue(undefined),
   notificationAsync: jest.fn().mockResolvedValue(undefined),
+  selectionAsync: jest.fn().mockResolvedValue(undefined),
   ImpactFeedbackStyle: { Medium: "medium" },
   NotificationFeedbackType: { Success: "success", Warning: "warning", Error: "error" },
+}));
+
+jest.mock("expo-location", () => ({
+  Accuracy: { Balanced: 3, Highest: 6 },
+  hasServicesEnabledAsync: jest.fn(),
+  requestForegroundPermissionsAsync: jest.fn(),
+  getLastKnownPositionAsync: jest.fn(),
+  getCurrentPositionAsync: jest.fn(),
 }));
 
 const answer = (status: number, body: unknown) => ({ status, json: async () => body });
@@ -166,5 +177,167 @@ describe("ClockWidget", () => {
     await waitFor(() => expect(client.getQueryState(qk.attendanceState())?.status).toBe("error"));
     expect(screen.queryByTestId("clock-offline")).toBeNull();
     expect(screen.getByTestId("clock-in").props.accessibilityState?.disabled).toBe(false);
+  });
+});
+
+describe("ClockWidget with location recorded", () => {
+  const OUT_HERE = attendance({ locationEnabled: true });
+  const IN_HERE = attendance({ locationEnabled: true, openSession: OPEN, sessions: [OPEN] });
+  const located = jest.mocked(Location);
+  const fix = (accuracy: number) =>
+    ({ coords: { latitude: 50.0875, longitude: 14.4213, accuracy }, timestamp: 0 }) as never;
+
+  let dismissed = true;
+  let saveFails = false;
+
+  function serveLocated(reads: AttendanceState[]) {
+    serve(reads, (route) => {
+      if (route.path === "/api/users/me/settings") {
+        if (route.method === "PUT") {
+          if (saveFails) return Promise.reject(new TypeError("Network request failed"));
+          const [, init] = mockFetch.mock.calls.at(-1);
+          dismissed = JSON.parse(init.body).attendanceLocationNoticeDismissed;
+        }
+        return answer(200, { attendanceLocationNoticeDismissed: dismissed });
+      }
+      if (route.path === "/api/attendance/clock-in") return answer(201, OPEN);
+      const sent = posts().at(-1)!.body as { accuracy: number };
+      return answer(200, { applied: true, accuracy: sent.accuracy });
+    });
+  }
+
+  const locationPosts = () => posts().filter(({ path }) => path.endsWith("/location"));
+
+  beforeEach(() => {
+    dismissed = true;
+    saveFails = false;
+    located.hasServicesEnabledAsync.mockResolvedValue(true);
+    located.requestForegroundPermissionsAsync.mockResolvedValue({
+      granted: true,
+      ios: { accuracy: "full", scope: "whenInUse" },
+    } as never);
+    located.getLastKnownPositionAsync.mockResolvedValue(null);
+    located.getCurrentPositionAsync.mockImplementation(async (options) =>
+      fix(options?.accuracy === Location.Accuracy.Highest ? 6 : 65)
+    );
+  });
+
+  it("sends the coarse and then the precise fix to the new session and says where it settled", async () => {
+    serveLocated([OUT_HERE, IN_HERE]);
+    await renderWidget();
+    await screen.findByText("Not clocked in");
+
+    await act(async () => fireEvent.press(screen.getByTestId("clock-in")));
+
+    expect(await screen.findByText("Clock-in location saved (±6\u00a0m)")).toBeTruthy();
+    expect(locationPosts()).toEqual([
+      {
+        path: "/api/attendance/sessions/s1/location",
+        body: { end: "IN", latitude: 50.0875, longitude: 14.4213, accuracy: 65 },
+      },
+      {
+        path: "/api/attendance/sessions/s1/location",
+        body: { end: "IN", latitude: 50.0875, longitude: 14.4213, accuracy: 6 },
+      },
+    ]);
+  });
+
+  it("finishes the clock-in without waiting for the location", async () => {
+    located.requestForegroundPermissionsAsync.mockReturnValue(new Promise(() => undefined));
+    serveLocated([OUT_HERE, IN_HERE]);
+    await renderWidget();
+    await screen.findByText("Not clocked in");
+
+    await act(async () => fireEvent.press(screen.getByTestId("clock-in")));
+
+    expect(await screen.findByText("Clocked in")).toBeTruthy();
+    expect(screen.getByTestId("clock-out").props.accessibilityState?.disabled).toBe(false);
+    expect(screen.queryByTestId("clock-location")).toBeNull();
+  });
+
+  it("shows nothing and sends nothing when the person declines", async () => {
+    located.requestForegroundPermissionsAsync.mockResolvedValue({ granted: false } as never);
+    serveLocated([OUT_HERE, IN_HERE]);
+    await renderWidget();
+    await screen.findByText("Not clocked in");
+
+    await act(async () => fireEvent.press(screen.getByTestId("clock-in")));
+
+    expect(await screen.findByText("Clocked in")).toBeTruthy();
+    await waitFor(() => expect(located.requestForegroundPermissionsAsync).toHaveBeenCalled());
+    expect(located.getCurrentPositionAsync).not.toHaveBeenCalled();
+    expect(locationPosts()).toEqual([]);
+    expect(screen.queryByTestId("clock-location")).toBeNull();
+  });
+
+  it("asks nothing while the organization does not record location", async () => {
+    serve([OUT, IN], () => answer(201, OPEN));
+    await renderWidget();
+    await screen.findByText("Not clocked in");
+
+    await act(async () => fireEvent.press(screen.getByTestId("clock-in")));
+
+    expect(await screen.findByText("Clocked in")).toBeTruthy();
+    expect(located.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(mockFetch.mock.calls.some(([url]) => String(url).includes("/me/settings"))).toBe(false);
+  });
+
+  it("shows the one-time notice once the settings answer, and Got it saves the dismissal", async () => {
+    dismissed = false;
+    serveLocated([OUT_HERE]);
+    await renderWidget();
+
+    expect(await screen.findByText("Your organization records where you clock")).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByText("Got it")));
+
+    await waitFor(() => expect(screen.queryByTestId("clock-location-notice")).toBeNull());
+    const put = mockFetch.mock.calls.find(([, init]) => init.method === "PUT");
+    expect(new URL(put[0]).pathname).toBe("/api/users/me/settings");
+    expect(JSON.parse(put[1].body)).toEqual({ attendanceLocationNoticeDismissed: true });
+    expect(Haptics.selectionAsync).toHaveBeenCalled();
+  });
+
+  it("keeps the notice with a line inside it when Got it does not save, and Got it tries again", async () => {
+    dismissed = false;
+    saveFails = true;
+    serveLocated([OUT_HERE]);
+    await renderWidget();
+    await screen.findByText("Your organization records where you clock");
+
+    await act(async () => fireEvent.press(screen.getByText("Got it")));
+
+    expect(await screen.findByText("Couldn't save. Try again.")).toBeTruthy();
+    expect(screen.getByTestId("clock-location-notice")).toBeTruthy();
+    expect(toast.error).not.toHaveBeenCalled();
+
+    saveFails = false;
+    await act(async () => fireEvent.press(screen.getByText("Got it")));
+
+    await waitFor(() => expect(screen.queryByTestId("clock-location-notice")).toBeNull());
+    const puts = mockFetch.mock.calls.filter(([, init]) => init.method === "PUT");
+    expect(puts).toHaveLength(2);
+  });
+
+  it("leaves the notice out while the clock is locked", async () => {
+    dismissed = false;
+    serveLocated([attendance({ locationEnabled: true, active: false })]);
+    await renderWidget();
+
+    expect(await screen.findByTestId("clock-inactive")).toBeTruthy();
+    await waitFor(() =>
+      expect(mockFetch.mock.calls.some(([url]) => String(url).includes("/me/settings"))).toBe(true)
+    );
+    expect(screen.queryByTestId("clock-location-notice")).toBeNull();
+  });
+
+  it("keeps the notice away for someone who dismissed it on the web", async () => {
+    serveLocated([OUT_HERE]);
+    await renderWidget();
+    await screen.findByText("Not clocked in");
+
+    await waitFor(() =>
+      expect(mockFetch.mock.calls.some(([url]) => String(url).includes("/me/settings"))).toBe(true)
+    );
+    expect(screen.queryByTestId("clock-location-notice")).toBeNull();
   });
 });

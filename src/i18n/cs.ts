@@ -353,6 +353,19 @@ export const cs: Dictionary = {
       "Prosinec",
     ],
   },
+  clockLocation: {
+    noticeTitle: "Tvoje organizace zaznamenává místo příchodu a odchodu",
+    noticeBody:
+      "Telefon se tě při příchodu a odchodu zeptá na polohu. Můžeš odmítnout: pak se nic nezaznamená a nic dalšího se nemění.",
+    gotIt: "Rozumím",
+    privacy: "Zásady ochrany soukromí",
+    saveFailed: "Nepodařilo se uložit. Zkus to znovu.",
+    finding: "Zjišťuji tvoji polohu…",
+    sharpening: (radius: string) => `Poloha uložena (±${radius}), zpřesňuji…`,
+    savedIn: (radius: string) => `Poloha příchodu uložena (±${radius})`,
+    savedOut: (radius: string) => `Poloha odchodu uložena (±${radius})`,
+    approximate: "Přibližná poloha uložena",
+  },
   common: {
     locale: "cs-CZ",
     comingSoon: (screen: string) => `Tady bude: ${screen}.`,

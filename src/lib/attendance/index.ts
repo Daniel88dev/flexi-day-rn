@@ -27,6 +27,7 @@ export {
   type StatusLook,
 } from "./looks";
 export { anySessionLocated, locationText, type SessionEnd } from "./location";
+export { formatRadius, locationNoticeShown, type LocationStatus } from "./location-capture";
 export { sessionMarks, type SessionMark } from "./marks";
 export {
   shownNotice,
@@ -50,4 +51,5 @@ export type {
   AttendanceState,
 } from "./types";
 export { useClockRead, useClockWrites } from "./use-clock";
+export { useClockLocation } from "./use-clock-location";
 export { useDayRead, useMonthRead } from "./use-day-reads";

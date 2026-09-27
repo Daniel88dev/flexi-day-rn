@@ -369,6 +369,19 @@ export const en = {
       "December",
     ],
   },
+  clockLocation: {
+    noticeTitle: "Your organization records where you clock",
+    noticeBody:
+      "Your phone asks for your location when you clock in and out. You can say no: nothing is recorded then, and nothing else changes.",
+    gotIt: "Got it",
+    privacy: "Privacy policy",
+    saveFailed: "Couldn't save. Try again.",
+    finding: "Finding your location…",
+    sharpening: (radius: string) => `Location saved (±${radius}), sharpening…`,
+    savedIn: (radius: string) => `Clock-in location saved (±${radius})`,
+    savedOut: (radius: string) => `Clock-out location saved (±${radius})`,
+    approximate: "Approximate location saved",
+  },
   common: {
     locale: "en-GB",
     comingSoon: (screen: string) => `${screen} lands here.`,

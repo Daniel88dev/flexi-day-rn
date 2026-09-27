@@ -4,6 +4,7 @@ export { qk } from "./keys";
 export { QueryLayer } from "./query-layer";
 export type { ApiRequest, ApiRequestOptions } from "./request";
 export {
+  putMySettings,
   useMySettings,
   useSaveMySettings,
   type MySettings,

@@ -1,10 +1,14 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Href } from "expo-router";
 import {
   ArrowClockwiseIcon,
+  ArrowSquareOutIcon,
   CaretRightIcon,
+  CheckIcon,
   ClockCounterClockwiseIcon,
   ClockIcon,
   LockSimpleIcon,
+  MapPinIcon,
   SignOutIcon,
   TimerIcon,
   WarningCircleIcon,
@@ -24,7 +28,9 @@ import {
   formatMinutes,
   formatTimer,
   formatWeekday,
+  locationNoticeShown,
   shownNotice,
+  useClockLocation,
   useClockRead,
   useClockWrites,
   type AttendanceState,
@@ -32,16 +38,21 @@ import {
   type ClockStatus,
   type ClockView,
   type DerivedClock,
+  type LocationStatus,
   type RetryTarget,
   type ShownNotice,
   type WriteNotice,
 } from "@/lib/attendance";
 import { cn } from "@/lib/cn";
+import { haptic } from "@/lib/haptics";
+import { putMySettings, qk, useMySettings } from "@/lib/query";
 import { useNow } from "@/lib/use-now";
+import { WEB_PATHS, openWebPage } from "@/lib/web";
 
 import { ClockNotice, NoticeAction } from "./clock-notice";
 import { DayTotals } from "./day-totals";
 import { GLYPHS } from "./glyphs";
+import { LocationLine } from "./location-line";
 
 type Navigate = (href: Href) => void;
 type ReadyView = Extract<ClockView, { kind: "ready" }>;
@@ -58,8 +69,13 @@ export function ClockWidget({
   onNavigate: Navigate;
 }) {
   const { view, reread } = useClockRead({ rereadOnMount: true });
-  const organizationId = view.kind === "ready" ? view.state.organizationId : null;
-  const { busy, notice, act } = useClockWrites(organizationId);
+  const state = view.kind === "ready" ? view.state : null;
+  const location = useClockLocation();
+  const { busy, notice, act } = useClockWrites(
+    state?.organizationId ?? null,
+    state?.locationEnabled ? location.capture : undefined
+  );
+  const locationNotice = useLocationNotice(state);
   const now = useNow(1000);
 
   return (
@@ -72,8 +88,35 @@ export function ClockWidget({
       onReread={reread}
       onNavigate={onNavigate}
       showAttendanceLink={showAttendanceLink}
+      location={location.status}
+      locationNotice={locationNotice}
     />
   );
+}
+
+type LocationNoticeState = { saving: boolean; failed: boolean; onDismiss: () => void };
+
+/**
+ * Got it saves through its own mutation rather than `useSaveMySettings`: a failure stays inside
+ * the notice card, because toasts are only for writes started outside the sheet.
+ */
+function useLocationNotice(state: AttendanceState | null): LocationNoticeState | null {
+  const queryClient = useQueryClient();
+  const settings = useMySettings({ enabled: state?.locationEnabled ?? false }).data;
+  const dismissal = useMutation({
+    mutationFn: () => putMySettings({ attendanceLocationNoticeDismissed: true }),
+    onSuccess: (saved) => queryClient.setQueryData(qk.mySettings(), saved),
+  });
+
+  if (!locationNoticeShown(state, settings)) return null;
+  return {
+    saving: dismissal.isPending,
+    failed: dismissal.isError,
+    onDismiss: () => {
+      haptic("selection");
+      dismissal.mutate();
+    },
+  };
 }
 
 type BodyProps = {
@@ -85,6 +128,8 @@ type BodyProps = {
   onReread: () => void;
   onNavigate: Navigate;
   showAttendanceLink: boolean;
+  location?: LocationStatus;
+  locationNotice?: LocationNoticeState | null;
 };
 
 /** The widget as a function of what it was handed, so every state renders without a server. */
@@ -122,14 +167,49 @@ export function ClockBody(props: BodyProps) {
 
   return (
     <View className="gap-4" testID="clock-widget">
+      {props.locationNotice ? <LocationNotice {...props.locationNotice} /> : null}
       <Notices {...props} view={view} clock={clock} shown={shown} disabled={disabled} />
       <StateHead clock={clock} state={view.state} now={props.now} />
       <Actions status={clock.status} busy={props.busy} disabled={disabled} onAct={props.onAct} />
+      <LocationLine status={props.location} />
       <DayTotals totals={clock.totals} />
       {props.showAttendanceLink ? (
         <AttendanceRow onPress={() => props.onNavigate("/my-attendance")} />
       ) : null}
     </View>
+  );
+}
+
+function LocationNotice({ saving, failed, onDismiss }: LocationNoticeState) {
+  const { t } = useTranslation();
+  const copy = t.clockLocation;
+  return (
+    <ClockNotice
+      testID="clock-location-notice"
+      tone="accent"
+      icon={MapPinIcon}
+      title={copy.noticeTitle}
+      body={copy.noticeBody}
+    >
+      {failed ? (
+        <Text className="w-full text-[13.5px] text-danger" testID="clock-location-save-failed">
+          {copy.saveFailed}
+        </Text>
+      ) : null}
+      <NoticeAction
+        testID="clock-location-got-it"
+        label={copy.gotIt}
+        icon={CheckIcon}
+        disabled={saving}
+        onPress={onDismiss}
+      />
+      <NoticeAction
+        testID="clock-location-privacy"
+        label={copy.privacy}
+        icon={ArrowSquareOutIcon}
+        onPress={() => void openWebPage(WEB_PATHS.privacy)}
+      />
+    </ClockNotice>
   );
 }
 

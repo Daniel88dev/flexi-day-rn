@@ -5,6 +5,7 @@ import { haptic } from "@/lib/haptics";
 import { apiRequest, qk, rereadAttendance } from "@/lib/query";
 
 import { clockView, type ClockView } from "./clock";
+import type { LocationEnd } from "./location-capture";
 import { hapticForNotice, noticeForFailure, settleNotice, type ClockAction } from "./notice";
 import type { WriteNotice } from "./notice";
 import type { AttendanceState } from "./types";
@@ -16,6 +17,11 @@ const WRITE_PATHS: Record<ClockAction, string> = {
   "clock-out": "/api/attendance/clock-out",
   "break-start": "/api/attendance/break/start",
   "break-end": "/api/attendance/break/end",
+};
+
+const LOCATION_ENDS: Partial<Record<ClockAction, LocationEnd>> = {
+  "clock-in": "IN",
+  "clock-out": "OUT",
 };
 
 const isOnline = () => onlineManager.isOnline();
@@ -53,7 +59,10 @@ export function useClockRead({ rereadOnMount = false } = {}): {
  * of `/current` lands, and every other action waits with it. Every write reads again, failed or
  * not: a write that got no answer may still have landed, and the re-read shows which.
  */
-export function useClockWrites(organizationId: string | null) {
+export function useClockWrites(
+  organizationId: string | null,
+  onClocked?: (end: LocationEnd, sessionId: string) => void
+) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState<ClockAction | null>(null);
   const [notice, setNotice] = useState<WriteNotice | null>(null);
@@ -69,8 +78,9 @@ export function useClockWrites(organizationId: string | null) {
 
       try {
         let failed: WriteNotice | null = null;
+        let written: { id?: string } | undefined;
         try {
-          await apiRequest(WRITE_PATHS[action], {
+          written = await apiRequest<{ id?: string }>(WRITE_PATHS[action], {
             method: "POST",
             body: organizationId ? { organizationId } : {},
           });
@@ -80,6 +90,9 @@ export function useClockWrites(organizationId: string | null) {
           if (!failed) return;
         }
 
+        const end = LOCATION_ENDS[action];
+        if (!failed && end && written?.id) onClocked?.(end, written.id);
+
         const settled = settleNotice(failed, await rereadAttendance(queryClient));
         haptic(settled ? hapticForNotice(settled) : "success");
         setNotice(settled);
@@ -88,7 +101,7 @@ export function useClockWrites(organizationId: string | null) {
         setBusy(null);
       }
     },
-    [organizationId, queryClient]
+    [organizationId, queryClient, onClocked]
   );
 
   return { busy, notice, act };

@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 
-export type HapticKind = "tap" | "success" | "warning" | "error";
+export type HapticKind = "tap" | "selection" | "success" | "warning" | "error";
 
 const FEEDBACK = {
   success: Haptics.NotificationFeedbackType.Success,
@@ -13,6 +13,8 @@ export function haptic(kind: HapticKind): void {
   const played =
     kind === "tap"
       ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-      : Haptics.notificationAsync(FEEDBACK[kind]);
+      : kind === "selection"
+        ? Haptics.selectionAsync()
+        : Haptics.notificationAsync(FEEDBACK[kind]);
   played.catch(() => undefined);
 }

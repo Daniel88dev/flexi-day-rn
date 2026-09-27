@@ -5,6 +5,7 @@ import { haptic } from "@/lib/haptics";
 jest.mock("expo-haptics", () => ({
   impactAsync: jest.fn().mockResolvedValue(undefined),
   notificationAsync: jest.fn().mockResolvedValue(undefined),
+  selectionAsync: jest.fn().mockResolvedValue(undefined),
   ImpactFeedbackStyle: { Medium: "medium" },
   NotificationFeedbackType: { Success: "success", Warning: "warning", Error: "error" },
 }));
@@ -15,6 +16,11 @@ describe("haptic", () => {
   it("returns after a medium impact for a clock or break tap", () => {
     haptic("tap");
     expect(Haptics.impactAsync).toHaveBeenCalledWith("medium");
+  });
+
+  it("returns after the selection feedback for Got it", () => {
+    haptic("selection");
+    expect(Haptics.selectionAsync).toHaveBeenCalled();
   });
 
   it.each(["success", "warning", "error"] as const)(
