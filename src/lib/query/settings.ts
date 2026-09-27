@@ -17,10 +17,14 @@ export type MySettingsChange = Partial<MySettings>;
 
 const SETTINGS_PATH = "/api/users/me/settings";
 
-export function useMySettings() {
+export const putMySettings = (change: MySettingsChange) =>
+  apiRequest<MySettings>(SETTINGS_PATH, { method: "PUT", body: change });
+
+export function useMySettings({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: qk.mySettings(),
     queryFn: ({ signal }) => apiRequest<MySettings>(SETTINGS_PATH, { signal }),
+    enabled,
   });
 }
 
@@ -37,8 +41,7 @@ export function useSaveMySettings(): {
   const stored = useMySettings().data;
 
   const mutation = useMutation({
-    mutationFn: (change: MySettingsChange) =>
-      apiRequest<MySettings>(SETTINGS_PATH, { method: "PUT", body: change }),
+    mutationFn: putMySettings,
     onSuccess: (saved) => queryClient.setQueryData(qk.mySettings(), saved),
     onError: (error, change) =>
       writeFailure(error, { queryKeys: [qk.mySettings()], retry: () => mutation.mutate(change) }),

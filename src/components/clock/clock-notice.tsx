@@ -7,6 +7,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/cn";
 
 const TONES = {
+  accent: { surface: "bg-accent", icon: "primary" },
   muted: { surface: "bg-muted", icon: "muted" },
   warn: { surface: "bg-warm-soft", icon: "warm" },
   danger: { surface: "bg-danger-soft", icon: "danger" },

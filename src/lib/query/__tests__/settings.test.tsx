@@ -99,6 +99,20 @@ describe("useMySettings", () => {
     expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/api\/users\/me\/settings$/);
   });
 
+  it("reads nothing while disabled and returns what the cache holds", async () => {
+    function Disabled() {
+      const { data } = useMySettings({ enabled: false });
+      return <Text>{data ? data.dashboardScope : "nothing"}</Text>;
+    }
+    await renderWithClient(<Disabled />);
+    expect(screen.getByText("nothing")).toBeOnTheScreen();
+
+    await act(async () => queryClient.setQueryData(["my-settings"], STORED));
+
+    expect(await screen.findByText("MINE")).toBeOnTheScreen();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("returns no data while the server cannot be reached", async () => {
     mockFetch.mockRejectedValue(new TypeError("Network request failed"));
 

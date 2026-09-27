@@ -2,7 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { ClockBody } from "@/components/clock/clock-widget";
 import { TranslationProvider } from "@/i18n/use-translation";
-import type { ClockAction, ClockView, WriteNotice } from "@/lib/attendance";
+import type { ClockAction, ClockView, LocationStatus, WriteNotice } from "@/lib/attendance";
+import { openWebPage } from "@/lib/web";
 import { attendance, pause, session } from "@/test-support/attendance";
 
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
@@ -10,6 +11,10 @@ jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" })
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
 jest.mock("@/lib/local-store", () => ({ pull: jest.fn() }));
+jest.mock("@/lib/web", () => ({
+  WEB_PATHS: { privacy: "/privacy/" },
+  openWebPage: jest.fn().mockResolvedValue(undefined),
+}));
 
 const NOW = new Date("2026-09-27T07:47:12.000Z").getTime();
 const READ_AT = new Date("2026-09-27T07:41:00.000Z").getTime();
@@ -24,9 +29,21 @@ async function renderBody(
     busy = null,
     notice = null,
     showAttendanceLink = true,
-  }: { busy?: ClockAction | null; notice?: WriteNotice | null; showAttendanceLink?: boolean } = {}
+    location,
+    locationNotice,
+  }: {
+    busy?: ClockAction | null;
+    notice?: WriteNotice | null;
+    showAttendanceLink?: boolean;
+    location?: LocationStatus;
+    locationNotice?: { saving: boolean; failed: boolean; onDismiss: () => void };
+  } = {}
 ) {
-  const handlers = { onAct: jest.fn(), onReread: jest.fn(), onNavigate: jest.fn() };
+  const handlers = {
+    onAct: jest.fn(),
+    onReread: jest.fn(),
+    onNavigate: jest.fn(),
+  };
   const rendered = await render(
     <TranslationProvider>
       <ClockBody
@@ -35,6 +52,8 @@ async function renderBody(
         busy={busy}
         notice={notice}
         showAttendanceLink={showAttendanceLink}
+        location={location}
+        locationNotice={locationNotice}
         {...handlers}
       />
     </TranslationProvider>
@@ -237,5 +256,51 @@ describe("ClockBody", () => {
     expect(screen.queryByText("Can't reach the server")).toBeNull();
     await fireEvent.press(screen.getByText("Try again"));
     expect(onReread).toHaveBeenCalled();
+  });
+
+  it("shows the location notice above the clock, with Got it and the privacy policy", async () => {
+    const onDismiss = jest.fn();
+    await renderBody(ready({ locationEnabled: true }), {
+      locationNotice: { saving: false, failed: false, onDismiss },
+    });
+
+    expect(screen.getByText("Your organization records where you clock")).toBeTruthy();
+    expect(screen.queryByTestId("clock-location-save-failed")).toBeNull();
+    await fireEvent.press(screen.getByText("Got it"));
+    expect(onDismiss).toHaveBeenCalled();
+    await fireEvent.press(screen.getByText("Privacy policy"));
+    expect(openWebPage).toHaveBeenCalledWith("/privacy/");
+  });
+
+  it("keeps the notice with a short line and Got it live when the save failed", async () => {
+    await renderBody(ready({ locationEnabled: true }), {
+      locationNotice: { saving: false, failed: true, onDismiss: jest.fn() },
+    });
+    expect(screen.getByText("Couldn't save. Try again.")).toBeTruthy();
+    expect(disabled("clock-location-got-it")).toBe(false);
+  });
+
+  it("holds Got it while the save is in flight", async () => {
+    await renderBody(ready({ locationEnabled: true }), {
+      locationNotice: { saving: true, failed: false, onDismiss: jest.fn() },
+    });
+    expect(disabled("clock-location-got-it")).toBe(true);
+  });
+
+  it("leaves the location notice out unless it is asked for", async () => {
+    await renderBody(ready({ locationEnabled: true }));
+    expect(screen.queryByTestId("clock-location-notice")).toBeNull();
+    expect(screen.queryByTestId("clock-location")).toBeNull();
+  });
+
+  it.each<[LocationStatus, string]>([
+    [{ kind: "finding" }, "Finding your location…"],
+    [{ kind: "sharpening", accuracy: 65 }, "Location saved (±65\u00a0m), sharpening…"],
+    [{ kind: "saved", end: "IN", accuracy: 6 }, "Clock-in location saved (±6\u00a0m)"],
+    [{ kind: "saved", end: "OUT", accuracy: 1_540 }, "Clock-out location saved (±1.5\u00a0km)"],
+    [{ kind: "approximate" }, "Approximate location saved"],
+  ])("shows the location line for %j", async (location, copy) => {
+    await renderBody(ready({ locationEnabled: true }), { location });
+    expect(screen.getByText(copy)).toBeTruthy();
   });
 });
