@@ -108,7 +108,7 @@ describe("SignIn", () => {
     expect(replace).toHaveBeenCalledWith("/dashboard");
   });
 
-  it("signs in through the ids the Maestro flows drive", async () => {
+  it("signs in through the form's test ids", async () => {
     speakCzech();
 
     await renderSignIn();
