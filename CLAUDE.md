@@ -32,12 +32,16 @@ The personal team id sits in `app.json` so prebuild signs without Xcode clicks; 
 the re-sign loop and how the app finds the backend are in
 [`docs/device-testing.md`](docs/device-testing.md). `npm run ios` targets the simulator,
 `npm run ios:device` the phone.
+Prebuild runs `expo-notifications`' own config plugin whenever the package is installed, listed
+or not, and it writes the push entitlement (`aps-environment`) a free team cannot sign. Local Clock
+reminders need none, so `plugins/without-push-entitlement.js` strips it again; keep it in
+`app.json` until the paid program brings push.
 Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 27 kills an app
 built with Xcode 27 that lacks it, and only a real phone shows that.
 
 Adding a native module — `expo-sqlite`, `expo-secure-store`, `expo-crypto`, `expo-application`,
-`expo-web-browser`, `expo-haptics`, `expo-image-picker`, `expo-location` and
-`@react-native-community/datetimepicker` are the ones here — means `npm run prebuild` and then
+`expo-web-browser`, `expo-haptics`, `expo-image-picker`, `expo-location`, `expo-notifications`
+and `@react-native-community/datetimepicker` are the ones here — means `npm run prebuild` and then
 `npm run ios` or `npm run ios:device` to rebuild the dev client. Metro alone cannot load them, and
 the JavaScript fails at the import with a missing native module until the rebuild lands. A
 non-interactive shell has no UTF-8 `LANG`, and CocoaPods quits without one, so run
@@ -103,7 +107,8 @@ lookup and sign-out itself, and its request hook attaches the same client header
 
 `signedOutWipe()` in `src/lib/session/signed-out-wipe.ts` is the only way out. A 401 from the
 wrapper, a session lookup that answers with none, and sign-out all end there: the cookie jar, the
-session cache, the local store and the query cache go, the Device id stays, and welcome says why.
+session cache, the local store, the query cache, the scheduled clock reminders and their settings
+go, the Device id stays, and welcome says why.
 `signOut()` is the one path that tells the server first, and it wipes whatever the server answers.
 Never clear a piece of the session on its own.
 

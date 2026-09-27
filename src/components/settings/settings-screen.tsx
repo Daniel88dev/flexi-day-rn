@@ -13,6 +13,10 @@ import {
 import { Linking, Pressable, ScrollView, Switch, View } from "react-native";
 
 import { StackScreen } from "@/components/shell/stack-screen";
+import {
+  ClockRemindersSection,
+  NotificationPermissionRow,
+} from "@/components/settings/clock-reminders-section";
 import { DashboardDefaultSection } from "@/components/settings/dashboard-default-section";
 import { Divider, Row, Section } from "@/components/settings/grouped-list";
 import { Icon, useTone } from "@/components/ui/icon";
@@ -20,6 +24,7 @@ import { Notice } from "@/components/ui/notice";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { appVersionLabel } from "@/lib/app-version";
+import { useNotificationPermission } from "@/lib/reminders";
 import { useRequestScopeGroups } from "@/lib/local-store";
 import { useMySettings, useOffersPasswordChange, useSaveMySettings } from "@/lib/query";
 import { initials } from "@/lib/viewer/viewer";
@@ -60,6 +65,7 @@ export function SettingsScreen() {
   const { settings, save } = useSaveMySettings();
   const groups = useRequestScopeGroups();
   const offersPasswordChange = useOffersPasswordChange();
+  const permission = useNotificationPermission();
 
   return (
     <StackScreen title={t.nav.settings}>
@@ -89,6 +95,8 @@ export function SettingsScreen() {
           footer={t.settings.emailNotificationsHint}
           testID="settings-notifications"
         >
+          <NotificationPermissionRow permission={permission} />
+          <Divider />
           <Row
             icon={EnvelopeSimpleIcon}
             label={t.settings.emailNotifications}
@@ -105,7 +113,7 @@ export function SettingsScreen() {
           />
         </Section>
 
-        {/* Clock reminders (T-63) sits here. */}
+        <ClockRemindersSection permission={permission} />
 
         <DashboardDefaultSection settings={settings} groups={groups} onChange={save} />
 

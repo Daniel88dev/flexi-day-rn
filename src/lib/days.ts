@@ -15,6 +15,11 @@ export function mondayIndex(iso: string): number {
   return (((dayNumber(iso) + 3) % 7) + 7) % 7;
 }
 
+/** `Date.getDay()` numbering, 0 for Sunday, which is how the backend stores working days. */
+export function weekdayOf(iso: string): number {
+  return (((dayNumber(iso) + 4) % 7) + 7) % 7;
+}
+
 const pad = (value: number) => String(value).padStart(2, "0");
 
 /** The phone's own calendar day of a moment, which is the one the person means. */
@@ -26,4 +31,14 @@ export function dayOfDate(date: Date): string {
 export function dateOfDay(day: string): Date {
   const [year, month, date] = day.split("-").map(Number);
   return new Date(year, month - 1, date, 12);
+}
+
+export function firstOfNextMonth(iso: string): string {
+  const [year, month] = iso.split("-").map(Number);
+  return new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10);
+}
+
+export function lastOfNextMonth(iso: string): string {
+  const [year, month] = iso.split("-").map(Number);
+  return new Date(Date.UTC(year, month + 1, 0)).toISOString().slice(0, 10);
 }

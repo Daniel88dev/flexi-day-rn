@@ -71,8 +71,13 @@ const eslintConfig = defineConfig([
   },
 
   {
-    files: ["**/metro.config.js"],
+    files: ["**/metro.config.js", "plugins/**/*.js"],
     languageOptions: { globals: globals.node },
+  },
+
+  {
+    files: ["jest/**/*.js"],
+    languageOptions: { globals: globals.jest },
   },
 
   // TypeScript only, the way eslint-config-expo scoped it: metro.config.js and

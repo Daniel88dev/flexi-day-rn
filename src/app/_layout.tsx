@@ -45,6 +45,15 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="requests/new" options={{ presentation: "modal" }} />
+          <Stack.Screen
+            name="notifications-intro"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: "fitToContents",
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 28,
+            }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </TranslationProvider>

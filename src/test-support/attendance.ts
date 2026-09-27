@@ -1,10 +1,12 @@
 import type {
   AttendanceBreak,
+  AttendanceExclusion,
   AttendanceMonth,
   AttendanceMonthDay,
   AttendanceSession,
   AttendanceState,
 } from "@/lib/attendance/types";
+import { addDays, firstOfNextMonth, weekdayOf } from "@/lib/days";
 
 export function session(overrides: Partial<AttendanceSession> = {}): AttendanceSession {
   return {
@@ -97,6 +99,8 @@ export function attendanceMonth(
     month,
     balanceMode: "DAILY",
     requiredMinutesPerDay: 480,
+    breakMinutes: 30,
+    breakThresholdMinutes: 360,
     days: Array.from({ length }, (_, index) => {
       const businessDate = `${year}-${pad(month)}-${pad(index + 1)}`;
       return monthDay({ businessDate, ...days[businessDate] });
@@ -112,4 +116,47 @@ export function attendanceMonth(
     },
     ...overrides,
   };
+}
+
+function datesOfMonth(year: number, month: number): string[] {
+  const first = `${year}-${String(month).padStart(2, "0")}-01`;
+  const next = firstOfNextMonth(first);
+  const dates: string[] = [];
+  for (let date = first; date < next; date = addDays(date, 1)) dates.push(date);
+  return dates;
+}
+
+const WEEKEND: AttendanceExclusion = { cause: "NON_WORKING_DAY", extent: "FULL", label: null };
+
+/** A month of Monday-to-Friday working days still to come, with the days named in `days` overridden. */
+export function workingMonth(
+  year: number,
+  month: number,
+  days: Record<string, Partial<AttendanceMonthDay>> = {},
+  overrides: Partial<AttendanceMonth> = {}
+): AttendanceMonth {
+  return attendanceMonth(
+    year,
+    month,
+    { businessDate: "2026-09-28", ...overrides },
+    Object.fromEntries(
+      datesOfMonth(year, month).map((businessDate) => {
+        const weekend = [0, 6].includes(weekdayOf(businessDate));
+        return [
+          businessDate,
+          {
+            presenceMinutes: 0,
+            breaksMinutes: 0,
+            deductedMinutes: 0,
+            workedMinutes: 0,
+            requiredMinutes: weekend ? 0 : 480,
+            balanceMinutes: null,
+            upcoming: true,
+            exclusion: weekend ? WEEKEND : null,
+            ...days[businessDate],
+          },
+        ];
+      })
+    )
+  );
 }
