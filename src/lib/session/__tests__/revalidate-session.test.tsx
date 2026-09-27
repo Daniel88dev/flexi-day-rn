@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react-native";
 
 import { createFakeAppState, type FakeAppState } from "@/test-support/fake-app-state";
 import {
+  readsSessionBack,
   revalidateSession,
   useSessionRevalidation,
   type SessionLookup,
@@ -9,6 +10,7 @@ import {
 import { SESSION } from "@/test-support/session";
 
 jest.mock("@/lib/session/auth-client", () => ({ authClient: { getSession: jest.fn() } }));
+jest.mock("@/lib/session/signed-out-wipe", () => ({ useSignedOutWipe: () => jest.fn() }));
 
 let wipe: jest.Mock;
 let error: jest.SpyInstance;
@@ -126,5 +128,21 @@ describe("useSessionRevalidation", () => {
     await act(async () => unmount());
 
     expect(appState.listening()).toBe(false);
+  });
+});
+
+describe("readsSessionBack", () => {
+  it("returns true when the server said the session is gone", () => {
+    expect(readsSessionBack({ sessionLost: true, status: 401, swapping: false })).toBe(true);
+  });
+
+  it("returns true for a 5xx only from a call that swaps the session", () => {
+    expect(readsSessionBack({ sessionLost: false, status: 502, swapping: true })).toBe(true);
+    expect(readsSessionBack({ sessionLost: false, status: 502, swapping: false })).toBe(false);
+  });
+
+  it("returns false for a plain refusal", () => {
+    expect(readsSessionBack({ sessionLost: false, status: 400, swapping: true })).toBe(false);
+    expect(readsSessionBack({ sessionLost: false, status: undefined, swapping: true })).toBe(false);
   });
 });

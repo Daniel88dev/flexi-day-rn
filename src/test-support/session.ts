@@ -5,6 +5,7 @@ export const VIEWER: Viewer = {
   id: "kXk2Q7pR9sT1vW3yZ5aB7cD9eF1gH3iJ",
   name: "Dana Kučerová",
   email: "dana@northwind.co",
+  twoFactorEnabled: false,
 };
 
 /** What the expo client's `useSession()` answers for that person. */

@@ -13,9 +13,14 @@ export function fakeTwoFactorAuth(overrides: Partial<TwoFactorMocks> = {}): TwoF
   };
 }
 
-/** The same four calls on an auth client the test file's own `jest.mock` replaced. */
-export function twoFactorMocks(client: { twoFactor: unknown }): TwoFactorMocks {
-  return client.twoFactor as TwoFactorMocks;
+/**
+ * The calls on an auth client the test file's own `jest.mock` replaced: the sign-in four by
+ * default, or the Settings flows' with `twoFactorMocks<TwoFactorSettingsAuth>(authClient)`.
+ */
+export function twoFactorMocks<Auth = TwoFactorAuth>(client: {
+  twoFactor: unknown;
+}): { [Call in keyof Auth]: jest.Mock } {
+  return client.twoFactor as { [Call in keyof Auth]: jest.Mock };
 }
 
 /** What a fresh render starts from: every call answers without an error. */

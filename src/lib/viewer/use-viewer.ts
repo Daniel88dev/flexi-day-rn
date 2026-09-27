@@ -1,6 +1,7 @@
 import { authClient } from "@/lib/session/auth-client";
+import { twoFactorEnabled } from "@/lib/session/two-factor-settings";
 
-export type Viewer = { id: string; name: string; email: string };
+export type Viewer = { id: string; name: string; email: string; twoFactorEnabled: boolean };
 
 /**
  * Who the shell greets, read from the session the expo client cached, so a cold start knows
@@ -9,5 +10,10 @@ export type Viewer = { id: string; name: string; email: string };
 export function useViewer(): Viewer | null {
   const user = authClient.useSession().data?.user;
   if (!user) return null;
-  return { id: user.id, name: user.name, email: user.email };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    twoFactorEnabled: twoFactorEnabled(user),
+  };
 }

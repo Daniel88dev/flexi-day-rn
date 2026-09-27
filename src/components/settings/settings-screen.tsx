@@ -19,6 +19,7 @@ import {
 } from "@/components/settings/clock-reminders-section";
 import { DashboardDefaultSection } from "@/components/settings/dashboard-default-section";
 import { Divider, Row, Section } from "@/components/settings/grouped-list";
+import { TwoFactorRow } from "@/components/settings/two-factor-row";
 import { Icon, useTone } from "@/components/ui/icon";
 import { Notice } from "@/components/ui/notice";
 import { Text } from "@/components/ui/text";
@@ -117,7 +118,6 @@ export function SettingsScreen() {
 
         <DashboardDefaultSection settings={settings} groups={groups} onChange={save} />
 
-        {/* Two-factor (T-58) joins Change password here. */}
         {offersPasswordChange ? (
           <Section
             label={t.settings.security}
@@ -131,6 +131,8 @@ export function SettingsScreen() {
               onPress={() => router.push("/settings/password")}
               accessory={chevron}
             />
+            <Divider />
+            <TwoFactorRow />
           </Section>
         ) : null}
 

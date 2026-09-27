@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { authClient } from "@/lib/session/auth-client";
+import { useRefreshSession } from "@/lib/session/revalidate-session";
 import {
   useChangePassword,
-  useRefreshSession,
   type ChangePassword,
   type ChangePasswordAnswer,
 } from "@/lib/session/use-change-password";
