@@ -74,7 +74,7 @@ export type {
 } from "./types";
 export { useClockRead, useClockWrites } from "./use-clock";
 export { useClockLocation } from "./use-clock-location";
-export { useDayRead, useMonthRead } from "./use-day-reads";
+export { useDayRead, useMonthRead, useSessionEvents } from "./use-day-reads";
 export { entryBreaks, entryErrors, entrySpan, type EntryDraft, type EntryErrors } from "./entry";
 export {
   dayOfPickerDate,
@@ -88,8 +88,43 @@ export {
   quarterHourNow,
   type TimeField,
 } from "./entry-form";
-export type { BreakDraft } from "./correction";
+export { timeFieldOf, type BreakDraft, type CorrectionErrors } from "./correction";
+export {
+  correctionClosed,
+  correctionSave,
+  correctionSheetErrors,
+  correctionSteps,
+  flagsOnSave,
+  heldDraft,
+  heldEdited,
+  liveDraft,
+  rebaseDraft,
+  sessionDeletable,
+  settleDraft,
+  withBreakAdded,
+  withBreakChanged,
+  withBreakRemoved,
+  withBreakRestored,
+  type CorrectionStep,
+  type Deletability,
+  type HeldBreak,
+  type HeldDraft,
+} from "./correction-sheet";
+export {
+  enteredByName,
+  historyStamp,
+  historyText,
+  type AttendanceEvent,
+  type AttendanceEventType,
+} from "./history";
 export { refusalMessage, type EntryFailure } from "./refusals";
-export { entryOffered, selfServiceMode, windowStart, type SelfServiceWindow } from "./self-service";
+export {
+  correctableUntil,
+  entryOffered,
+  selfServiceMode,
+  windowStart,
+  type SelfServiceWindow,
+} from "./self-service";
+export { useCorrectSession } from "./use-correct-session";
 export { useEnterSession, type AttendanceEntry } from "./use-enter-session";
 export { entryWindowHint, windowNote, windowNoteText, type WindowNote } from "./window-note";

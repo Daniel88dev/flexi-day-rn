@@ -85,6 +85,15 @@ describe("refusalMessage", () => {
 
     expect(refusalMessage(failure, en)).toBe("Could not add the session.");
   });
+
+  it("falls back to the caller's words when it names its own", () => {
+    const failure = entryFailureOf(new ApiError(422, null));
+    if (failure?.kind !== "refused") throw new Error("expected a refusal");
+
+    expect(refusalMessage(failure, en, "Could not save the correction.")).toBe(
+      "Could not save the correction."
+    );
+  });
 });
 
 describe("entryFailureOf", () => {

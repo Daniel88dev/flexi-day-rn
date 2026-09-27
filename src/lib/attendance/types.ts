@@ -20,6 +20,8 @@ export type AttendanceSession = {
   closedBy: "USER" | "ADMIN" | "SWEEP" | null;
   /** Optional, as on the web: a backend older than this build sends none, and absent is clocked. */
   origin?: "CLOCKED" | "ENTERED";
+  /** Who entered it; null for a clocked session. Optional for the same older backend. */
+  enteredByUserId?: string | null;
   changedAfterDay?: boolean;
   open: boolean;
   /** Null covers declined, never asked and erased alike; the screens never tell them apart. */
@@ -40,6 +42,8 @@ export type AttendanceState = {
   locationEnabled: boolean;
   /** Optional, as a backend older than this build sends none; absent offers no self-service. */
   selfService?: SelfServiceWindow;
+  /** The reader is an admin over their own Employment, so their writes clear the flag. */
+  administersOwnAttendance?: boolean;
   timezone: string | null;
   businessDate: string | null;
   openSession: AttendanceSession | null;
@@ -106,3 +110,18 @@ export type AttendanceMonth = {
     excludedDays: number;
   };
 };
+
+/** The backend's `attendanceEventType` enum: every change a session's timeline records. */
+export type AttendanceEventType =
+  | "CLOCK_IN"
+  | "CLOCK_OUT"
+  | "BREAK_START"
+  | "BREAK_END"
+  | "LOCATION_UPDATED"
+  | "SESSION_EDITED"
+  | "BREAK_EDITED"
+  | "BREAK_DELETED"
+  | "SESSION_DELETED"
+  | "SESSION_CREATED"
+  | "BREAK_ADDED"
+  | "SESSION_CHECKED";

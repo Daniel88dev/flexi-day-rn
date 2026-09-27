@@ -1,13 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import {
-  LockSimpleIcon,
-  MoonIcon,
-  WarningCircleIcon,
-  WifiSlashIcon,
-  XIcon,
-} from "phosphor-react-native";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
+import { LockSimpleIcon, MoonIcon, XIcon } from "phosphor-react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, Switch, View } from "react-native";
 
 import { ClockNotice } from "@/components/clock/clock-notice";
 import { FieldLabel } from "@/components/requests/fields/field-label";
@@ -29,7 +23,6 @@ import {
   formatMinutes,
   pickerDateOfDay,
   defaultTime,
-  refusalMessage,
   entryWindowHint,
   useClockRead,
   useDayRead,
@@ -38,17 +31,15 @@ import {
   windowStart,
   type BreakDraft,
   type EntryDraft,
-  type EntryFailure,
   type TimeField,
 } from "@/lib/attendance";
-import { cn } from "@/lib/cn";
 import { addDays } from "@/lib/days";
 import { currentMonth, isoDay } from "@/lib/requests/months";
-import { dateOfTime, timeOfDate } from "@/lib/requests/times";
 import { useToday } from "@/lib/use-today";
 
 import { AddRow } from "./add-row";
 import { useDiscardGuard } from "./discard-guard";
+import { FailureNotice, Separator, SheetHeader, SheetRow, TimeCell } from "./sheet-parts";
 
 type Fields = Omit<EntryDraft, "breaks">;
 
@@ -154,49 +145,21 @@ export function EntrySheet({
 
   return (
     <View testID="entry-sheet" className="flex-1 bg-background">
-      <View className="h-14 flex-row items-center justify-between border-b border-border px-2">
-        <Pressable
-          testID="entry-cancel"
-          onPress={onClose}
-          hitSlop={8}
-          accessibilityRole="button"
-          className="h-10 justify-center rounded-full px-3 active:opacity-70"
-        >
-          <Text className="text-[16px] text-primary">{t.entry.cancel}</Text>
-        </Pressable>
-        <Text className="font-display text-[17px] font-semibold text-foreground">
-          {t.entry.title}
-        </Text>
-        <Pressable
-          testID="entry-save"
-          onPress={() => void submit()}
-          disabled={!button.enabled}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !button.enabled, busy: saving }}
-          className="h-10 min-w-[64px] items-center justify-center rounded-full px-3 active:opacity-70"
-        >
-          {saving ? (
-            <ActivityIndicator color={primary} />
-          ) : (
-            <Text
-              className={cn(
-                "text-[16px] font-semibold",
-                button.enabled ? "text-primary" : "text-faint"
-              )}
-            >
-              {button.retry ? t.entry.retry : t.entry.save}
-            </Text>
-          )}
-        </Pressable>
-      </View>
+      <SheetHeader
+        title={t.entry.title}
+        onCancel={onClose}
+        onSave={() => void submit()}
+        button={button}
+        saving={saving}
+        testPrefix="entry"
+      />
 
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ gap: 20, padding: 16, paddingBottom: 48 }}
       >
-        {failure ? <FailureNotice failure={failure} /> : null}
+        {failure ? <FailureNotice failure={failure} testPrefix="entry" /> : null}
         {!failure && closedText ? (
           <ClockNotice
             testID="entry-closed"
@@ -208,7 +171,7 @@ export function EntrySheet({
 
         <View className="gap-2">
           <View className="overflow-hidden rounded-[24px] bg-card">
-            <Row label={t.entry.date}>
+            <SheetRow label={t.entry.date}>
               <DateTimePicker
                 testID="entry-date"
                 mode="date"
@@ -219,9 +182,9 @@ export function EntrySheet({
                 onValueChange={(_event, date) => set({ businessDate: dayOfPickerDate(date) })}
                 accentColor={primary}
               />
-            </Row>
+            </SheetRow>
             <Separator />
-            <Row label={t.entry.start}>
+            <SheetRow label={t.entry.start}>
               <TimeCell
                 testID="entry-start"
                 value={draft.startedAt}
@@ -229,9 +192,9 @@ export function EntrySheet({
                 onChange={(startedAt) => set({ startedAt })}
                 opensAt={openAt({ field: "start" })}
               />
-            </Row>
+            </SheetRow>
             <Separator />
-            <Row label={t.entry.end}>
+            <SheetRow label={t.entry.end}>
               <TimeCell
                 testID="entry-end"
                 value={draft.endedAt}
@@ -239,9 +202,9 @@ export function EntrySheet({
                 onChange={(endedAt) => set({ endedAt })}
                 opensAt={openAt({ field: "end" })}
               />
-            </Row>
+            </SheetRow>
             <Separator />
-            <Row label={t.entry.nextDay}>
+            <SheetRow label={t.entry.nextDay}>
               <Switch
                 testID="entry-next-day"
                 accessibilityLabel={t.entry.nextDay}
@@ -249,7 +212,7 @@ export function EntrySheet({
                 onValueChange={(nextDay) => set({ nextDay })}
                 trackColor={{ true: primary }}
               />
-            </Row>
+            </SheetRow>
             {draft.nextDay ? (
               <View testID="entry-next-day-hint" className="flex-row gap-2 px-4 pb-3.5">
                 <View className="pt-0.5">
@@ -333,92 +296,6 @@ export function EntrySheet({
         </Text>
       </ScrollView>
     </View>
-  );
-}
-
-function FailureNotice({ failure }: { failure: EntryFailure }) {
-  const { t } = useTranslation();
-  if (failure.kind === "network") {
-    return (
-      <ClockNotice
-        testID="entry-unreachable"
-        tone="muted"
-        icon={WifiSlashIcon}
-        title={t.entry.unreachable}
-        body={t.entry.unreachableBody}
-      />
-    );
-  }
-  if (failure.kind === "server") {
-    return (
-      <ClockNotice
-        testID="entry-server-error"
-        tone="danger"
-        icon={WarningCircleIcon}
-        title={t.entry.serverError}
-        body={t.entry.serverErrorBody}
-      />
-    );
-  }
-  return (
-    <ClockNotice
-      testID="entry-refused"
-      tone="danger"
-      icon={WarningCircleIcon}
-      title={refusalMessage(failure, t)}
-    />
-  );
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <View className="min-h-[52px] flex-row items-center justify-between gap-3 px-4 py-1.5">
-      <Text className="text-[15.5px] text-foreground">{label}</Text>
-      {children}
-    </View>
-  );
-}
-
-function Separator() {
-  return <View className="ml-4 h-px bg-border" />;
-}
-
-/** "Set start" until first tapped, then iOS's compact picker from where `opensAt` says. */
-function TimeCell({
-  value,
-  placeholder,
-  onChange,
-  opensAt,
-  testID,
-}: {
-  value: string;
-  placeholder: string;
-  onChange: (time: string) => void;
-  opensAt: () => string;
-  testID: string;
-}) {
-  const primary = useTone("primary");
-  if (value === "") {
-    return (
-      <Pressable
-        testID={`${testID}-set`}
-        onPress={() => onChange(opensAt())}
-        accessibilityRole="button"
-        className="h-9 justify-center rounded-full bg-accent px-3.5 active:opacity-70"
-      >
-        <Text className="text-[15px] font-semibold text-primary">{placeholder}</Text>
-      </Pressable>
-    );
-  }
-  return (
-    <DateTimePicker
-      testID={testID}
-      mode="time"
-      display="compact"
-      value={dateOfTime(value)}
-      onValueChange={(_event, date) => onChange(timeOfDate(date))}
-      accentColor={primary}
-    />
   );
 }
 

@@ -11,6 +11,7 @@ import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import {
   anySessionLocated,
+  correctionClosed,
   dayTotals,
   endOfBusinessDay,
   entryOffered,
@@ -60,6 +61,15 @@ export function DayView({
       ? () => onNavigate({ pathname: "/my-attendance/entry", params: { date } })
       : undefined;
   const note = windowNote({ ...reader, businessDate: date });
+  // Decided per session, as the API does: a session still open is correctable whatever its day.
+  const correctFor = (session: AttendanceSession) =>
+    correctionClosed({ state, session, today }) === null
+      ? () =>
+          onNavigate({
+            pathname: "/my-attendance/session/[id]",
+            params: { id: session.id, date: session.businessDate },
+          })
+      : undefined;
 
   return (
     <View className="gap-4">
@@ -78,6 +88,7 @@ export function DayView({
             timezone={timezone}
             showLocation={state.locationEnabled || anySessionLocated(sessions)}
             onAddSession={onAddSession}
+            correctFor={correctFor}
           />
         ) : day.isError ? (
           <DayReadFailed onRetry={() => void day.refetch()} />
@@ -100,6 +111,7 @@ function DaySessions({
   timezone,
   showLocation,
   onAddSession,
+  correctFor,
 }: {
   sessions: AttendanceSession[];
   date: string;
@@ -107,6 +119,7 @@ function DaySessions({
   timezone: string | null;
   showLocation: boolean;
   onAddSession: (() => void) | undefined;
+  correctFor: (session: AttendanceSession) => (() => void) | undefined;
 }) {
   const live = date === today;
   // Minutes are all the rows and totals show, so a quarter of a minute keeps them current.
@@ -125,7 +138,13 @@ function DaySessions({
       {sessions.map((session, index) => (
         <Fragment key={session.id}>
           {index > 0 ? <View className="h-px bg-border" /> : null}
-          <SessionGroup session={session} today={today} now={until} showLocation={showLocation} />
+          <SessionGroup
+            session={session}
+            today={today}
+            now={until}
+            showLocation={showLocation}
+            onCorrect={correctFor(session)}
+          />
         </Fragment>
       ))}
       {sessions.length ? <DayTotals totals={dayTotals(sessions, until)} /> : null}
