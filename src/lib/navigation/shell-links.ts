@@ -1,14 +1,11 @@
 import {
   ArrowsClockwiseIcon,
-  BuildingsIcon,
   CalendarBlankIcon,
   ChartBarIcon,
-  CreditCardIcon,
   GearIcon,
   SquaresFourIcon,
   TimerIcon,
   UsersIcon,
-  UsersThreeIcon,
   type Icon,
 } from "phosphor-react-native";
 
@@ -16,21 +13,16 @@ import type { Dictionary } from "@/i18n";
 
 export type NavLink = { key: string; label: string; icon: Icon; href: string };
 
-export type NavSectionId = "timeOff" | "attendance" | "organization";
+export type NavSectionId = "timeOff" | "attendance";
 
 export type NavSection = { id: NavSectionId; label: string; links: NavLink[] };
 
-export type ShellAccess = {
-  /** Org admin (owner or delegate) or group admin. */
-  administersSomething: boolean;
-};
-
 /**
- * The web's sections in the same order, gated the same way: a section with no link the viewer
- * may reach is left out rather than rendered empty.
+ * The web's sections in the same order, without the admin pages (Team attendance, Organization,
+ * Billing), which the phone does not have.
  */
-export function buildSections(t: Dictionary, access: ShellAccess): NavSection[] {
-  const sections: NavSection[] = [
+export function buildSections(t: Dictionary): NavSection[] {
+  return [
     {
       id: "timeOff",
       label: t.nav.sections.timeOff,
@@ -57,35 +49,9 @@ export function buildSections(t: Dictionary, access: ShellAccess): NavSection[] 
           icon: TimerIcon,
           href: "/my-attendance",
         },
-        ...(access.administersSomething
-          ? [
-              {
-                key: "teamAttendance",
-                label: t.nav.teamAttendance,
-                icon: UsersThreeIcon,
-                href: "/team-attendance",
-              },
-            ]
-          : []),
       ],
     },
-    {
-      id: "organization",
-      label: t.nav.sections.organization,
-      links: access.administersSomething
-        ? [
-            {
-              key: "organization",
-              label: t.nav.organization,
-              icon: BuildingsIcon,
-              href: "/organization",
-            },
-            { key: "billing", label: t.nav.billing, icon: CreditCardIcon, href: "/billing" },
-          ]
-        : [],
-    },
   ];
-  return sections.filter((section) => section.links.length > 0);
 }
 
 /** The links below the sections: the viewer's own settings. */

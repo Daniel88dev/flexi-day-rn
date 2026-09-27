@@ -1,0 +1,14 @@
+appId: com.flexiday.app
+name: The More sheet carries no admin links
+---
+- runFlow: subflows/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: "dashboard"
+    timeout: 60000
+- tapOn: "More"
+- assertVisible: "Settings"
+- assertVisible: "Sign out"
+- assertNotVisible: "Team attendance"
+- assertNotVisible: "Organization"
+- assertNotVisible: "Billing"

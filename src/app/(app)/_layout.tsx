@@ -17,6 +17,7 @@ import {
   splitForTabBar,
   type NavLink,
 } from "@/lib/navigation/shell-links";
+import { QueryLayer } from "@/lib/query";
 import { useSessionRevalidation } from "@/lib/session/revalidate-session";
 import { useRootRoute } from "@/lib/session/root-route-context";
 import { signOut } from "@/lib/session/sign-out";
@@ -41,6 +42,7 @@ export default function AppLayout() {
     setStoreOpen(false);
     await signedOutWipe();
   }, [signedOutWipe]);
+  const onUnauthorized = useCallback(() => void wipe(), [wipe]);
 
   // The session and the sync pull revalidate on the same foreground event, neither waiting for
   // the other, so a session revoked while the app slept is caught on the way back in.
@@ -51,22 +53,20 @@ export default function AppLayout() {
   useEffect(() => {
     if (!viewerId || !signedIn) return;
     let current = true;
-    openStore(viewerId, { onUnauthorized: () => void wipe() }).then(
+    openStore(viewerId, { onUnauthorized }).then(
       () => current && setStoreOpen(true),
       (error: unknown) => console.error("The local store did not open.", error)
     );
     return () => {
       current = false;
     };
-  }, [viewerId, signedIn, wipe]);
+  }, [viewerId, signedIn, onUnauthorized]);
 
   // A deep link into the shell without a session goes back to welcome. The root layout has read
   // the session cache before any of this mounts, so the answer here is never a guess.
   if (rootRoute === "welcome") return <Redirect href="/welcome" />;
 
-  // Nobody administers anything until the viewer's roles are read from the backend, so the
-  // admin sections stay out of the tree rather than rendering empty.
-  const sections = buildSections(t, { administersSomething: false });
+  const sections = buildSections(t);
   const utility = buildUtilityLinks(t);
   const { bar, sheet } = splitForTabBar(sections);
 
@@ -78,42 +78,44 @@ export default function AppLayout() {
   return (
     // sonner-native's toasts need a gesture handler root above them and expo-router mounts none.
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View className="flex-1 bg-background">
-        {storeOpen ? (
-          <Tabs>
-            <TabSlot />
-            <TabList asChild>
-              <View className="flex-row border-t border-border bg-card pb-safe">
-                {bar.slice(0, 2).map((link) => (
-                  <TabTrigger key={link.key} name={link.key} href={link.href as Href} asChild>
-                    <TabButton label={link.label} icon={link.icon} />
-                  </TabTrigger>
-                ))}
+      <QueryLayer onUnauthorized={onUnauthorized}>
+        <View className="flex-1 bg-background">
+          {storeOpen ? (
+            <Tabs>
+              <TabSlot />
+              <TabList asChild>
+                <View className="flex-row border-t border-border bg-card pb-safe">
+                  {bar.slice(0, 2).map((link) => (
+                    <TabTrigger key={link.key} name={link.key} href={link.href as Href} asChild>
+                      <TabButton label={link.label} icon={link.icon} />
+                    </TabTrigger>
+                  ))}
 
-                <ClockButton label={t.nav.clock} onPress={() => router.push("/my-attendance")} />
+                  <ClockButton label={t.nav.clock} onPress={() => router.push("/my-attendance")} />
 
-                {bar.slice(2).map((link) => (
-                  <TabTrigger key={link.key} name={link.key} href={link.href as Href} asChild>
-                    <TabButton label={link.label} icon={link.icon} />
-                  </TabTrigger>
-                ))}
+                  {bar.slice(2).map((link) => (
+                    <TabTrigger key={link.key} name={link.key} href={link.href as Href} asChild>
+                      <TabButton label={link.label} icon={link.icon} />
+                    </TabTrigger>
+                  ))}
 
-                <TabButton label={t.nav.more} icon={ListIcon} onPress={() => setMoreOpen(true)} />
-              </View>
-            </TabList>
-          </Tabs>
-        ) : null}
+                  <TabButton label={t.nav.more} icon={ListIcon} onPress={() => setMoreOpen(true)} />
+                </View>
+              </TabList>
+            </Tabs>
+          ) : null}
 
-        <MoreSheet
-          open={moreOpen}
-          onClose={() => setMoreOpen(false)}
-          sections={sheet}
-          utility={utility}
-          viewer={viewer}
-          onNavigate={go}
-          onSignOut={() => void signOut(wipe)}
-        />
-      </View>
+          <MoreSheet
+            open={moreOpen}
+            onClose={() => setMoreOpen(false)}
+            sections={sheet}
+            utility={utility}
+            viewer={viewer}
+            onNavigate={go}
+            onSignOut={() => void signOut(wipe)}
+          />
+        </View>
+      </QueryLayer>
       <Toaster />
     </GestureHandlerRootView>
   );

@@ -6,7 +6,7 @@ import { TranslationProvider } from "@/i18n/use-translation";
 import { buildSections, buildUtilityLinks, splitForTabBar } from "@/lib/navigation/shell-links";
 import { VIEWER } from "@/test-support/session";
 
-const sections = buildSections(en, { administersSomething: false });
+const sections = buildSections(en);
 const { sheet } = splitForTabBar(sections);
 
 function renderSheet(open: boolean) {
@@ -32,6 +32,13 @@ describe("MoreSheet", () => {
     expect(screen.getByText("Groups")).toBeTruthy();
     expect(screen.getByText("Calendar sync")).toBeTruthy();
     expect(screen.getByText("Settings")).toBeTruthy();
+  });
+
+  it("shows none of the admin links, whose pages the phone does not have", async () => {
+    await renderSheet(true);
+    expect(screen.queryByText("Team attendance")).toBeNull();
+    expect(screen.queryByText("Organization")).toBeNull();
+    expect(screen.queryByText("Billing")).toBeNull();
   });
 
   it("offers a way out and names the viewer", async () => {

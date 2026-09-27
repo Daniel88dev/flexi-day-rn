@@ -1,6 +1,8 @@
+import { serverMessage } from "@/lib/api";
+
 import { storeProvisionalVacations, storeWrittenVacations } from "./apply";
 import type { StoreClock } from "./clock";
-import { serverMessage, type StoreFetch, type StoreRequestMethod } from "./fetch";
+import type { StoreFetch, StoreRequestMethod } from "./fetch";
 import type {
   PendingChange,
   PendingChanges,
@@ -28,7 +30,13 @@ export type WriteOutcome =
   | { ok: true }
   | {
       ok: false;
-      reason: "unreachable" | "rejected";
+      reason: "unreachable";
+      message: null;
+    }
+  | {
+      ok: false;
+      reason: "rejected";
+      status: number;
       /** What the server said about refusing, when it said anything at all. */
       message: string | null;
     };
@@ -38,7 +46,7 @@ const WRITTEN: WriteOutcome = { ok: true };
 /** The write reached no answer at all: the timeout fired, or the connection or the body broke. */
 type WriteUnreachable = { type: "unreachable" };
 
-type WriteRefused = { type: "rejected"; message: string | null };
+type WriteRefused = { type: "rejected"; status: number; message: string | null };
 
 type WriteResponse =
   { type: "written"; body: unknown } | { type: "unauthorized" } | WriteUnreachable | WriteRefused;
@@ -98,7 +106,7 @@ async function sendJson(
     });
     if (response.status === 401) return { type: "unauthorized" };
     if (response.status < 200 || response.status >= 300) {
-      return { type: "rejected", message: await serverMessage(response) };
+      return { type: "rejected", status: response.status, message: await serverMessage(response) };
     }
     return { type: "written", body: await response.json() };
   } catch {
@@ -111,7 +119,7 @@ async function sendJson(
 function failureOf(response: WriteUnreachable | WriteRefused): WriteOutcome {
   return response.type === "unreachable"
     ? { ok: false, reason: "unreachable", message: null }
-    : { ok: false, reason: "rejected", message: response.message };
+    : { ok: false, reason: "rejected", status: response.status, message: response.message };
 }
 
 export function createStoreWrites({
