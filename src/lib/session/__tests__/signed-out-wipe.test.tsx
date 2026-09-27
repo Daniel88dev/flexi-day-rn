@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { destroyStore } from "@/lib/local-store";
 import { queryClient } from "@/lib/query/runtime";
+import { reminderPrefs, reminderScheduler } from "@/lib/reminders/device";
 import { SESSION_COOKIE_KEY } from "@/lib/session/auth-client";
 import { DEVICE_ID_KEY } from "@/lib/session/device-id";
 import { RootRouteProvider, useRootRoute } from "@/lib/session/root-route-context";
@@ -153,6 +154,34 @@ describe("signedOutWipe", () => {
 
     expect(destroyLocalStore).toHaveBeenCalledTimes(2);
     expect(replace).toHaveBeenCalledTimes(2);
+  });
+
+  it("cancels every clock reminder and deletes their settings", async () => {
+    const scheduled = (
+      jest.requireActual("expo-notifications") as { __scheduled: Map<string, unknown> }
+    ).__scheduled;
+    reminderPrefs.save({
+      clockIn: { enabled: true, time: "07:15", weekdays: [1, 2] },
+      clockOut: { enabled: false },
+    });
+    await reminderScheduler.apply(
+      [
+        { id: "clock-in:2026-09-29", kind: "clock-in", fireAt: 1000 },
+        { id: "clock-out", kind: "clock-out", fireAt: 2000 },
+      ],
+      {
+        "clock-in": { title: "Clock in", body: "In" },
+        "clock-out": { title: "Clock out", body: "Out" },
+      }
+    );
+
+    await wipe();
+
+    expect([...scheduled.keys()].filter((id) => id.startsWith("clock-"))).toEqual([]);
+    expect(reminderPrefs.read()).toEqual({
+      clockIn: { enabled: false, time: "08:00", weekdays: null },
+      clockOut: { enabled: true },
+    });
   });
 
   it("lands on welcome even when the Keychain refuses to answer", async () => {

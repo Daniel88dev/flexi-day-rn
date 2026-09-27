@@ -12,6 +12,8 @@ import { queryClient } from "@/lib/query";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { authClient } from "@/lib/session/auth-client";
+import { reminderPrefs } from "@/lib/reminders";
+import { attendance, workingMonth } from "@/test-support/attendance";
 import { SESSION } from "@/test-support/session";
 
 const mockFetch = jest.fn();
@@ -47,6 +49,26 @@ jest.mock("expo-application", () => ({
   nativeApplicationVersion: "1.2.0",
   nativeBuildVersion: "45",
 }));
+jest.mock("@react-native-community/datetimepicker", () => {
+  const { Pressable } = jest.requireActual("react-native");
+  return function DateTimePicker(props: {
+    testID: string;
+    value: Date;
+    onValueChange: (event: unknown, date: Date) => void;
+  }) {
+    return (
+      <Pressable
+        testID={props.testID}
+        accessibilityValue={{ text: props.value.toTimeString().slice(0, 5) }}
+        onPress={() => {
+          const later = new Date(props.value);
+          later.setMinutes(later.getMinutes() + 30);
+          props.onValueChange({ type: "set" }, later);
+        }}
+      />
+    );
+  };
+});
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn().mockResolvedValue({ type: "dismiss" }),
   WebBrowserPresentationStyle: { PAGE_SHEET: "pageSheet" },
@@ -241,5 +263,123 @@ describe("Settings", () => {
     await waitFor(() =>
       expect(screen.getByTestId("settings-email-switch")).toHaveProp("disabled", false)
     );
+  });
+});
+
+describe("Settings, phone notifications and Clock reminders", () => {
+  const notifications = jest.requireActual("expo-notifications") as {
+    getPermissionsAsync: jest.Mock;
+    requestPermissionsAsync: jest.Mock;
+  };
+  const GRANTED = { status: "granted", granted: true, canAskAgain: true, ios: { status: 2 } };
+  const DENIED = { status: "denied", granted: false, canAskAgain: false, ios: { status: 1 } };
+  const UNDETERMINED = {
+    status: "undetermined",
+    granted: false,
+    canAskAgain: true,
+    ios: { status: 0 },
+  };
+
+  function answerAttendance(current: unknown) {
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url.includes("/api/attendance/current")) {
+        return current === 404 ? answer(404, { message: "No Employment" }) : answer(200, current);
+      }
+      if (url.includes("/api/attendance/month")) {
+        const month = Number(new URL(url).searchParams.get("month"));
+        return answer(200, workingMonth(2026, month));
+      }
+      return answer(200, STORED);
+    });
+  }
+
+  beforeEach(() => {
+    reminderPrefs.clear();
+    notifications.getPermissionsAsync.mockResolvedValue(GRANTED);
+    answerAttendance(attendance({ businessDate: "2026-09-28" }));
+  });
+
+  it("shows iOS's answer on the permission row", async () => {
+    await renderLoaded();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("settings-notifications-permission")).toHaveTextContent(/On/)
+    );
+  });
+
+  it("offers Open Settings while iOS refuses notifications", async () => {
+    notifications.getPermissionsAsync.mockResolvedValue(DENIED);
+    const openSettings = jest.spyOn(Linking, "openSettings").mockResolvedValue(undefined);
+    await renderLoaded();
+
+    await fireEvent.press(await screen.findByTestId("settings-notifications-open-settings"));
+
+    expect(openSettings).toHaveBeenCalled();
+  });
+
+  it("asks iOS from Turn on while it has never been asked", async () => {
+    notifications.getPermissionsAsync.mockResolvedValue(UNDETERMINED);
+    await renderLoaded();
+
+    await act(async () =>
+      fireEvent.press(await screen.findByTestId("settings-notifications-turn-on"))
+    );
+
+    expect(notifications.requestPermissionsAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows Clock reminders with clock-in off and clock-out on while attendance is active", async () => {
+    await renderLoaded();
+
+    expect(await screen.findByTestId("settings-clock-reminders")).toBeOnTheScreen();
+    expect(screen.getByTestId("settings-reminder-clock-in")).toHaveProp("value", false);
+    expect(screen.getByTestId("settings-reminder-clock-out")).toHaveProp("value", true);
+    expect(screen.queryByTestId("settings-reminder-time")).toBeNull();
+  });
+
+  it("offers 08:00 on the working days when clock-in is switched on, and saves a day unticked", async () => {
+    await renderLoaded();
+
+    await act(async () =>
+      fireEvent(await screen.findByTestId("settings-reminder-clock-in"), "valueChange", true)
+    );
+
+    expect(screen.getByTestId("settings-reminder-time")).toHaveAccessibilityValue({
+      text: "08:00",
+    });
+    await waitFor(() => expect(screen.getByTestId("settings-reminder-day-5")).toBeChecked());
+    expect(screen.getByTestId("settings-reminder-day-6")).not.toBeChecked();
+    expect(screen.getByTestId("settings-reminder-day-6")).toBeDisabled();
+
+    await act(async () => fireEvent.press(screen.getByTestId("settings-reminder-day-5")));
+    await act(async () => fireEvent.press(screen.getByTestId("settings-reminder-time")));
+
+    expect(reminderPrefs.read().clockIn).toEqual({
+      enabled: true,
+      time: "08:30",
+      weekdays: [1, 2, 3, 4],
+    });
+  });
+
+  it("keeps the section visible but switched off while iOS refuses notifications", async () => {
+    notifications.getPermissionsAsync.mockResolvedValue(DENIED);
+    await renderLoaded();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("settings-reminder-clock-out")).toHaveProp("disabled", true)
+    );
+    expect(screen.getByText(en.reminders.deniedHint)).toBeOnTheScreen();
+  });
+
+  it.each([
+    ["attendance is off", attendance({ active: false })],
+    ["the Employment ended", attendance({ employmentEnded: true })],
+    ["there is no Employment", 404],
+  ])("leaves Clock reminders out while %s", async (_why, current) => {
+    answerAttendance(current);
+    await renderLoaded();
+    await act(async () => undefined);
+
+    expect(screen.queryByTestId("settings-clock-reminders")).toBeNull();
   });
 });

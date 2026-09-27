@@ -72,7 +72,8 @@
           "cameraPermission": "Flexi Day uses the camera to photograph a document for your time-off request.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "./plugins/without-push-entitlement"
     ],
     "experiments": {
       "typedRoutes": true

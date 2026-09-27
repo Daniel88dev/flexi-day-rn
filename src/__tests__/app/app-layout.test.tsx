@@ -59,6 +59,13 @@ jest.mock("@/lib/app-state", () => ({
 
 jest.mock("sonner-native", () => ({ Toaster: () => null }));
 
+// Its own test covers what it does; here it only has to mount once the store is open.
+jest.mock("@/components/reminders/clock-reminders", () => {
+  const { View } = jest.requireActual("react-native");
+  const React = jest.requireActual("react");
+  return { ClockReminders: () => React.createElement(View, { testID: "clock-reminders" }) };
+});
+
 jest.mock("expo-network", () => ({
   addNetworkStateListener: () => ({ remove: () => undefined }),
   getNetworkStateAsync: async () => ({ isConnected: true, isInternetReachable: true }),
@@ -135,6 +142,12 @@ describe("AppLayout", () => {
     expect(screen.queryByText("/welcome")).toBeNull();
     expect(screen.getByTestId("tab-slot")).toBeTruthy();
     expect(open).toHaveBeenCalledWith(VIEWER.id, expect.anything());
+  });
+
+  it("mounts the Clock reminders once the Local store is open", async () => {
+    await renderShell("signed-in");
+
+    expect(await screen.findByTestId("clock-reminders")).toBeTruthy();
   });
 
   it("opens the Clock sheet from the centre disc", async () => {

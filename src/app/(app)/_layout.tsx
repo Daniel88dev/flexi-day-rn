@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Toaster } from "sonner-native";
 
 import { ClockDisc } from "@/components/clock/clock-disc";
+import { ClockReminders } from "@/components/reminders/clock-reminders";
 import { MoreSheet } from "@/components/shell/more-sheet";
 import { TabButton } from "@/components/shell/tab-button";
 import { useTranslation } from "@/i18n/use-translation";
@@ -79,6 +80,7 @@ export default function AppLayout() {
     // sonner-native's toasts need a gesture handler root above them and expo-router mounts none.
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryLayer onUnauthorized={onUnauthorized}>
+        {storeOpen ? <ClockReminders /> : null}
         <View className="flex-1 bg-background">
           <ShellLinks>
             {({ bar, sheet, hiddenTabs }) => (

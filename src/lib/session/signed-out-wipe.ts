@@ -4,6 +4,7 @@ import { useCallback } from "react";
 
 import { destroyStore } from "@/lib/local-store";
 import { queryClient } from "@/lib/query/runtime";
+import { clearClockReminders } from "@/lib/reminders/device";
 
 import { clearClientSession, SESSION_COOKIE_KEY } from "./auth-client";
 import { keychain } from "./keychain";
@@ -23,6 +24,7 @@ export type SignedOutWipeOptions = {
   setRootRoute: (route: RootRoute) => void;
   storage?: SessionStorage;
   destroyLocalStore?: () => Promise<void>;
+  clearReminders?: () => Promise<void>;
   clearSession?: () => void;
   showNotice?: () => void;
   replace?: (href: string) => void;
@@ -36,8 +38,9 @@ let running: Promise<void> | null = null;
 
 /**
  * What the app does when the server stops trusting the phone, and what signing out does after
- * the server has been told: the cookie jar, the session cache, the Local store and the query cache
- * go, the Device id stays, and welcome says why. It never signs out on its own.
+ * the server has been told: the cookie jar, the session cache, the Local store, the query cache,
+ * the scheduled clock reminders and their settings go, the Device id stays, and welcome says
+ * why. It never signs out on its own.
  */
 export function signedOutWipe(options: SignedOutWipeOptions): Promise<void> {
   running ??= wipe(options).finally(() => {
@@ -50,6 +53,7 @@ async function wipe({
   setRootRoute,
   storage = sessionStorage,
   destroyLocalStore = destroyStore,
+  clearReminders = clearClockReminders,
   clearSession = clearClientSession,
   showNotice = showSignedOutNotice,
   replace = (href) => router.replace(href as "/welcome"),
@@ -59,6 +63,7 @@ async function wipe({
       storage.setItemAsync(SESSION_COOKIE_KEY, EMPTY_ENTRY),
       storage.setItemAsync(SESSION_CACHE_KEY, EMPTY_ENTRY),
       destroyLocalStore(),
+      clearReminders(),
     ]);
   } catch (cause: unknown) {
     // Whatever the phone could not let go of, staying on a signed-in screen is worse.

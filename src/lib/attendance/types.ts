@@ -87,6 +87,8 @@ export type AttendanceMonth = {
   month: number;
   balanceMode: AttendanceBalanceMode;
   requiredMinutesPerDay: number;
+  breakMinutes: number;
+  breakThresholdMinutes: number;
   days: AttendanceMonthDay[];
   totals: {
     presenceMinutes: number;
