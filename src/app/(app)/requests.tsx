@@ -3,6 +3,7 @@ import { PlusIcon } from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { FilterChips } from "@/components/requests/filter-chips";
 import { MonthStepper } from "@/components/requests/month-stepper";
 import { RequestCard } from "@/components/requests/request-card";
@@ -68,6 +69,7 @@ export default function RequestsScreen() {
           </Text>
           <View className="max-w-[65%] flex-row items-center gap-2">
             <ScopeMenu groups={groups} selected={selected} onChange={setChoice} />
+            <NotificationBell />
             <Pressable
               testID="requests-new-request"
               onPress={() => router.push("/requests/new")}

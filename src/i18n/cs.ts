@@ -676,6 +676,28 @@ export const cs: Dictionary = {
       notNow: "Teď ne",
     },
   },
+  notifications: {
+    title: "Oznámení",
+    open: "Oznámení",
+    openUnread: "Oznámení, některá nepřečtená",
+    back: "Zpět",
+    unread: "Nepřečtené",
+    unreadCount: (count: number) =>
+      `${count} ${count === 1 ? "nepřečtené" : count >= 2 && count <= 4 ? "nepřečtená" : "nepřečtených"}`,
+    allRead: "Vše přečteno",
+    markAllRead: "Označit přečtené",
+    clearAll: "Smazat vše",
+    clearConfirm: {
+      title: "Smazat všechna oznámení?",
+      body: "Zmizí i z webu.",
+      confirm: "Smazat vše",
+      cancel: "Zrušit",
+    },
+    delete: "Smazat",
+    deleteLabel: (title: string) => `Smazat oznámení: ${title}`,
+    empty: "Máte přečteno.",
+    emptyBody: "Novinky o vašich žádostech a schvalování se zobrazí tady.",
+  },
   common: {
     locale: "cs-CZ",
     comingSoon: (screen: string) => `Tady bude: ${screen}.`,

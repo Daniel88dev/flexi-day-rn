@@ -20,6 +20,11 @@ jest.mock("@/lib/local-store", () => ({
   useRequestScopeGroups: jest.fn(),
 }));
 
+jest.mock("@/components/notifications/notification-bell", () => {
+  const { View } = jest.requireActual("react-native");
+  return { NotificationBell: () => <View testID="notification-bell" /> };
+});
+
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
 
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
@@ -122,6 +127,12 @@ describe("RequestsScreen", () => {
       pathname: "/requests/[vacationId]",
       params: { vacationId: "eva-1" },
     });
+  });
+
+  it("renders the notification bell in the header", async () => {
+    await renderRequests();
+
+    expect(screen.getByTestId("notification-bell")).toBeOnTheScreen();
   });
 
   it("opens the new-request form from the header's +", async () => {

@@ -14,6 +14,14 @@ export {
 export { useCreateRequest, useGroupMembers } from "./create-request";
 export { ApiError, classifyFailure, type FailureClass } from "./failure";
 export { qk } from "./keys";
+export {
+  useHasUnreadNotifications,
+  useNotifications,
+  useNotificationWrites,
+  useRereadNotificationsOnFocus,
+  type AppNotification,
+  type NotificationBusy,
+} from "./notifications";
 export { QueryLayer } from "./query-layer";
 export type { ApiRequest, ApiRequestOptions } from "./request";
 export {
