@@ -33,7 +33,13 @@ export default function ClockSheet() {
     <QueryClientProvider client={queryClient}>
       <Stack.Screen options={{ contentStyle: { backgroundColor: card } }} />
       <View className="bg-card px-5 pt-6" style={{ paddingBottom: 20 }} testID="clock-sheet">
-        <ClockWidget onNavigate={(href: Href) => router.navigate(href)} />
+        <ClockWidget
+          onNavigate={(href: Href) => {
+            // The sheet goes first, so the screen it opens is not left under it.
+            router.back();
+            router.navigate(href);
+          }}
+        />
       </View>
     </QueryClientProvider>
   );

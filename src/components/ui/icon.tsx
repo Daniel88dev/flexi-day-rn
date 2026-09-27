@@ -11,6 +11,7 @@ export type Tone =
   | "danger"
   | "ok"
   | "warm"
+  | "review"
   | "onFill"
   | "card";
 
@@ -23,6 +24,7 @@ const TONE_VAR: Record<Tone, string> = {
   danger: "--danger",
   ok: "--ok",
   warm: "--warm",
+  review: "--review",
   // Text on an ok or warm fill: the page background, as the prototype's disc and buttons use it.
   onFill: "--bg",
   card: "--card",
@@ -39,6 +41,7 @@ const FALLBACK: Record<"light" | "dark", Record<Tone, string>> = {
     danger: "#c6514f",
     ok: "#2e8a57",
     warm: "#c86a3f",
+    review: "#1e74b3",
     onFill: "#fbf8f3",
     card: "#fffdfa",
   },
@@ -51,6 +54,7 @@ const FALLBACK: Record<"light" | "dark", Record<Tone, string>> = {
     danger: "#e1786f",
     ok: "#5fbb85",
     warm: "#e68d65",
+    review: "#72b3e8",
     onFill: "#121118",
     card: "#1b1a22",
   },

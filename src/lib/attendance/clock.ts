@@ -17,7 +17,8 @@ export function minutesBetween(from: string, to: string | number): number {
 const spanMinutes = (span: Span, now: number) =>
   minutesBetween(span.startedAt, span.endedAt ?? now);
 
-function totalsOf(sessions: AttendanceSession[], now: number) {
+/** Presence, breaks and the session count of a day's sessions, open spans running to `now`. */
+export function dayTotals(sessions: AttendanceSession[], now: number) {
   return {
     presenceMinutes: sessions.reduce((sum, entry) => sum + spanMinutes(entry, now), 0),
     breakMinutes: sessions.reduce(
@@ -77,7 +78,7 @@ export function deriveClock(state: AttendanceState, now: number): DerivedClock {
     runningSince: state.openBreak?.startedAt ?? state.openSession?.startedAt ?? null,
     // An ended Employment refuses the clock-out too.
     stranded: status === "inactive" && !state.employmentEnded && state.openSession !== null,
-    totals: totalsOf(state.sessions, now),
+    totals: dayTotals(state.sessions, now),
     autoClosed: autoClosedOf(state.autoClosedSession),
   };
 }

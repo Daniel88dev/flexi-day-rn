@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { Alert } from "react-native";
 
@@ -8,7 +8,7 @@ import { apiRequest, queryClient } from "@/lib/query";
 import type { FakeAppState } from "@/test-support/fake-app-state";
 import { authClient } from "@/lib/session/auth-client";
 import { clearSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
-import { attendance } from "@/test-support/attendance";
+import { attendance, session } from "@/test-support/attendance";
 import { SESSION, VIEWER } from "@/test-support/session";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
@@ -144,6 +144,45 @@ describe("AppLayout", () => {
     await act(async () => fireEvent.press(await screen.findByTestId("clock-disc")));
 
     expect(router.push).toHaveBeenCalledWith("/clock");
+  });
+});
+
+describe("AppLayout, the My attendance link", () => {
+  const answer = (body: unknown) =>
+    mockFetch.mockResolvedValue({ status: 200, json: async () => body });
+  const barLabels = () =>
+    screen.getAllByRole("tab").map((tab) => within(tab).queryByText(/./)?.props.children);
+
+  it("puts My attendance on the bar while attendance is active", async () => {
+    answer(attendance({ active: true }));
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(barLabels()).toContain("My attendance"));
+    expect(barLabels()).not.toContain("Report");
+  });
+
+  it("keeps it for a lapsed organization while a session is still open", async () => {
+    answer(attendance({ active: false, openSession: session() }));
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(barLabels()).toContain("My attendance"));
+  });
+
+  it("puts Report in its place for a lapsed organization with nothing open", async () => {
+    answer(attendance({ active: false }));
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(barLabels()).toContain("Report"));
+    expect(barLabels()).not.toContain("My attendance");
+  });
+
+  it("puts Report in its place without an Employment, and moves Report off the More sheet", async () => {
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(barLabels()).toContain("Report"));
+    await act(async () => fireEvent.press(screen.getByText("More")));
+    expect(screen.getAllByText("Report")).toHaveLength(1);
+    expect(screen.queryByText("My attendance")).toBeNull();
   });
 });
 
