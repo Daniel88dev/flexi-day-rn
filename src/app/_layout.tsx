@@ -34,7 +34,17 @@ export default function RootLayout() {
   return (
     <RootRouteProvider route={route}>
       <TranslationProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen
+            name="clock"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: "fitToContents",
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 28,
+            }}
+          />
+        </Stack>
         <StatusBar style="auto" />
       </TranslationProvider>
     </RootRouteProvider>

@@ -6,7 +6,7 @@ import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Toaster } from "sonner-native";
 
-import { ClockButton } from "@/components/shell/clock-button";
+import { ClockDisc } from "@/components/clock/clock-disc";
 import { MoreSheet } from "@/components/shell/more-sheet";
 import { TabButton } from "@/components/shell/tab-button";
 import { useTranslation } from "@/i18n/use-translation";
@@ -91,7 +91,7 @@ export default function AppLayout() {
                     </TabTrigger>
                   ))}
 
-                  <ClockButton label={t.nav.clock} onPress={() => router.push("/my-attendance")} />
+                  <ClockDisc onPress={() => router.push("/clock")} />
 
                   {bar.slice(2).map((link) => (
                     <TabTrigger key={link.key} name={link.key} href={link.href as Href} asChild>

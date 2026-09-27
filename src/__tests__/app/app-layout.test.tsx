@@ -1,12 +1,14 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { router } from "expo-router";
 import { Alert } from "react-native";
 
 import AppLayout from "@/app/(app)/_layout";
 import { destroyStore, openStore } from "@/lib/local-store";
-import { apiRequest } from "@/lib/query";
+import { apiRequest, queryClient } from "@/lib/query";
 import type { FakeAppState } from "@/test-support/fake-app-state";
 import { authClient } from "@/lib/session/auth-client";
 import { clearSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
+import { attendance } from "@/test-support/attendance";
 import { SESSION, VIEWER } from "@/test-support/session";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
@@ -81,6 +83,10 @@ jest.mock("react-native-gesture-handler", () => ({
   GestureHandlerRootView: jest.requireActual("react-native").View,
 }));
 
+// The shell and the sheet share the app's one query client; its garbage collection timers
+// would outlive the test.
+afterEach(() => queryClient.clear());
+
 function renderShell(route: RootRoute) {
   return render(
     <RootRouteProvider route={route}>
@@ -106,6 +112,9 @@ function answerUnauthorized() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // The clock disc reads /current as the shell mounts; a phone with no Employment keeps it quiet.
+  mockFetch.mockReset();
+  mockFetch.mockResolvedValue({ status: 404, json: async () => ({}) });
   clearSignedOutNotice();
   useSession.mockReturnValue(SESSION);
   getSession.mockResolvedValue(SESSION);
@@ -126,6 +135,15 @@ describe("AppLayout", () => {
     expect(screen.queryByText("/welcome")).toBeNull();
     expect(screen.getByTestId("tab-slot")).toBeTruthy();
     expect(open).toHaveBeenCalledWith(VIEWER.id, expect.anything());
+  });
+
+  it("opens the Clock sheet from the centre disc", async () => {
+    mockFetch.mockResolvedValue({ status: 200, json: async () => attendance() });
+    await renderShell("signed-in");
+
+    await act(async () => fireEvent.press(await screen.findByTestId("clock-disc")));
+
+    expect(router.push).toHaveBeenCalledWith("/clock");
   });
 });
 
