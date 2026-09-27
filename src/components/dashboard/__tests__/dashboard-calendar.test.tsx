@@ -16,6 +16,7 @@ import {
 } from "@/lib/local-store/test-support/sync-fixtures";
 import { openTestStore } from "@/lib/local-store/test-support/test-store";
 import { useMySettings, type MySettings } from "@/lib/query";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 jest.mock("@/lib/query", () => ({ useMySettings: jest.fn() }));
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
@@ -43,6 +44,8 @@ async function pullIn(page: Partial<SyncEnvelope>) {
     store.write((transaction) => applyPage(transaction, syncPage(page), 1));
   });
 }
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(async () => {
   jest.useFakeTimers({

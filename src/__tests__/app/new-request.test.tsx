@@ -15,6 +15,7 @@ import { fakeFiles } from "@/test-support/fake-file-system";
 import { vacationDetail } from "@/test-support/vacation-detail";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -122,6 +123,8 @@ jest.spyOn(ActionSheetIOS, "showActionSheetWithOptions").mockImplementation((opt
   sheetOptions = options.options;
   choose = cb;
 });
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

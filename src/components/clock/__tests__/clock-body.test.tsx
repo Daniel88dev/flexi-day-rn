@@ -5,6 +5,7 @@ import { TranslationProvider } from "@/i18n/use-translation";
 import type { ClockAction, ClockView, LocationStatus, WriteNotice } from "@/lib/attendance";
 import { openWebPage } from "@/lib/web";
 import { attendance, pause, session } from "@/test-support/attendance";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
@@ -63,6 +64,8 @@ async function renderBody(
 
 const disabled = (testID: string) =>
   screen.getByTestId(testID).props.accessibilityState?.disabled === true;
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 describe("ClockBody", () => {
   it("shows a skeleton while nothing is cached yet", async () => {

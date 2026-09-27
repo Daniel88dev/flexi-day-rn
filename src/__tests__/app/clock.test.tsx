@@ -7,6 +7,7 @@ import { queryClient } from "@/lib/query";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { attendance, session } from "@/test-support/attendance";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 
@@ -33,6 +34,8 @@ jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" })
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
 jest.mock("@/lib/local-store", () => ({ pull: jest.fn() }));
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 // The shell and the sheet share the app's one query client; its garbage collection timers
 // would outlive the test.

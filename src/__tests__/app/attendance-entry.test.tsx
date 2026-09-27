@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import Screen from "@/app/my-attendance/entry";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockCanGoBack = jest.fn(() => true);
 const mockParams: { date?: string } = {};
@@ -39,6 +40,8 @@ async function renderRoute(route: RootRoute) {
     </RootRouteProvider>
   );
 }
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date(2026, 8, 27, 12), doNotFake: ["setImmediate", "nextTick"] });

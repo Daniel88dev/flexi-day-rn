@@ -9,6 +9,7 @@ import { TranslationProvider } from "@/i18n/use-translation";
 import type { AttendanceState } from "@/lib/attendance";
 import { qk } from "@/lib/query/keys";
 import { attendance, session } from "@/test-support/attendance";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 
@@ -86,6 +87,8 @@ async function renderWidget(cached?: AttendanceState) {
 const OPEN = session({ startedAt: new Date(Date.now() - 5 * 60_000).toISOString() });
 const OUT = attendance();
 const IN = attendance({ openSession: OPEN, sessions: [OPEN] });
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => jest.clearAllMocks());
 

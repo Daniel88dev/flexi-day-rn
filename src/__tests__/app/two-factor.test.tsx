@@ -7,6 +7,7 @@ import { TranslationProvider } from "@/i18n/use-translation";
 import { authClient } from "@/lib/session/auth-client";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { acceptEveryCode, twoFactorMocks } from "@/test-support/two-factor";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -29,6 +30,8 @@ jest.mock("expo-localization", () => ({ getLocales: jest.fn(() => [{ languageCod
 const params = useLocalSearchParams as unknown as jest.Mock;
 const back = router.back as jest.Mock;
 const twoFactor = twoFactorMocks(authClient);
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

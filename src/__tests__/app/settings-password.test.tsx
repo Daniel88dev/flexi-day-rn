@@ -8,6 +8,7 @@ import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { authClient } from "@/lib/session/auth-client";
 import { signedOutWipe } from "@/lib/session/signed-out-wipe";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockCanGoBack = jest.fn(() => true);
 
@@ -36,6 +37,8 @@ const changePassword = authClient.changePassword as unknown as jest.Mock;
 const getSession = authClient.getSession as unknown as jest.Mock;
 const wipe = signedOutWipe as unknown as jest.Mock;
 const copy = en.settings.password;
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

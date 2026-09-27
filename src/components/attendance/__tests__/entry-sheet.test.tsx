@@ -6,6 +6,7 @@ import { EntrySheet } from "@/components/attendance/entry-sheet";
 import { TranslationProvider } from "@/i18n/use-translation";
 import type { AttendanceState } from "@/lib/attendance";
 import { attendance, attendanceMonth, session } from "@/test-support/attendance";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockGuard = jest.fn();
@@ -121,6 +122,8 @@ async function fillSession(start: [number, number], end: [number, number]) {
 }
 
 const saveButton = () => screen.getByTestId("entry-save");
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   // Sunday 27 September 2026, 18:19 in Prague.

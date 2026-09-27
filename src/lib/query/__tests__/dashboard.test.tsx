@@ -136,9 +136,8 @@ describe("useDashboardSummary", () => {
 
     const { result } = await renderHook(() => useDashboardSummary(), { wrapper });
 
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2), RETRY_SETTLED);
-    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
-    expect(result.current).toEqual(FAILED);
+    await waitFor(() => expect(result.current).toEqual(FAILED), RETRY_SETTLED);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
   it("returns failed once a later read fails, not the counts it read before", async () => {
@@ -156,8 +155,7 @@ describe("useDashboardSummary", () => {
   it("returns the counts again once the server answers after a failure", async () => {
     offline();
     const { result } = await renderHook(() => useDashboardSummary(), { wrapper });
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2), RETRY_SETTLED);
-    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    await waitFor(() => expect(result.current).toEqual(FAILED), RETRY_SETTLED);
     mockFetch.mockResolvedValue(answer(200, SUMMARY));
 
     await act(async () => {

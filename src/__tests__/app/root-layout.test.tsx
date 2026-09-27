@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react-native";
 import RootLayout from "@/app/_layout";
 import { loadDeviceId } from "@/lib/session/device-id";
 import { loadCachedSession } from "@/lib/session/session-cache";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 // The Stack stands in for everything below the root layout and says which route it was given,
 // so the test reads the decision the layout handed the rest of the app.
@@ -24,6 +25,8 @@ const readSessionCache = loadCachedSession as jest.MockedFunction<typeof loadCac
 function app(): string | null {
   return screen.queryByText(/^app:/)?.props.children ?? null;
 }
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

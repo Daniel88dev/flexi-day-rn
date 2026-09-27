@@ -11,6 +11,7 @@ import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { authClient } from "@/lib/session/auth-client";
 import type { TwoFactorSettingsAuth } from "@/lib/session/use-two-factor-flow";
 import { twoFactorMocks } from "@/test-support/two-factor";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockCanGoBack = jest.fn(() => true);
 const mockParams = jest.fn<{ flow?: string }, []>(() => ({ flow: "enable" }));
@@ -63,6 +64,8 @@ const copy = en.settings.twoFactor;
 const URI =
   "otpauth://totp/Flexi%20Day:dana%40northwind.co?secret=JBSWY3DPEHPK3PXPJBSWY3DP&issuer=Flexi+Day&digits=6&period=30";
 const CODES = ["aaaaa-bbbbb", "ccccc-ddddd", "eeeee-fffff"];
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

@@ -23,6 +23,7 @@ import {
   useRereadDashboardOnFocus,
   type DashboardSummary,
 } from "@/lib/query";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 jest.mock("@/lib/local-store", () => ({
   pull: jest.fn(),
@@ -119,6 +120,8 @@ const NO_ROWS: Record<SyncTableName, number> = {
   bankHolidays: 0,
   vacations: 0,
 };
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();
