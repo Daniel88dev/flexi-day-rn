@@ -64,6 +64,37 @@ describe("createApiRequest", () => {
     expect(error).toMatchObject({ status: 409, serverMessage: "You are already clocked in" });
   });
 
+  it("carries the first error's context, which names the refusal's reason", async () => {
+    const { request } = answering(422, {
+      errors: [
+        {
+          message: "A session can't be longer than 16:00",
+          context: { reason: "OVER_CEILING", ceilingMinutes: 960 },
+        },
+      ],
+    });
+
+    const error = await request("/api/attendance/sessions", { method: "POST" }).catch(
+      (caught: unknown) => caught
+    );
+
+    expect(error).toMatchObject({
+      status: 422,
+      context: { reason: "OVER_CEILING", ceilingMinutes: 960 },
+    });
+  });
+
+  it("carries no context when the server sent none", async () => {
+    const { request } = answering(500);
+
+    const error = await request("/api/attendance/sessions", { method: "POST" }).catch(
+      (caught: unknown) => caught
+    );
+
+    expect(error).toMatchObject({ status: 500, serverMessage: null });
+    expect((error as ApiError).context).toBeUndefined();
+  });
+
   it("throws what the fetch threw when no answer arrived", async () => {
     const offline = new TypeError("Network request failed");
     const request = createApiRequest(() => Promise.reject(offline));

@@ -54,6 +54,7 @@ export default function RootLayout() {
               sheetCornerRadius: 28,
             }}
           />
+          <Stack.Screen name="my-attendance/entry" options={{ presentation: "modal" }} />
         </Stack>
         <StatusBar style="auto" />
       </TranslationProvider>

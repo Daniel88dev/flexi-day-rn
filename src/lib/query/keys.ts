@@ -20,4 +20,7 @@ export const qk = {
     ["attendance-month", year, month, organizationId ?? "own"] as const,
   attendanceDay: (params: { organizationId: string; businessDate: string; userId?: string }) =>
     ["attendance-day", params.organizationId, params.businessDate, params.userId ?? "own"] as const,
+  /** Every session's events: the prefix a self-service write invalidates. */
+  attendanceEventsAll: () => ["attendance-events"] as const,
+  attendanceEvents: (sessionId: string) => ["attendance-events", sessionId] as const,
 };

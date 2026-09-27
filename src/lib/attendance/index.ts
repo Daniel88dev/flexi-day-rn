@@ -75,3 +75,21 @@ export type {
 export { useClockRead, useClockWrites } from "./use-clock";
 export { useClockLocation } from "./use-clock-location";
 export { useDayRead, useMonthRead } from "./use-day-reads";
+export { entryBreaks, entryErrors, entrySpan, type EntryDraft, type EntryErrors } from "./entry";
+export {
+  dayOfPickerDate,
+  defaultTime,
+  entryClosed,
+  entryDirty,
+  entryMessages,
+  entryPreview,
+  entrySave,
+  pickerDateOfDay,
+  quarterHourNow,
+  type TimeField,
+} from "./entry-form";
+export type { BreakDraft } from "./correction";
+export { refusalMessage, type EntryFailure } from "./refusals";
+export { entryOffered, selfServiceMode, windowStart, type SelfServiceWindow } from "./self-service";
+export { useEnterSession, type AttendanceEntry } from "./use-enter-session";
+export { entryWindowHint, windowNote, windowNoteText, type WindowNote } from "./window-note";

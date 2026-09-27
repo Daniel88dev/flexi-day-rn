@@ -1,4 +1,4 @@
-export { rereadAttendance, type Reread } from "./attendance";
+export { rereadAfterSelfService, rereadAttendance, type Reread } from "./attendance";
 export { useOffersPasswordChange } from "./auth-accounts";
 export {
   useApprovalDecisions,

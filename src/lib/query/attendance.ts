@@ -24,3 +24,15 @@ export async function rereadAttendance(queryClient: QueryClient): Promise<Reread
   const state = queryClient.getQueryState(qk.attendanceState());
   return state?.status === "success" ? { arrived: true } : { arrived: false, error: state?.error };
 }
+
+/**
+ * After a self-service write, whether it landed or not: the attendance reads again, and each
+ * session's events, since a write of several requests can land in part.
+ */
+export async function rereadAfterSelfService(queryClient: QueryClient): Promise<Reread> {
+  const [reread] = await Promise.all([
+    rereadAttendance(queryClient),
+    queryClient.invalidateQueries({ queryKey: qk.attendanceEventsAll() }),
+  ]);
+  return reread;
+}
