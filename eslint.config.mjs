@@ -71,7 +71,7 @@ const eslintConfig = defineConfig([
   },
 
   {
-    files: ["**/metro.config.js", "plugins/**/*.js"],
+    files: ["**/metro.config.js", "plugins/**/*.js", "scripts/**/*.js"],
     languageOptions: { globals: globals.node },
   },
 
