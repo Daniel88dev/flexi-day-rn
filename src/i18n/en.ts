@@ -609,6 +609,7 @@ export const en = {
     decline: "Decline",
     cancelRequest: "Cancel request",
     edit: "Edit",
+    options: "Request options",
     declineTitle: "Decline this request?",
     cancelTitle: "Cancel this request?",
     reasonBody: "Add a reason if you like. It shows in the request's history.",

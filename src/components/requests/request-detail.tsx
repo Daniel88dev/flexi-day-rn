@@ -1,7 +1,8 @@
 import { router, useIsFocused } from "expo-router";
-import { CaretLeftIcon, PaperPlaneRightIcon } from "phosphor-react-native";
+import { CaretLeftIcon, DotsThreeIcon, PaperPlaneRightIcon } from "phosphor-react-native";
 import { useState, type ReactNode } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   KeyboardAvoidingView,
   Pressable,
@@ -278,6 +279,55 @@ function ActionButton({
   );
 }
 
+/** Cancelling sits behind this menu rather than on the screen, so a stray tap cannot start it. */
+function OptionsMenu({
+  onCancelRequest,
+  busy,
+  disabled,
+}: {
+  onCancelRequest: () => void;
+  busy: boolean;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const labels = t.requestDetail;
+  const foreground = useTone("foreground");
+
+  const open = () =>
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [labels.cancelRequest, labels.notNow],
+        destructiveButtonIndex: 0,
+        cancelButtonIndex: 1,
+      },
+      (index) => {
+        if (index === 0) onCancelRequest();
+      }
+    );
+
+  return (
+    <Pressable
+      testID="request-detail-options"
+      onPress={open}
+      disabled={disabled}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={labels.options}
+      accessibilityState={{ disabled, busy }}
+      className={cn(
+        "h-10 w-10 items-center justify-center rounded-full bg-card active:opacity-70",
+        disabled && !busy && "opacity-50"
+      )}
+    >
+      {busy ? (
+        <ActivityIndicator color={foreground} />
+      ) : (
+        <Icon icon={DotsThreeIcon} tone="foreground" size={22} weight="bold" />
+      )}
+    </Pressable>
+  );
+}
+
 function DetailBody({
   detail,
   failure,
@@ -334,7 +384,8 @@ function DetailBody({
   };
 
   const readOnly = failure !== null;
-  const hasActions = !readOnly && (detail.canApprove || detail.canCancel);
+  const canDecide = !readOnly && detail.canApprove;
+  const canCancel = !readOnly && detail.canCancel;
   const canEdit = !readOnly && detail.canEdit;
 
   const openEdit = () => {
@@ -346,17 +397,28 @@ function DetailBody({
     <>
       <Header
         right={
-          canEdit ? (
-            <Pressable
-              testID="request-detail-edit"
-              onPress={openEdit}
-              disabled={busy}
-              hitSlop={8}
-              accessibilityRole="button"
-              className="h-10 justify-center rounded-full px-3 active:opacity-70"
-            >
-              <Text className="text-[16px] font-semibold text-primary">{labels.edit}</Text>
-            </Pressable>
+          canEdit || canCancel ? (
+            <View className="flex-row items-center gap-1">
+              {canEdit ? (
+                <Pressable
+                  testID="request-detail-edit"
+                  onPress={openEdit}
+                  disabled={busy}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  className="h-10 justify-center rounded-full px-3 active:opacity-70"
+                >
+                  <Text className="text-[16px] font-semibold text-primary">{labels.edit}</Text>
+                </Pressable>
+              ) : null}
+              {canCancel ? (
+                <OptionsMenu
+                  onCancelRequest={() => void cancel()}
+                  busy={actions.running === "cancel"}
+                  disabled={busy}
+                />
+              ) : null}
+            </View>
           ) : null
         }
       />
@@ -410,47 +472,33 @@ function DetailBody({
           </View>
           {readOnly ? null : <CommentComposer vacationId={detail.id} />}
         </ScrollView>
-        {hasActions ? (
+        {canDecide ? (
           <View
             testID="request-detail-actions"
             className="gap-2.5 border-t border-border bg-card px-4 pt-3 pb-safe"
           >
-            {detail.canApprove ? (
-              <View className="flex-row gap-2.5">
-                <ActionButton
-                  testID="request-decline"
-                  label={labels.decline}
-                  onPress={() => void decline()}
-                  busy={actions.running === "reject"}
-                  disabled={busy}
-                  className="flex-1 bg-danger-soft"
-                  textClassName="text-danger"
-                  spinner={danger}
-                />
-                <ActionButton
-                  testID="request-approve"
-                  label={labels.approve}
-                  onPress={() => void approve()}
-                  busy={actions.running === "approve"}
-                  disabled={busy}
-                  className="flex-1 bg-ok"
-                  textClassName="text-background"
-                  spinner={onFill}
-                />
-              </View>
-            ) : null}
-            {detail.canCancel ? (
+            <View className="flex-row gap-2.5">
               <ActionButton
-                testID="request-cancel"
-                label={labels.cancelRequest}
-                onPress={() => void cancel()}
-                busy={actions.running === "cancel"}
+                testID="request-decline"
+                label={labels.decline}
+                onPress={() => void decline()}
+                busy={actions.running === "reject"}
                 disabled={busy}
-                className="border border-input bg-card"
+                className="flex-1 bg-danger-soft"
                 textClassName="text-danger"
                 spinner={danger}
               />
-            ) : null}
+              <ActionButton
+                testID="request-approve"
+                label={labels.approve}
+                onPress={() => void approve()}
+                busy={actions.running === "approve"}
+                disabled={busy}
+                className="flex-1 bg-ok"
+                textClassName="text-background"
+                spinner={onFill}
+              />
+            </View>
             <View className="h-1" />
           </View>
         ) : null}
