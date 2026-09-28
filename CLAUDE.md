@@ -26,7 +26,9 @@ sync cursor, tombstone, sync reset, pending change, provisional row); use them, 
 `app.json` or a config plugin, never into `ios/` by hand. Android is untouched for now: the code
 stays cross-platform, but nothing is configured or tested there.
 
-Bundle id `com.flexiday.app`, URL scheme `flexiday`, display name "Flexi Day". Device testing uses
+Bundle id `com.flexiday.app`, URL scheme `flexiday`, display name "Flexi Day". The home-screen icon
+is `assets/icon.png` (`ios.icon`), 1024 px, opaque and square because iOS masks the corners; it
+is rendered from `assets/icon.svg`, the web's `app/icon.svg` without the corner radius. Device testing uses
 a free Apple ID through Xcode (seven-day signing); there is no EAS, TestFlight or paid program.
 The personal team id sits in `app.json` so prebuild signs without Xcode clicks; the phone setup,
 the re-sign loop and how the app finds the backend are in
