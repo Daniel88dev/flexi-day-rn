@@ -9,6 +9,7 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.flexiday.app",
+      "icon": "./assets/icon.png",
       "supportsTablet": false,
       "appleTeamId": "7DD5F92WWS"
     },
