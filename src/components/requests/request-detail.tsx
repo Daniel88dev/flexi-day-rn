@@ -279,13 +279,15 @@ function ActionButton({
   );
 }
 
-/** Cancelling sits behind this menu rather than on the screen, so a stray tap cannot start it. */
+type MenuItem = { label: string; onSelect: () => void; destructive?: boolean };
+
+/** The request's own actions sit behind this menu rather than on the screen, so a stray tap starts none. */
 function OptionsMenu({
-  onCancelRequest,
+  items,
   busy,
   disabled,
 }: {
-  onCancelRequest: () => void;
+  items: MenuItem[];
   busy: boolean;
   disabled: boolean;
 }) {
@@ -296,13 +298,11 @@ function OptionsMenu({
   const open = () =>
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        options: [labels.cancelRequest, labels.notNow],
-        destructiveButtonIndex: 0,
-        cancelButtonIndex: 1,
+        options: [...items.map((item) => item.label), labels.notNow],
+        destructiveButtonIndex: items.flatMap((item, index) => (item.destructive ? [index] : [])),
+        cancelButtonIndex: items.length,
       },
-      (index) => {
-        if (index === 0) onCancelRequest();
-      }
+      (index) => items[index]?.onSelect()
     );
 
   return (
@@ -393,32 +393,19 @@ function DetailBody({
     setEditing(true);
   };
 
+  const menu: MenuItem[] = [
+    ...(canEdit ? [{ label: labels.edit, onSelect: openEdit }] : []),
+    ...(canCancel
+      ? [{ label: labels.cancelRequest, onSelect: () => void cancel(), destructive: true }]
+      : []),
+  ];
+
   return (
     <>
       <Header
         right={
-          canEdit || canCancel ? (
-            <View className="flex-row items-center gap-1">
-              {canEdit ? (
-                <Pressable
-                  testID="request-detail-edit"
-                  onPress={openEdit}
-                  disabled={busy}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  className="h-10 justify-center rounded-full px-3 active:opacity-70"
-                >
-                  <Text className="text-[16px] font-semibold text-primary">{labels.edit}</Text>
-                </Pressable>
-              ) : null}
-              {canCancel ? (
-                <OptionsMenu
-                  onCancelRequest={() => void cancel()}
-                  busy={actions.running === "cancel"}
-                  disabled={busy}
-                />
-              ) : null}
-            </View>
+          menu.length > 0 ? (
+            <OptionsMenu items={menu} busy={actions.running === "cancel"} disabled={busy} />
           ) : null
         }
       />
