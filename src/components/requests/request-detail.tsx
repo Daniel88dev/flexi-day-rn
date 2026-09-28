@@ -1,5 +1,11 @@
 import { router, useIsFocused } from "expo-router";
-import { CaretLeftIcon, PaperPlaneRightIcon } from "phosphor-react-native";
+import {
+  CaretLeftIcon,
+  DotsThreeIcon,
+  PaperPlaneRightIcon,
+  PencilSimpleIcon,
+  XCircleIcon,
+} from "phosphor-react-native";
 import { useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
@@ -19,6 +25,7 @@ import { EditRequestSheet } from "@/components/requests/edit-request-sheet";
 import { askForReason } from "@/components/requests/reason-prompt";
 import { Icon, useTone } from "@/components/ui/icon";
 import { Notice } from "@/components/ui/notice";
+import { PopoverMenu, type PopoverMenuItem } from "@/components/ui/popover-menu";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
@@ -39,6 +46,9 @@ import { dayNumber } from "@/lib/days";
 
 const messageOf = (failure: FailureClass) =>
   failure.kind === "signed-out" ? null : failure.message;
+
+// The header is 56 tall and centres the 40 pt options button, so this drops the menu just below it.
+const MENU_TOP = 52;
 
 function Header({ right }: { right?: ReactNode }) {
   const { t } = useTranslation();
@@ -278,6 +288,54 @@ function ActionButton({
   );
 }
 
+/** The request's own actions sit behind this menu rather than on the screen, so a stray tap starts none. */
+function OptionsMenu({
+  items,
+  busy,
+  disabled,
+}: {
+  items: PopoverMenuItem[];
+  busy: boolean;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const labels = t.requestDetail;
+  const foreground = useTone("foreground");
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Pressable
+        testID="request-detail-options"
+        onPress={() => setOpen(true)}
+        disabled={disabled}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={labels.options}
+        accessibilityState={{ disabled, busy, expanded: open }}
+        className={cn(
+          "h-10 w-10 items-center justify-center rounded-full bg-card active:opacity-70",
+          disabled && !busy && "opacity-50"
+        )}
+      >
+        {busy ? (
+          <ActivityIndicator color={foreground} />
+        ) : (
+          <Icon icon={DotsThreeIcon} tone="foreground" size={22} weight="bold" />
+        )}
+      </Pressable>
+      <PopoverMenu
+        testID="request-detail-menu"
+        open={open}
+        onClose={() => setOpen(false)}
+        items={items}
+        top={MENU_TOP}
+        closeLabel={labels.closeOptions}
+      />
+    </>
+  );
+}
+
 function DetailBody({
   detail,
   failure,
@@ -334,7 +392,8 @@ function DetailBody({
   };
 
   const readOnly = failure !== null;
-  const hasActions = !readOnly && (detail.canApprove || detail.canCancel);
+  const canDecide = !readOnly && detail.canApprove;
+  const canCancel = !readOnly && detail.canCancel;
   const canEdit = !readOnly && detail.canEdit;
 
   const openEdit = () => {
@@ -342,21 +401,29 @@ function DetailBody({
     setEditing(true);
   };
 
+  const menu: PopoverMenuItem[] = [
+    ...(canEdit
+      ? [{ key: "edit", label: labels.edit, icon: PencilSimpleIcon, onSelect: openEdit }]
+      : []),
+    ...(canCancel
+      ? [
+          {
+            key: "cancel",
+            label: labels.cancelRequest,
+            icon: XCircleIcon,
+            onSelect: () => void cancel(),
+            destructive: true,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <>
       <Header
         right={
-          canEdit ? (
-            <Pressable
-              testID="request-detail-edit"
-              onPress={openEdit}
-              disabled={busy}
-              hitSlop={8}
-              accessibilityRole="button"
-              className="h-10 justify-center rounded-full px-3 active:opacity-70"
-            >
-              <Text className="text-[16px] font-semibold text-primary">{labels.edit}</Text>
-            </Pressable>
+          menu.length > 0 ? (
+            <OptionsMenu items={menu} busy={actions.running === "cancel"} disabled={busy} />
           ) : null
         }
       />
@@ -410,47 +477,33 @@ function DetailBody({
           </View>
           {readOnly ? null : <CommentComposer vacationId={detail.id} />}
         </ScrollView>
-        {hasActions ? (
+        {canDecide ? (
           <View
             testID="request-detail-actions"
             className="gap-2.5 border-t border-border bg-card px-4 pt-3 pb-safe"
           >
-            {detail.canApprove ? (
-              <View className="flex-row gap-2.5">
-                <ActionButton
-                  testID="request-decline"
-                  label={labels.decline}
-                  onPress={() => void decline()}
-                  busy={actions.running === "reject"}
-                  disabled={busy}
-                  className="flex-1 bg-danger-soft"
-                  textClassName="text-danger"
-                  spinner={danger}
-                />
-                <ActionButton
-                  testID="request-approve"
-                  label={labels.approve}
-                  onPress={() => void approve()}
-                  busy={actions.running === "approve"}
-                  disabled={busy}
-                  className="flex-1 bg-ok"
-                  textClassName="text-background"
-                  spinner={onFill}
-                />
-              </View>
-            ) : null}
-            {detail.canCancel ? (
+            <View className="flex-row gap-2.5">
               <ActionButton
-                testID="request-cancel"
-                label={labels.cancelRequest}
-                onPress={() => void cancel()}
-                busy={actions.running === "cancel"}
+                testID="request-decline"
+                label={labels.decline}
+                onPress={() => void decline()}
+                busy={actions.running === "reject"}
                 disabled={busy}
-                className="border border-input bg-card"
+                className="flex-1 bg-danger-soft"
                 textClassName="text-danger"
                 spinner={danger}
               />
-            ) : null}
+              <ActionButton
+                testID="request-approve"
+                label={labels.approve}
+                onPress={() => void approve()}
+                busy={actions.running === "approve"}
+                disabled={busy}
+                className="flex-1 bg-ok"
+                textClassName="text-background"
+                spinner={onFill}
+              />
+            </View>
             <View className="h-1" />
           </View>
         ) : null}

@@ -94,6 +94,11 @@ jest.spyOn(Alert, "prompt").mockImplementation((_title, _message, buttons) => {
   prompt = { buttons: buttons as AlertButton[] };
 });
 
+async function openOptionsAndPick(key: "edit" | "cancel") {
+  await fireEvent.press(screen.getByTestId("request-detail-options"));
+  await fireEvent.press(screen.getByTestId(`request-detail-menu-${key}`));
+}
+
 async function answerPrompt(label: string, text?: string) {
   const button = prompt?.buttons.find((candidate) => candidate.text === label);
   await act(async () => (button?.onPress as (value?: string) => void)(text));
@@ -212,7 +217,7 @@ describe("RequestDetail route", () => {
     );
     expect(screen.getByTestId("request-timeline")).toHaveTextContent(/“Plans changed”/);
     expect(screen.queryByTestId("request-detail-actions")).toBeNull();
-    expect(screen.queryByTestId("request-detail-edit")).toBeNull();
+    expect(screen.queryByTestId("request-detail-options")).toBeNull();
   });
 
   it("renders a deleted request as gone rather than failing", async () => {
@@ -286,7 +291,7 @@ describe("RequestDetail route", () => {
     expect(screen.getByTestId("request-detail-note")).toHaveTextContent("Family trip");
     expect(screen.getByTestId("request-detail-retry")).toBeOnTheScreen();
     expect(screen.queryByTestId("request-detail-actions")).toBeNull();
-    expect(screen.queryByTestId("request-detail-edit")).toBeNull();
+    expect(screen.queryByTestId("request-detail-options")).toBeNull();
     expect(screen.queryByTestId("request-comment-input")).toBeNull();
   });
 
@@ -295,8 +300,7 @@ describe("RequestDetail route", () => {
 
     expect(screen.queryByTestId("request-approve")).toBeNull();
     expect(screen.queryByTestId("request-decline")).toBeNull();
-    expect(screen.queryByTestId("request-cancel")).toBeNull();
-    expect(screen.queryByTestId("request-detail-edit")).toBeNull();
+    expect(screen.queryByTestId("request-detail-options")).toBeNull();
   });
 
   it("offers each action the detail grants", async () => {
@@ -304,8 +308,32 @@ describe("RequestDetail route", () => {
 
     expect(screen.getByTestId("request-approve")).toBeOnTheScreen();
     expect(screen.getByTestId("request-decline")).toBeOnTheScreen();
-    expect(screen.getByTestId("request-cancel")).toBeOnTheScreen();
-    expect(screen.getByTestId("request-detail-edit")).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId("request-detail-options"));
+
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+    expect(screen.getByTestId("request-detail-menu-edit")).toHaveTextContent(en.requestDetail.edit);
+    expect(screen.getByTestId("request-detail-menu-cancel")).toHaveTextContent(
+      en.requestDetail.cancelRequest
+    );
+  });
+
+  it("keeps editing and cancelling off the screen, behind the options menu", async () => {
+    await renderLoaded({ canCancel: true, canEdit: true });
+
+    expect(screen.queryByTestId("request-detail-actions")).toBeNull();
+    expect(screen.queryByText(en.requestDetail.edit)).toBeNull();
+    expect(screen.queryByText(en.requestDetail.cancelRequest)).toBeNull();
+  });
+
+  it("offers only what the detail grants in the options menu", async () => {
+    await renderLoaded({ canEdit: true });
+
+    await fireEvent.press(screen.getByTestId("request-detail-options"));
+
+    expect(screen.getAllByRole("menuitem")).toHaveLength(1);
+    expect(screen.getByTestId("request-detail-menu-edit")).toBeOnTheScreen();
+    expect(screen.queryByTestId("request-detail-menu-cancel")).toBeNull();
   });
 
   it("approves every day of the run at once, without asking, and reads the detail again", async () => {
@@ -329,15 +357,19 @@ describe("RequestDetail route", () => {
     expect(reject).toHaveBeenCalledWith(["vacation-1"], "Too many away that week");
   });
 
-  it("cancels with no reason when none was given, and not at all when backed out of", async () => {
+  it("cancels with no reason when none was given, and not at all when backed out of either step", async () => {
     cancel.mockResolvedValue({ ok: true });
     await renderLoaded({ canCancel: true });
 
-    await fireEvent.press(screen.getByTestId("request-cancel"));
+    await fireEvent.press(screen.getByTestId("request-detail-options"));
+    await fireEvent.press(screen.getByTestId("request-detail-menu-backdrop"));
+    expect(Alert.prompt).not.toHaveBeenCalled();
+
+    await openOptionsAndPick("cancel");
     await answerPrompt(en.requestDetail.notNow);
     expect(cancel).not.toHaveBeenCalled();
 
-    await fireEvent.press(screen.getByTestId("request-cancel"));
+    await openOptionsAndPick("cancel");
     await answerPrompt(en.requestDetail.cancelRequest, "");
     expect(cancel).toHaveBeenCalledWith(["vacation-1"], undefined);
   });
@@ -396,7 +428,7 @@ describe("RequestDetail route", () => {
     update.mockResolvedValue({ ok: true });
     await renderLoaded({ canEdit: true, vacationIds: ["vacation-1"] });
 
-    await fireEvent.press(screen.getByTestId("request-detail-edit"));
+    await openOptionsAndPick("edit");
     expect(screen.getByTestId("edit-request-save")).toBeDisabled();
     await fireEvent.changeText(screen.getByTestId("note-field"), "Doctor at nine");
     await act(async () => fireEvent.press(screen.getByTestId("edit-request-save")));
@@ -414,7 +446,7 @@ describe("RequestDetail route", () => {
     });
     await renderLoaded({ canEdit: true });
 
-    await fireEvent.press(screen.getByTestId("request-detail-edit"));
+    await openOptionsAndPick("edit");
     await fireEvent.changeText(screen.getByTestId("note-field"), "Doctor at nine");
     await act(async () => fireEvent.press(screen.getByTestId("edit-request-save")));
 
@@ -429,7 +461,7 @@ describe("RequestDetail route", () => {
     });
     await renderLoaded({ canEdit: true });
 
-    await fireEvent.press(screen.getByTestId("request-detail-edit"));
+    await openOptionsAndPick("edit");
     await fireEvent.changeText(screen.getByTestId("note-field"), "Doctor at nine");
     await act(async () => fireEvent.press(screen.getByTestId("edit-request-save")));
 

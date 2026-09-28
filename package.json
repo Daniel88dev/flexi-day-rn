@@ -98,6 +98,9 @@
       "^expo-notifications$": "<rootDir>/jest/expo-notifications.js",
       "^expo-sqlite/kv-store$": "<rootDir>/jest/kv-store.js"
     },
+    "setupFiles": [
+      "<rootDir>/jest/modal-dismiss.js"
+    ],
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/ios/",
