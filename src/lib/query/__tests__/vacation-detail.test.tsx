@@ -99,9 +99,17 @@ describe("useVacationDetail", () => {
       ).toBeUndefined()
     );
 
+    // Held back, or the async renderHook's act can flush the mocked answer before the check.
+    let answerSecond!: () => void;
+    const held = new Promise<void>((resolve) => (answerSecond = resolve));
+    mockFetch.mockImplementationOnce(async () => {
+      await held;
+      return answer(200, vacationDetail());
+    });
     const second = await renderHook(() => useVacationDetail("vacation-1"), { wrapper });
 
     expect(second.result.current.data).toBeUndefined();
+    answerSecond();
     await waitFor(() => expect(second.result.current.isSuccess).toBe(true));
     expect(reads("/api/vacation/vacation-1")).toHaveLength(2);
   });
