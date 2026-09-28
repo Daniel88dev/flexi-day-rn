@@ -594,6 +594,7 @@ export const cs: Dictionary = {
     cancelRequest: "Zrušit žádost",
     edit: "Upravit",
     options: "Možnosti žádosti",
+    closeOptions: "Zavřít možnosti žádosti",
     declineTitle: "Zamítnout tuto žádost?",
     cancelTitle: "Zrušit tuto žádost?",
     reasonBody: "Můžete připsat důvod. Zobrazí se v historii žádosti.",

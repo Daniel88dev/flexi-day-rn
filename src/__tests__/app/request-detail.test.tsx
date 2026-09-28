@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
-import { ActionSheetIOS, Alert, type AlertButton } from "react-native";
+import { Alert, type AlertButton } from "react-native";
 import { toast } from "sonner-native";
 
 import RequestDetailRoute from "@/app/requests/[vacationId]";
@@ -94,22 +94,9 @@ jest.spyOn(Alert, "prompt").mockImplementation((_title, _message, buttons) => {
   prompt = { buttons: buttons as AlertButton[] };
 });
 
-let sheet: { options: string[]; destructive: string[]; pick: (index: number) => void } | null =
-  null;
-jest.spyOn(ActionSheetIOS, "showActionSheetWithOptions").mockImplementation((options, callback) => {
-  sheet = {
-    options: options.options,
-    destructive: [options.destructiveButtonIndex ?? []]
-      .flat()
-      .map((index) => options.options[index]),
-    pick: callback,
-  };
-});
-
-async function openOptionsAndPick(label: string) {
+async function openOptionsAndPick(key: "edit" | "cancel") {
   await fireEvent.press(screen.getByTestId("request-detail-options"));
-  const index = sheet?.options.indexOf(label) ?? -1;
-  await act(async () => sheet?.pick(index));
+  await fireEvent.press(screen.getByTestId(`request-detail-menu-${key}`));
 }
 
 async function answerPrompt(label: string, text?: string) {
@@ -122,7 +109,6 @@ beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 beforeEach(() => {
   jest.clearAllMocks();
   prompt = null;
-  sheet = null;
   mockViewerId = "user-9";
   mockCanGoBack.mockReturnValue(true);
   detail = vacationDetail();
@@ -325,12 +311,11 @@ describe("RequestDetail route", () => {
 
     await fireEvent.press(screen.getByTestId("request-detail-options"));
 
-    expect(sheet?.options).toEqual([
-      en.requestDetail.edit,
-      en.requestDetail.cancelRequest,
-      en.requestDetail.notNow,
-    ]);
-    expect(sheet?.destructive).toEqual([en.requestDetail.cancelRequest]);
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+    expect(screen.getByTestId("request-detail-menu-edit")).toHaveTextContent(en.requestDetail.edit);
+    expect(screen.getByTestId("request-detail-menu-cancel")).toHaveTextContent(
+      en.requestDetail.cancelRequest
+    );
   });
 
   it("keeps editing and cancelling off the screen, behind the options menu", async () => {
@@ -346,8 +331,9 @@ describe("RequestDetail route", () => {
 
     await fireEvent.press(screen.getByTestId("request-detail-options"));
 
-    expect(sheet?.options).toEqual([en.requestDetail.edit, en.requestDetail.notNow]);
-    expect(sheet?.destructive).toEqual([]);
+    expect(screen.getAllByRole("menuitem")).toHaveLength(1);
+    expect(screen.getByTestId("request-detail-menu-edit")).toBeOnTheScreen();
+    expect(screen.queryByTestId("request-detail-menu-cancel")).toBeNull();
   });
 
   it("approves every day of the run at once, without asking, and reads the detail again", async () => {
@@ -375,14 +361,15 @@ describe("RequestDetail route", () => {
     cancel.mockResolvedValue({ ok: true });
     await renderLoaded({ canCancel: true });
 
-    await openOptionsAndPick(en.requestDetail.notNow);
+    await fireEvent.press(screen.getByTestId("request-detail-options"));
+    await fireEvent.press(screen.getByTestId("request-detail-menu-backdrop"));
     expect(Alert.prompt).not.toHaveBeenCalled();
 
-    await openOptionsAndPick(en.requestDetail.cancelRequest);
+    await openOptionsAndPick("cancel");
     await answerPrompt(en.requestDetail.notNow);
     expect(cancel).not.toHaveBeenCalled();
 
-    await openOptionsAndPick(en.requestDetail.cancelRequest);
+    await openOptionsAndPick("cancel");
     await answerPrompt(en.requestDetail.cancelRequest, "");
     expect(cancel).toHaveBeenCalledWith(["vacation-1"], undefined);
   });
@@ -441,7 +428,7 @@ describe("RequestDetail route", () => {
     update.mockResolvedValue({ ok: true });
     await renderLoaded({ canEdit: true, vacationIds: ["vacation-1"] });
 
-    await openOptionsAndPick(en.requestDetail.edit);
+    await openOptionsAndPick("edit");
     expect(screen.getByTestId("edit-request-save")).toBeDisabled();
     await fireEvent.changeText(screen.getByTestId("note-field"), "Doctor at nine");
     await act(async () => fireEvent.press(screen.getByTestId("edit-request-save")));
@@ -459,7 +446,7 @@ describe("RequestDetail route", () => {
     });
     await renderLoaded({ canEdit: true });
 
-    await openOptionsAndPick(en.requestDetail.edit);
+    await openOptionsAndPick("edit");
     await fireEvent.changeText(screen.getByTestId("note-field"), "Doctor at nine");
     await act(async () => fireEvent.press(screen.getByTestId("edit-request-save")));
 
@@ -474,7 +461,7 @@ describe("RequestDetail route", () => {
     });
     await renderLoaded({ canEdit: true });
 
-    await openOptionsAndPick(en.requestDetail.edit);
+    await openOptionsAndPick("edit");
     await fireEvent.changeText(screen.getByTestId("note-field"), "Doctor at nine");
     await act(async () => fireEvent.press(screen.getByTestId("edit-request-save")));
 

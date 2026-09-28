@@ -1,8 +1,13 @@
 import { router, useIsFocused } from "expo-router";
-import { CaretLeftIcon, DotsThreeIcon, PaperPlaneRightIcon } from "phosphor-react-native";
+import {
+  CaretLeftIcon,
+  DotsThreeIcon,
+  PaperPlaneRightIcon,
+  PencilSimpleIcon,
+  XCircleIcon,
+} from "phosphor-react-native";
 import { useState, type ReactNode } from "react";
 import {
-  ActionSheetIOS,
   ActivityIndicator,
   KeyboardAvoidingView,
   Pressable,
@@ -20,6 +25,7 @@ import { EditRequestSheet } from "@/components/requests/edit-request-sheet";
 import { askForReason } from "@/components/requests/reason-prompt";
 import { Icon, useTone } from "@/components/ui/icon";
 import { Notice } from "@/components/ui/notice";
+import { PopoverMenu, type PopoverMenuItem } from "@/components/ui/popover-menu";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
@@ -40,6 +46,9 @@ import { dayNumber } from "@/lib/days";
 
 const messageOf = (failure: FailureClass) =>
   failure.kind === "signed-out" ? null : failure.message;
+
+// The header is 56 tall and centres the 40 pt options button, so this drops the menu just below it.
+const MENU_TOP = 52;
 
 function Header({ right }: { right?: ReactNode }) {
   const { t } = useTranslation();
@@ -279,52 +288,51 @@ function ActionButton({
   );
 }
 
-type MenuItem = { label: string; onSelect: () => void; destructive?: boolean };
-
 /** The request's own actions sit behind this menu rather than on the screen, so a stray tap starts none. */
 function OptionsMenu({
   items,
   busy,
   disabled,
 }: {
-  items: MenuItem[];
+  items: PopoverMenuItem[];
   busy: boolean;
   disabled: boolean;
 }) {
   const { t } = useTranslation();
   const labels = t.requestDetail;
   const foreground = useTone("foreground");
-
-  const open = () =>
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: [...items.map((item) => item.label), labels.notNow],
-        destructiveButtonIndex: items.flatMap((item, index) => (item.destructive ? [index] : [])),
-        cancelButtonIndex: items.length,
-      },
-      (index) => items[index]?.onSelect()
-    );
+  const [open, setOpen] = useState(false);
 
   return (
-    <Pressable
-      testID="request-detail-options"
-      onPress={open}
-      disabled={disabled}
-      hitSlop={8}
-      accessibilityRole="button"
-      accessibilityLabel={labels.options}
-      accessibilityState={{ disabled, busy }}
-      className={cn(
-        "h-10 w-10 items-center justify-center rounded-full bg-card active:opacity-70",
-        disabled && !busy && "opacity-50"
-      )}
-    >
-      {busy ? (
-        <ActivityIndicator color={foreground} />
-      ) : (
-        <Icon icon={DotsThreeIcon} tone="foreground" size={22} weight="bold" />
-      )}
-    </Pressable>
+    <>
+      <Pressable
+        testID="request-detail-options"
+        onPress={() => setOpen(true)}
+        disabled={disabled}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={labels.options}
+        accessibilityState={{ disabled, busy, expanded: open }}
+        className={cn(
+          "h-10 w-10 items-center justify-center rounded-full bg-card active:opacity-70",
+          disabled && !busy && "opacity-50"
+        )}
+      >
+        {busy ? (
+          <ActivityIndicator color={foreground} />
+        ) : (
+          <Icon icon={DotsThreeIcon} tone="foreground" size={22} weight="bold" />
+        )}
+      </Pressable>
+      <PopoverMenu
+        testID="request-detail-menu"
+        open={open}
+        onClose={() => setOpen(false)}
+        items={items}
+        top={MENU_TOP}
+        closeLabel={labels.closeOptions}
+      />
+    </>
   );
 }
 
@@ -393,10 +401,20 @@ function DetailBody({
     setEditing(true);
   };
 
-  const menu: MenuItem[] = [
-    ...(canEdit ? [{ label: labels.edit, onSelect: openEdit }] : []),
+  const menu: PopoverMenuItem[] = [
+    ...(canEdit
+      ? [{ key: "edit", label: labels.edit, icon: PencilSimpleIcon, onSelect: openEdit }]
+      : []),
     ...(canCancel
-      ? [{ label: labels.cancelRequest, onSelect: () => void cancel(), destructive: true }]
+      ? [
+          {
+            key: "cancel",
+            label: labels.cancelRequest,
+            icon: XCircleIcon,
+            onSelect: () => void cancel(),
+            destructive: true,
+          },
+        ]
       : []),
   ];
 
