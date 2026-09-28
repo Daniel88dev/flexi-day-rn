@@ -56,6 +56,7 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="my-attendance/entry" options={{ presentation: "modal" }} />
+          <Stack.Screen name="my-attendance/session/[id]" options={{ presentation: "modal" }} />
         </Stack>
         <StatusBar style="auto" />
       </TranslationProvider>

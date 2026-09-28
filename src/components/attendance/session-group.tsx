@@ -1,5 +1,10 @@
-import { ClockCounterClockwiseIcon, PencilSimpleLineIcon, PlayIcon } from "phosphor-react-native";
-import { View } from "react-native";
+import {
+  CaretRightIcon,
+  ClockCounterClockwiseIcon,
+  PencilSimpleLineIcon,
+  PlayIcon,
+} from "phosphor-react-native";
+import { Pressable, View } from "react-native";
 
 import { Icon } from "@/components/ui/icon";
 import { TABULAR, Text } from "@/components/ui/text";
@@ -122,15 +127,18 @@ export function SessionGroup({
   today,
   now,
   showLocation,
+  onCorrect,
 }: {
   session: AttendanceSession;
   today: string;
   now: number;
   showLocation: boolean;
+  /** Set only for a session the reader may correct: the group then opens the correction sheet. */
+  onCorrect?: () => void;
 }) {
   const { t } = useTranslation();
   const marks = sessionMarks(session, today);
-  return (
+  const group = (
     <View className="gap-1" testID="session-group">
       {marks.length ? (
         <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1.5 pb-1">
@@ -160,5 +168,18 @@ export function SessionGroup({
         </View>
       ) : null}
     </View>
+  );
+  if (!onCorrect) return group;
+  return (
+    <Pressable
+      testID="session-correct"
+      onPress={onCorrect}
+      accessibilityRole="button"
+      accessibilityHint={t.correction.title}
+      className="flex-row items-center gap-2 active:opacity-70"
+    >
+      <View className="flex-1">{group}</View>
+      <Icon icon={CaretRightIcon} tone="faint" size={16} weight="bold" />
+    </Pressable>
   );
 }

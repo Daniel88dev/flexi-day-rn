@@ -300,6 +300,38 @@ describe("My attendance, self-service", () => {
     expect(screen.queryByTestId("empty-day-add")).toBeNull();
   });
 
+  it("opens the correction sheet from a session group inside the window", async () => {
+    serve(own());
+    mockParams.date = "2026-09-24";
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByTestId("session-correct"));
+
+    expect(router.navigate).toHaveBeenCalledWith({
+      pathname: "/my-attendance/session/[id]",
+      params: { id: "past", date: "2026-09-24" },
+    });
+  });
+
+  it("leaves a session group before the window untappable", async () => {
+    serve(own({ selfService: { enabled: true, days: 1 } }));
+    mockParams.date = "2026-09-24";
+    await renderScreen();
+
+    await screen.findByTestId("window-lock");
+    expect(screen.getByTestId("session-group")).toBeTruthy();
+    expect(screen.queryByTestId("session-correct")).toBeNull();
+  });
+
+  it("leaves every session group untappable while the window is off", async () => {
+    serve(own({ selfService: { enabled: false, days: 7 } }));
+    mockParams.date = "2026-09-24";
+    await renderScreen();
+
+    await screen.findByTestId("session-group");
+    expect(screen.queryByTestId("session-correct")).toBeNull();
+  });
+
   it("says nothing about the window while the plan has lapsed", async () => {
     serve(own({ active: false }));
     await renderScreen();

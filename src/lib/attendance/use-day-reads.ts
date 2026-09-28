@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiRequest, qk } from "@/lib/query";
 
+import type { AttendanceEvent } from "./history";
 import { yearMonthOf } from "./range";
 import type { AttendanceDayRead, AttendanceMonth } from "./types";
 
@@ -39,5 +40,19 @@ export function useMonthRead(
         { signal }
       ),
     enabled: enabled && organizationId !== null,
+  });
+}
+
+/** A session's timeline, oldest first. Reading it needs no window: only changing the session does. */
+export function useSessionEvents(sessionId: string) {
+  return useQuery({
+    queryKey: qk.attendanceEvents(sessionId),
+    queryFn: async ({ signal }) =>
+      (
+        await apiRequest<{ sessionId: string; events: AttendanceEvent[] }>(
+          `/api/attendance/sessions/${sessionId}/events`,
+          { signal }
+        )
+      ).events,
   });
 }

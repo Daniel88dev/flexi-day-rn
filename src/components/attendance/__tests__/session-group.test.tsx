@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { SessionGroup } from "@/components/attendance/session-group";
 import { TranslationProvider } from "@/i18n/use-translation";
@@ -131,5 +131,32 @@ describe("SessionGroup location", () => {
 
     expect(screen.getByTestId("location-in").props.children).toBe("50.0875, 14.4213");
     expect(screen.getByTestId("location-out").props.children).toBe("—");
+  });
+});
+
+describe("SessionGroup correcting", () => {
+  it("is a plain group with no way in when the reader may not correct it", async () => {
+    await renderGroup(closed());
+
+    expect(screen.queryByTestId("session-correct")).toBeNull();
+  });
+
+  it("opens the correction sheet when the reader may correct it", async () => {
+    const onCorrect = jest.fn();
+    await render(
+      <TranslationProvider>
+        <SessionGroup
+          session={closed()}
+          today={TODAY}
+          now={NOW}
+          showLocation={false}
+          onCorrect={onCorrect}
+        />
+      </TranslationProvider>
+    );
+
+    await fireEvent.press(screen.getByTestId("session-correct"));
+
+    expect(onCorrect).toHaveBeenCalled();
   });
 });

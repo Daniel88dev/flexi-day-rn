@@ -41,7 +41,16 @@ export function Flag({
 }
 
 /** Entered after the fact: a permanent fact rather than a flag, so a quiet outlined stamp. */
-export function EnteredStamp({ testID, compact = false }: { testID?: string; compact?: boolean }) {
+export function EnteredStamp({
+  testID,
+  compact = false,
+  label,
+}: {
+  testID?: string;
+  compact?: boolean;
+  /** "Entered by X" where the history names who. */
+  label?: string;
+}) {
   const { t } = useTranslation();
   return (
     <View
@@ -54,7 +63,7 @@ export function EnteredStamp({ testID, compact = false }: { testID?: string; com
       <Icon icon={NotebookIcon} tone="muted" size={13} />
       {compact ? null : (
         <Text className="text-[12px] font-semibold text-muted-foreground">
-          {t.attendance.entered}
+          {label ?? t.attendance.entered}
         </Text>
       )}
     </View>

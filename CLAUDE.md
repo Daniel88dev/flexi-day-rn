@@ -193,7 +193,7 @@ throws `ApiError` with the server's message.
   402, 403 or 409, shows the server's message, reloads the screen's queries and starts a sync
   pull. Any other 4xx shows the server's message. Neither offers Retry, because the same tap
   fails the same way; a 5xx or no answer at all does. It takes a Local store `WriteOutcome` as
-  well as a thrown error. Three sheets are exceptions, because the failure belongs where the
+  well as a thrown error. Four sheets are exceptions, because the failure belongs where the
   person is looking. The Clock sheet sorts its writes' failures with `classifyFailure` into
   notices inside the sheet (`src/lib/attendance/notice.ts`); attendance has no sync pull to
   start. The new-request form shows its failure inline above the entry it kept
@@ -201,8 +201,10 @@ throws `ApiError` with the server's message.
   refusal still reads the group again and starts a sync pull (`useCreateRequest`). The entry
   sheet words a refusal by its `context.reason` inline (`src/lib/attendance/refusals.ts`), turns
   Save into Retry when no answer came, and reads attendance again whether the write landed or not
-  (`useEnterSession`). An attachment upload words its failure on the file's own row
-  (`useAttachmentUploads`), as the web does, and the Request is read again either way.
+  (`useEnterSession`). The correction sheet does the same (`useCorrectSession`); its Save is
+  several requests, and a retry sends only what has not landed (`correctionSteps`). An attachment
+  upload words its failure on the file's own row (`useAttachmentUploads`), as the web does, and
+  the Request is read again either way.
 
 ## Testing
 

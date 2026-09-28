@@ -35,12 +35,13 @@ export function entryFailureOf(failure: unknown): EntryFailure | null {
 /** The web's wording for every reason the attendance writes send, else the server's own. */
 export function refusalMessage(
   refusal: Extract<EntryFailure, { kind: "refused" }>,
-  t: Dictionary
+  t: Dictionary,
+  fallback: string = t.entry.failed
 ): string {
   if (refusal.reason === "OVER_CEILING" && refusal.ceilingMinutes !== null) {
     return t.entry.overCeiling(formatMinutes(refusal.ceilingMinutes));
   }
   const wording: Record<string, string> = t.entry.refusals;
   const known = refusal.reason !== null ? wording[refusal.reason] : undefined;
-  return known ?? refusal.serverMessage ?? t.entry.failed;
+  return known ?? refusal.serverMessage ?? fallback;
 }

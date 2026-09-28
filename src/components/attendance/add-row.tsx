@@ -11,18 +11,26 @@ export function AddRow({
   onPress,
   testID,
   className,
+  disabled = false,
 }: {
   label: string;
   onPress: () => void;
   testID?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
       testID={testID}
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
-      className={cn("min-h-11 flex-row items-center gap-3 active:opacity-70", className)}
+      accessibilityState={{ disabled }}
+      className={cn(
+        "min-h-11 flex-row items-center gap-3 active:opacity-70",
+        disabled && "opacity-50",
+        className
+      )}
     >
       <View className="h-7 w-7 items-center justify-center rounded-full bg-accent">
         <Icon icon={PlusIcon} tone="primary" size={15} weight="bold" />
