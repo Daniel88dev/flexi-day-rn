@@ -7,6 +7,7 @@ import { destroyStore, openStore } from "@/lib/local-store";
 import { apiRequest, queryClient } from "@/lib/query";
 import type { FakeAppState } from "@/test-support/fake-app-state";
 import { authClient } from "@/lib/session/auth-client";
+import { setDevSignInLanding, takeDevSignInLanding } from "@/lib/session/dev-sign-in";
 import { clearSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
 import { attendance, session } from "@/test-support/attendance";
 import { SESSION, VIEWER } from "@/test-support/session";
@@ -151,6 +152,32 @@ describe("AppLayout", () => {
     await renderShell("signed-in");
 
     expect(await screen.findByTestId("clock-reminders")).toBeTruthy();
+  });
+
+  it("gives every tab bar button a testID named after its link", async () => {
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(screen.getByTestId("tab-report")).toBeTruthy());
+    expect(screen.getByTestId("tab-dashboard")).toHaveTextContent("Dashboard");
+    expect(screen.getByTestId("tab-requests")).toHaveTextContent("Requests");
+    expect(screen.getByTestId("tab-more")).toHaveTextContent("More");
+  });
+
+  it("opens the More sheet from tab-more", async () => {
+    await renderShell("signed-in");
+
+    await act(async () => fireEvent.press(screen.getByTestId("tab-more")));
+
+    expect(await screen.findByTestId("more-settings")).toBeTruthy();
+  });
+
+  it("opens a dev sign-in's landing once the Local store is open", async () => {
+    setDevSignInLanding("/settings");
+
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings"));
+    expect(takeDevSignInLanding()).toBeNull();
   });
 
   it("opens the Clock sheet from the centre disc", async () => {

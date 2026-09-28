@@ -20,6 +20,7 @@ function SectionLabel({ children }: { children: string }) {
 function Row({ link, onPress }: { link: NavLink; onPress: (link: NavLink) => void }) {
   return (
     <Pressable
+      testID={`more-${link.key}`}
       onPress={() => onPress(link)}
       className="h-12 flex-row items-center gap-3 rounded-2xl px-3 active:opacity-70"
     >
@@ -82,6 +83,7 @@ export function MoreSheet({
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
       <View className={cn("flex-1 justify-end", className)}>
         <Pressable
+          testID="more-close"
           accessibilityLabel={t.nav.menu}
           className="absolute inset-0"
           style={{ backgroundColor: "rgba(0,0,0,0.38)" }}
@@ -103,6 +105,7 @@ export function MoreSheet({
               <Row key={link.key} link={link} onPress={onNavigate} />
             ))}
             <Pressable
+              testID="more-sign-out"
               onPress={confirmSignOut}
               className="h-12 flex-row items-center gap-3 rounded-2xl px-3 active:opacity-70"
             >

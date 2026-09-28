@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { MoreSheet } from "@/components/shell/more-sheet";
 import { en } from "@/i18n/en";
@@ -9,12 +9,12 @@ import { VIEWER } from "@/test-support/session";
 const sections = buildSections(en);
 const { sheet } = splitForTabBar(sections);
 
-function renderSheet(open: boolean) {
+function renderSheet(open: boolean, onClose: () => void = jest.fn()) {
   return render(
     <TranslationProvider>
       <MoreSheet
         open={open}
-        onClose={jest.fn()}
+        onClose={onClose}
         sections={sheet}
         utility={buildUtilityLinks(en)}
         viewer={VIEWER}
@@ -45,6 +45,25 @@ describe("MoreSheet", () => {
     await renderSheet(true);
     expect(screen.getByText("Sign out")).toBeTruthy();
     expect(screen.getByText(VIEWER.name)).toBeTruthy();
+  });
+
+  it("gives every row, sign-out and the backdrop a testID on its pressable", async () => {
+    await renderSheet(true);
+    for (const link of [...sheet.flatMap((section) => section.links), ...buildUtilityLinks(en)]) {
+      expect(screen.getByTestId(`more-${link.key}`)).toHaveTextContent(link.label);
+    }
+    expect(screen.getByTestId("more-settings")).toBeTruthy();
+    expect(screen.getByTestId("more-sign-out")).toHaveTextContent("Sign out");
+    expect(screen.getByTestId("more-close")).toBeTruthy();
+  });
+
+  it("closes from the backdrop", async () => {
+    const onClose = jest.fn();
+    await renderSheet(true, onClose);
+
+    await fireEvent.press(screen.getByTestId("more-close"));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("renders nothing while closed", async () => {

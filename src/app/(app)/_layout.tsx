@@ -21,6 +21,7 @@ import {
   type NavLink,
 } from "@/lib/navigation/shell-links";
 import { QueryLayer } from "@/lib/query";
+import { takeDevSignInLanding } from "@/lib/session/dev-sign-in";
 import { useSessionRevalidation } from "@/lib/session/revalidate-session";
 import { useRootRoute } from "@/lib/session/root-route-context";
 import { signOut } from "@/lib/session/sign-out";
@@ -65,6 +66,12 @@ export default function AppLayout() {
     };
   }, [viewerId, signedIn, onUnauthorized]);
 
+  useEffect(() => {
+    if (!storeOpen) return;
+    const landing = takeDevSignInLanding();
+    if (landing) router.push(landing as Href);
+  }, [storeOpen]);
+
   // A deep link into the shell without a session goes back to welcome. The root layout has read
   // the session cache before any of this mounts, so the answer here is never a guess.
   if (rootRoute === "welcome") return <Redirect href="/welcome" />;
@@ -97,6 +104,7 @@ export default function AppLayout() {
                         {bar.slice(2).map((link) => barSlot(link, go))}
 
                         <TabButton
+                          testID="tab-more"
                           label={t.nav.more}
                           icon={ListIcon}
                           onPress={() => setMoreOpen(true)}
@@ -141,6 +149,7 @@ function barSlot(link: NavLink, onNavigate: (link: NavLink) => void) {
     return (
       <TabButton
         key={link.key}
+        testID={`tab-${link.key}`}
         label={link.label}
         icon={link.icon}
         onPress={() => onNavigate(link)}
@@ -149,7 +158,7 @@ function barSlot(link: NavLink, onNavigate: (link: NavLink) => void) {
   }
   return (
     <TabTrigger key={link.key} name={link.key} href={link.href as Href} asChild>
-      <TabButton label={link.label} icon={link.icon} />
+      <TabButton testID={`tab-${link.key}`} label={link.label} icon={link.icon} />
     </TabTrigger>
   );
 }
