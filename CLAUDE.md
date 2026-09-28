@@ -31,7 +31,10 @@ a free Apple ID through Xcode (seven-day signing); there is no EAS, TestFlight o
 The personal team id sits in `app.json` so prebuild signs without Xcode clicks; the phone setup,
 the re-sign loop and how the app finds the backend are in
 [`docs/device-testing.md`](docs/device-testing.md). `npm run ios` targets the simulator,
-`npm run ios:device` the phone.
+`npm run ios:device` the phone. The latter is `scripts/ios-device.js`, not `expo run:ios --device`:
+Expo drops `-allowProvisioningUpdates` whenever the project names a team, so it cannot refill an
+empty profile store. The script passes the flags itself. `--configuration Release` embeds the bundle
+and reads the backend URL from `.env`; see "Production build" in the same doc.
 Prebuild runs `expo-notifications`' own config plugin whenever the package is installed, listed
 or not, and it writes the push entitlement (`aps-environment`) a free team cannot sign. Local Clock
 reminders need none, so `plugins/without-push-entitlement.js` strips it again; keep it in

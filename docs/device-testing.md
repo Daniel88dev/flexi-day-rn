@@ -11,11 +11,13 @@ Apple Developer Program, no EAS, no TestFlight.
   does not matter.
 - A UTF-8 locale in the shell that runs `pod install`. Without one CocoaPods dies with
   `Unicode Normalization not appropriate for ASCII-8BIT`. Terminal.app sets `LANG` by default; a
-  shell that does not needs `export LANG=en_US.UTF-8`.
+  shell that does not needs `export LANG=en_US.UTF-8`; `npm run ios:device` sets it for the
+  commands it runs.
 - The Apple ID added under Xcode › Settings › Accounts. Xcode creates the personal team and an
   "Apple Development" certificate the first time it signs. The team id lives in `app.json` as
-  `ios.appleTeamId`, so `expo prebuild` stamps it into the generated project and nothing has to be
-  clicked in Xcode after a regeneration. The id is the `OU` of the certificate subject, not the value in
+  `ios.appleTeamId`, so `expo prebuild` stamps it into the generated project and
+  `npm run ios:device` passes it to `xcodebuild`; nothing has to be clicked in Xcode after a
+  regeneration. The id is the `OU` of the certificate subject, not the value in
   parentheses in its name:
 
   ```bash
@@ -40,14 +42,22 @@ starts Metro. `npm start` alone is enough once the dev client is installed.
    once more after the restart.
 3. Xcode › Window › Devices and Simulators shows the phone. Leave **Connect via network** on so
    later builds install over Wi-Fi.
-4. Build and install:
+4. Build, install and launch:
 
    ```bash
    npm run ios:device
    ```
 
-   Pick the phone from the list. Xcode signs with the personal team and registers the device on
-   the free account.
+   With one connected iPhone the script picks it; paired phones that are locked away or out of
+   reach are skipped. With more than one, name it with
+   `npm run ios:device -- --device <udid|name>` (`xcrun devicectl list devices` lists them). It
+   generates `ios/` first if it is missing, and reruns `pod install` when `package-lock.json` is
+   newer than `ios/Pods/Manifest.lock`, which is when a dependency change can add or bump a native
+   module. A change to `app.json` or a config plugin still needs `npm run prebuild` first. It
+   then signs with the team from `app.json` and registers the device on the free account. The default
+   is a Debug dev client, which loads its JavaScript from Metro, so keep `npm start` running.
+   The launch needs the phone unlocked; if it was locked, the install still lands and the script
+   prints the `devicectl` command that launches it.
 
 5. First launch fails with "Untrusted Developer". On the phone: Settings › General › VPN & Device
    Management › the Apple ID under Developer App › Trust. Launch again.
@@ -81,11 +91,62 @@ The sleeps matter: `--batch` runs the next command before the attach has settled
 stays suspended until `resume` from a second shell. The phone has to be unlocked, or SpringBoard
 ends the launch on its own.
 
+## Why `ios:device` is not `expo run:ios --device`
+
+`expo run:ios --device` only passes `-allowProvisioningUpdates` and
+`-allowProvisioningDeviceRegistration` to `xcodebuild` when the generated project names no team.
+`ios.appleTeamId` in `app.json` always writes one, so Expo builds without the flags, and Xcode then
+cannot create a profile when its store holds none for `com.flexiday.app`:
+
+```text
+No profiles for 'com.flexiday.app' were found ... Automatic signing is disabled and unable to
+generate a profile.
+```
+
+`scripts/ios-device.js` runs `xcodebuild` itself with both flags, `DEVELOPMENT_TEAM` read from
+`app.json` and `CODE_SIGN_STYLE=Automatic`, builds into `ios/build`, installs with
+`xcrun devicectl device install app` and launches with `xcrun devicectl device process launch`.
+Keep `appleTeamId` in `app.json`: it makes prebuild produce the same signed project on every
+machine.
+
 ## Every seven days
 
-Free provisioning expires after seven days; the app then refuses to open. Run `npm run ios:device`
-again. Xcode re-provisions on its own thanks to `-allowProvisioningUpdates`; no Xcode UI needed.
+Free provisioning expires after seven days; the app then refuses to open, and Xcode eventually
+drops the expired profile from `~/Library/Developer/Xcode/UserData/Provisioning Profiles/`. Run
+`npm run ios:device` again, with the same `--configuration` as the build on the phone. The script
+lets Xcode create a new profile whether the store is empty or not; no Xcode UI needed. A new
+profile has to be trusted again on the phone (step 5 above) before the app opens.
 Other free-account limits: at most ten app ids per week and three signed apps per device at once.
+
+## Production build
+
+A Release build embeds the JavaScript bundle and runs without Metro, against the production
+backend:
+
+1. Put the production URL in `.env`. If `.env` already exists, note what it holds and set
+   `EXPO_PUBLIC_API_URL=https://api.flexi-day.com` in it by hand. Otherwise create it:
+
+   ```bash
+   echo "EXPO_PUBLIC_API_URL=https://api.flexi-day.com" > .env
+   ```
+
+   The bundling step inside the Xcode build reads `.env` itself, so the URL is baked into the app.
+   Without it the script warns that the app will call `http://localhost:8080` on the phone.
+
+2. Build, install and launch:
+
+   ```bash
+   npm run ios:device -- --configuration Release
+   ```
+
+3. After each new profile the phone asks for trust again: Settings › General › VPN & Device
+   Management › the Apple ID under Developer App › Trust.
+4. Put `.env` back the way step 1 found it: restore the old contents, or delete the file if step 1
+   created it. Otherwise every later Debug build and `npm start` targets production too.
+
+`plugins/without-push-entitlement` was verified on a free-team Release device build on
+2026-09-28: the signed app carries no `aps-environment` entitlement and the personal team signs
+it.
 
 ## Reaching the backend
 
