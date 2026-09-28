@@ -438,8 +438,8 @@ export const cs: Dictionary = {
     dashboardCalendar: "Kalendář na nástěnce",
     dashboardScope: "Zobrazit",
     dashboardView: "Rozložení",
-    viewLanes: "Dráhy",
-    viewStripes: "Proužky",
+    viewLanes: "Pruhy",
+    viewStripes: "Kompaktní",
     dashboardScopeHint:
       "Vyberte, jak kalendář na nástěnce vypadá a co se v něm po otevření zobrazí. Mezi svým volnem a skupinou můžete na jednu návštěvu přepnout i přímo na nástěnce.",
     dashboardGroup: "Skupina",
