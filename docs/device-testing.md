@@ -168,6 +168,10 @@ that lands with the native session work.
 Sign-in on the phone uses the real flow against the LAN backend. `npm run dev:scenario` at the
 workspace root seeds users and prints their password.
 
+On the simulator a dev build skips the form: `flexiday://dev-sign-in?ticket=…&to=/path` redeems a
+dev sign-in ticket minted by the backend's `/api/dev/sign-in-ticket` and lands on `to`; the
+workspace `ui-test` skill has the whole loop.
+
 ## Known state (2026-09-17)
 
 - Mac: Xcode 27.0, CocoaPods 1.17.0 from Homebrew, Node 24.
