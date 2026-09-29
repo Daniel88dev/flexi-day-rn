@@ -154,6 +154,26 @@ const eslintConfig = defineConfig([
     },
   },
 
+  {
+    files: ["src/**/*.tsx"],
+    ignores: ["src/components/ui/switch.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "react-native",
+              importNames: ["Switch"],
+              message:
+                "Use Switch from @/components/ui/switch; RN's iOS Switch sits at the top of an items-center row.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   globalIgnores([
     // Continuous native generation output; never committed.
     "ios/**",

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { Alert, type AlertButton } from "react-native";
 import { toast } from "sonner-native";
@@ -60,6 +60,14 @@ jest.mock("@/lib/haptics", () => ({ haptic: jest.fn() }));
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
 jest.mock("@react-native-community/datetimepicker", () => () => null);
+jest.mock("react-native/Libraries/Components/Keyboard/KeyboardAvoidingView", () => {
+  const { createElement } = jest.requireActual("react");
+  const { View } = jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: (props: object) => createElement(View, { ...props, testID: "keyboard-avoiding-view" }),
+  };
+});
 
 const approve = approveVacations as jest.MockedFunction<typeof approveVacations>;
 const reject = rejectVacations as jest.MockedFunction<typeof rejectVacations>;
@@ -435,6 +443,20 @@ describe("RequestDetail route", () => {
 
     expect(update).toHaveBeenCalledWith({ ids: ["vacation-1"], note: "Doctor at nine" });
     await waitFor(() => expect(screen.queryByTestId("edit-request")).toBeNull());
+  });
+
+  it("lets the edit sheet's own scroll view keep the note above the keyboard", async () => {
+    await renderLoaded({ canEdit: true });
+
+    await openOptionsAndPick("edit");
+
+    expect(
+      within(screen.getByTestId("edit-request")).queryByTestId("keyboard-avoiding-view")
+    ).toBeNull();
+    const scroll = screen.getByTestId("edit-request-scroll");
+    expect(scroll).toHaveProp("automaticallyAdjustKeyboardInsets", true);
+    expect(scroll).toHaveProp("keyboardDismissMode", "interactive");
+    expect(scroll).toHaveProp("keyboardShouldPersistTaps", "handled");
   });
 
   it("keeps the edit open with what was typed when the server refuses it", async () => {

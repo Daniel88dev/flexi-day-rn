@@ -1,6 +1,7 @@
-import { Switch, View } from "react-native";
+import { View } from "react-native";
 
 import { useTone } from "@/components/ui/icon";
+import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 
