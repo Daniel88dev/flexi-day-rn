@@ -25,7 +25,7 @@ export function SignIn({
   const passwordRef = useRef<TextInput>(null);
 
   return (
-    <View className="flex-1 bg-background pt-safe">
+    <View testID="sign-in" className="flex-1 bg-background pt-safe">
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
           <ScreenHeader onBack={onBack} backLabel={t.auth.signIn.back} />

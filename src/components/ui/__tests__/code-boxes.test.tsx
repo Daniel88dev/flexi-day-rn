@@ -39,6 +39,13 @@ describe("CodeBoxes", () => {
     expect(onComplete).toHaveBeenCalledWith("123456");
   });
 
+  it("puts its testID on the boxes and leaves the label to the input", async () => {
+    await render(<CodeBoxes testID="a-code" label="Code" value="" onChange={onChange} />);
+
+    expect(screen.getByTestId("a-code")).not.toHaveProp("accessibilityLabel");
+    expect(screen.getAllByLabelText("Code")).toHaveLength(1);
+  });
+
   it("takes nothing while it is disabled", async () => {
     await render(<CodeBoxes label="Code" value="" onChange={onChange} disabled />);
 

@@ -80,6 +80,17 @@ describe("WelcomeScreen", () => {
     expect(push).toHaveBeenCalledWith("/sign-in");
   });
 
+  it("renders under the welcome root with an id on each way on", async () => {
+    await renderWelcome();
+
+    expect(screen.getByTestId("welcome")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId("welcome-sign-in"));
+    await fireEvent.press(screen.getByTestId("welcome-create-account"));
+
+    expect(push).toHaveBeenCalledWith("/sign-in");
+    expect(openPage).toHaveBeenCalledWith("/sign-up/");
+  });
+
   it("opens the web sign-up page when the account link is tapped", async () => {
     await renderWelcome();
 

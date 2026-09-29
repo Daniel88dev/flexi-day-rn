@@ -11,7 +11,7 @@ import {
   newRequestDraft,
   newRequestValues,
   offersHalfDay,
-  openingDay,
+  openingRange,
   shownType,
   submitFailureMessage,
   withFrom,
@@ -39,19 +39,54 @@ describe("clampDay", () => {
   });
 });
 
-describe("openingDay", () => {
-  it("returns the day the form was opened for", () => {
-    expect(openingDay("2026-10-05", TODAY)).toBe("2026-10-05");
+describe("openingRange", () => {
+  it("returns the one day the form was opened for when no end day was passed", () => {
+    expect(openingRange("2026-10-05", undefined, TODAY)).toEqual({
+      from: "2026-10-05",
+      to: "2026-10-05",
+    });
   });
 
-  it("returns today when no day was passed, or one that is not a day", () => {
-    expect(openingDay(undefined, TODAY)).toBe("2026-09-27");
-    expect(openingDay("tomorrow", TODAY)).toBe("2026-09-27");
-    expect(openingDay("2026-02-31", TODAY)).toBe("2026-09-27");
+  it("returns today when the day passed is not a day", () => {
+    const today = { from: "2026-09-27", to: "2026-09-27" };
+    expect(openingRange("tomorrow", undefined, TODAY)).toEqual(today);
+    expect(openingRange("2026-02-31", undefined, TODAY)).toEqual(today);
   });
 
   it("returns a day before the window as its first day, so the pickers stay in range", () => {
-    expect(openingDay("2025-11-03", TODAY)).toBe("2026-01-01");
+    expect(openingRange("2025-11-03", undefined, TODAY)).toEqual({
+      from: "2026-01-01",
+      to: "2026-01-01",
+    });
+  });
+
+  it("returns From and To from the day and the inclusive end day the form was opened for", () => {
+    expect(openingRange("2026-10-12", "2026-10-16", TODAY)).toEqual({
+      from: "2026-10-12",
+      to: "2026-10-16",
+    });
+  });
+
+  it("returns To on From when the end day is missing, not a day, or before From", () => {
+    const oneDay = { from: "2026-10-12", to: "2026-10-12" };
+    expect(openingRange("2026-10-12", undefined, TODAY)).toEqual(oneDay);
+    expect(openingRange("2026-10-12", "friday", TODAY)).toEqual(oneDay);
+    expect(openingRange("2026-10-12", "2026-02-31", TODAY)).toEqual(oneDay);
+    expect(openingRange("2026-10-12", "2026-10-11", TODAY)).toEqual(oneDay);
+  });
+
+  it("returns an end day past the window as the window's last day", () => {
+    expect(openingRange("2027-12-20", "2028-01-05", TODAY)).toEqual({
+      from: "2027-12-20",
+      to: "2027-12-31",
+    });
+  });
+
+  it("returns today for both when neither day was passed", () => {
+    expect(openingRange(undefined, undefined, TODAY)).toEqual({
+      from: "2026-09-27",
+      to: "2026-09-27",
+    });
   });
 });
 
@@ -70,6 +105,13 @@ describe("newRequestValues", () => {
       endTime: "",
       halfDay: false,
       note: "",
+    });
+  });
+
+  it("returns From and To spanning the range given", () => {
+    expect(newRequestValues("2026-10-12", "2026-10-16")).toMatchObject({
+      from: "2026-10-12",
+      to: "2026-10-16",
     });
   });
 });

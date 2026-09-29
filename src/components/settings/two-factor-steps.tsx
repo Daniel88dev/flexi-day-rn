@@ -327,6 +327,7 @@ export function CodeStep({
     <View className="gap-4">
       {info ? <Notice tone="success" message={info} /> : null}
       <CodeBoxes
+        testID="two-factor-code"
         label={copy.code}
         value={code}
         onChange={onChange}

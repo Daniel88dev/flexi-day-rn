@@ -8,6 +8,7 @@ export function ScreenHeader({ onBack, backLabel }: { onBack: () => void; backLa
   return (
     <View className="flex-row items-center justify-between px-5 pt-2">
       <Pressable
+        testID="auth-back"
         onPress={onBack}
         hitSlop={8}
         accessibilityRole="button"

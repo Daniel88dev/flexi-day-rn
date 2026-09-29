@@ -9,10 +9,10 @@ import { useRootRoute } from "@/lib/session/root-route-context";
 /** A page sheet on the root stack, outside the shell's query layer, so it hands the one client in. */
 export default function NewRequestScreen() {
   const route = useRootRoute();
-  const { date } = useLocalSearchParams<{ date?: string }>();
+  const { date, end } = useLocalSearchParams<{ date?: string; end?: string }>();
   const orphaned = useShellUnderneath({
     pathname: "/requests/new",
-    params: date ? { date } : {},
+    params: { ...(date ? { date } : {}), ...(end ? { end } : {}) },
   });
 
   if (route === "welcome") return <Redirect href="/welcome" />;
@@ -20,7 +20,7 @@ export default function NewRequestScreen() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <NewRequestForm day={date} />
+      <NewRequestForm date={date} end={end} />
     </QueryClientProvider>
   );
 }

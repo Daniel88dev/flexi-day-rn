@@ -65,6 +65,47 @@ describe("TwoFactor", () => {
     expect(screen.getByText(en.auth.twoFactor.backToSignIn)).toBeTruthy();
   });
 
+  it("carries an id on the root and every control of the authenticator step", async () => {
+    await renderTwoFactor();
+
+    expect(screen.getByTestId("auth-two-factor")).toBeOnTheScreen();
+    expect(screen.getByTestId("auth-two-factor-code")).toBeOnTheScreen();
+    expect(screen.getByTestId("auth-two-factor-submit")).toHaveAccessibleName(
+      en.auth.twoFactor.submit
+    );
+    expect(screen.getByTestId("auth-two-factor-use-otp")).toHaveAccessibleName(
+      en.auth.twoFactor.useEmail
+    );
+    expect(screen.getByTestId("auth-two-factor-use-backup")).toHaveAccessibleName(
+      en.auth.twoFactor.useBackup
+    );
+    expect(screen.getByTestId("auth-two-factor-back-to-sign-in")).toHaveAccessibleName(
+      en.auth.twoFactor.backToSignIn
+    );
+    expect(screen.getByTestId("auth-back")).toBeOnTheScreen();
+  });
+
+  it("carries ids on the backup code field and the way back to the authenticator", async () => {
+    await renderTwoFactor();
+
+    await fireEvent.press(screen.getByTestId("auth-two-factor-use-backup"));
+
+    expect(screen.getByTestId("auth-two-factor-backup-code")).toBeOnTheScreen();
+    expect(screen.queryByTestId("auth-two-factor-code")).toBeNull();
+    expect(screen.getByTestId("auth-two-factor-use-totp")).toHaveAccessibleName(
+      en.auth.twoFactor.useAuthenticator
+    );
+  });
+
+  it("carries an id on the resend link of the emailed code", async () => {
+    await renderTwoFactor(["otp"]);
+
+    await waitFor(() => expect(twoFactor.sendOtp).toHaveBeenCalled());
+    expect(screen.getByTestId("auth-two-factor-resend")).toHaveAccessibleName(
+      `${en.auth.twoFactor.resend} (30)`
+    );
+  });
+
   it("renders the verification in Czech for a phone set to Czech", async () => {
     speakCzech();
 
@@ -173,6 +214,9 @@ describe("TwoFactor", () => {
     expect(screen.queryByText(en.auth.twoFactor.submit)).toBeNull();
     expect(screen.queryByText(en.auth.twoFactor.useBackup)).toBeNull();
 
+    expect(screen.getByTestId("auth-two-factor-restart")).toHaveAccessibleName(
+      en.auth.twoFactor.backToSignIn
+    );
     await fireEvent.press(screen.getByRole("button", { name: en.auth.twoFactor.backToSignIn }));
 
     expect(onBack).toHaveBeenCalled();

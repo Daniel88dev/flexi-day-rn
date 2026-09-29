@@ -23,10 +23,17 @@ function isDay(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && dayOfDate(dateOfDay(value)) === value;
 }
 
-/** The day From and To open on: the one the form was opened for, else today. */
-export function openingDay(param: string | undefined, today: Date): string {
-  const day = param && isDay(param) ? param : dayOfDate(today);
-  return clampDay(day, bookableWindow(today));
+/** `end` is the inclusive last day. */
+export function openingRange(
+  date: string | undefined,
+  end: string | undefined,
+  today: Date
+): { from: string; to: string } {
+  const window = bookableWindow(today);
+  const from = clampDay(date && isDay(date) ? date : dayOfDate(today), window);
+  if (!end || !isDay(end)) return { from, to: from };
+  const to = clampDay(end, window);
+  return { from, to: to < from ? from : to };
 }
 
 /**
@@ -46,14 +53,14 @@ export type NewRequestValues = {
   note: string;
 };
 
-export function newRequestValues(day: string): NewRequestValues {
+export function newRequestValues(from: string, to: string = from): NewRequestValues {
   return {
     groupId: null,
     memberId: null,
     autoApprove: true,
     vacationType: "VACATION",
-    from: day,
-    to: day,
+    from,
+    to,
     startTime: "",
     endTime: "",
     halfDay: false,

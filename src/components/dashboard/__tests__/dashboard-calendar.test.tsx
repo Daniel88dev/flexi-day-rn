@@ -297,7 +297,7 @@ describe("DashboardCalendar", () => {
       expect(screen.getByTestId("calendar-stripe-mine-14")).toBeOnTheScreen();
       expect(screen.getByTestId("calendar-stripe-eva-14")).toHaveStyle({ opacity: 0.4 });
       expect(screen.queryByTestId("calendar-bar-mine-14")).toBeNull();
-      expect(screen.getByTestId("calendar-holiday-2026-10-28")).toBeOnTheScreen();
+      expect(screen.getByTestId("calendar-day-2026-10-28")).toHaveAccessibleName(/Statehood/);
       expect(screen.getByTestId("calendar-day-2026-10-14")).toBeSelected();
       expect(screen.getByTestId("day-card")).toHaveTextContent(/Wed 14 Oct/);
       expect(screen.getByTestId("day-list-row-mine-14")).toHaveTextContent(/You/);
