@@ -2,7 +2,7 @@ import { onlineManager } from "@tanstack/react-query";
 import { Stack, router, useIsFocused } from "expo-router";
 import { CaretUpDownIcon } from "phosphor-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { toast } from "sonner-native";
 
 import { AttachmentsHeading } from "@/components/requests/attachments/attachment-section";
@@ -17,6 +17,7 @@ import { showGroupPicker } from "@/components/ui/group-picker";
 import { Icon, useTone } from "@/components/ui/icon";
 import { showMemberPicker } from "@/components/ui/member-picker";
 import { Notice } from "@/components/ui/notice";
+import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";

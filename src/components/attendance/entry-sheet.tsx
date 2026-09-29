@@ -1,11 +1,12 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LockSimpleIcon, MoonIcon, XIcon } from "phosphor-react-native";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, Switch, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import { ClockNotice } from "@/components/clock/clock-notice";
 import { FieldLabel } from "@/components/requests/fields/field-label";
 import { Icon, useTone } from "@/components/ui/icon";
+import { Switch } from "@/components/ui/switch";
 import { TABULAR, Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import {

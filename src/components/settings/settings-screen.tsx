@@ -10,7 +10,7 @@ import {
   ShieldCheckIcon,
   TranslateIcon,
 } from "phosphor-react-native";
-import { Linking, Pressable, ScrollView, Switch, View } from "react-native";
+import { Linking, Pressable, ScrollView, View } from "react-native";
 
 import { StackScreen } from "@/components/shell/stack-screen";
 import {
@@ -22,6 +22,7 @@ import { Divider, Row, Section } from "@/components/settings/grouped-list";
 import { TwoFactorRow } from "@/components/settings/two-factor-row";
 import { Icon, useTone } from "@/components/ui/icon";
 import { Notice } from "@/components/ui/notice";
+import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { appVersionLabel } from "@/lib/app-version";

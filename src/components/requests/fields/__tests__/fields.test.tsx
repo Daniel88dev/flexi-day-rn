@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { StyleSheet } from "react-native";
 
 import { DatesField } from "@/components/requests/fields/dates-field";
 import { HalfDayField } from "@/components/requests/fields/half-day-field";
@@ -70,6 +71,13 @@ describe("TimesField", () => {
     await fireEvent(screen.getByTestId("times-field-switch"), "valueChange", false);
     expect(onChange).toHaveBeenLastCalledWith({ startTime: "", endTime: "" });
   });
+
+  it("centres the Specific times switch on its row", async () => {
+    await renderField(<TimesField startTime="" endTime="" onChange={jest.fn()} />);
+
+    const style = StyleSheet.flatten(screen.getByTestId("times-field-switch").props.style);
+    expect(style.alignSelf).toBe("center");
+  });
 });
 
 describe("HalfDayField", () => {
@@ -81,6 +89,13 @@ describe("HalfDayField", () => {
     await fireEvent(screen.getByTestId("half-day-field"), "valueChange", true);
 
     expect(onChange).toHaveBeenCalledWith(true);
+  });
+
+  it("centres the switch on its row", async () => {
+    await renderField(<HalfDayField value={false} onChange={jest.fn()} />);
+
+    const style = StyleSheet.flatten(screen.getByTestId("half-day-field").props.style);
+    expect(style.alignSelf).toBe("center");
   });
 });
 

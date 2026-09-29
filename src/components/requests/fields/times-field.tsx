@@ -1,8 +1,9 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Switch, View } from "react-native";
+import { View } from "react-native";
 
 import { FieldLabel } from "@/components/requests/fields/field-label";
 import { useTone } from "@/components/ui/icon";
+import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dateOfTime, timeOfDate } from "@/lib/requests/times";

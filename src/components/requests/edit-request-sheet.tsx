@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
 import { HalfDayField } from "@/components/requests/fields/half-day-field";
 import { NoteField } from "@/components/requests/fields/note-field";
@@ -100,46 +93,46 @@ export function EditRequestSheet({
             )}
           </Pressable>
         </View>
-        <KeyboardAvoidingView behavior="padding" className="flex-1">
-          <ScrollView
-            className="flex-1"
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ gap: 24, padding: 16, paddingBottom: 48 }}
-          >
-            <View className="px-1">
-              <Text className="text-[15px] font-semibold text-foreground">
-                {detail.user.name} · {detail.groupName}
-              </Text>
-              <Text className="text-[13.5px] text-muted-foreground">
-                {runDatesLabel(
-                  { from: detail.rangeStart, to: detail.rangeEnd },
-                  t.requests.runDates
-                )}
-                {". "}
-                {labels.appliesTo(detail.vacationIds.length)}
-              </Text>
-            </View>
-            <TypeField
-              value={values.vacationType}
-              onChange={(vacationType) => set({ vacationType })}
-              offerSickDay={group?.organization?.sickDayBenefitActive === true}
-              current={current}
-            />
-            <TimesField
-              startTime={values.startTime}
-              endTime={values.endTime}
-              onChange={(times) => set(times)}
-            />
-            {isSingleDay(detail) ? (
-              <HalfDayField value={values.halfDay} onChange={(halfDay) => set({ halfDay })} />
-            ) : null}
-            <NoteField
-              value={values.note}
-              onChange={(note) => set({ note })}
-              required={values.vacationType === "OTHER"}
-            />
-          </ScrollView>
-        </KeyboardAvoidingView>
+        <ScrollView
+          testID="edit-request-scroll"
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          // A padding KeyboardAvoidingView measures from the screen, not the page sheet, and
+          // leaves the note under the keyboard.
+          automaticallyAdjustKeyboardInsets
+          contentContainerStyle={{ gap: 24, padding: 16, paddingBottom: 48 }}
+        >
+          <View className="px-1">
+            <Text className="text-[15px] font-semibold text-foreground">
+              {detail.user.name} · {detail.groupName}
+            </Text>
+            <Text className="text-[13.5px] text-muted-foreground">
+              {runDatesLabel({ from: detail.rangeStart, to: detail.rangeEnd }, t.requests.runDates)}
+              {". "}
+              {labels.appliesTo(detail.vacationIds.length)}
+            </Text>
+          </View>
+          <TypeField
+            value={values.vacationType}
+            onChange={(vacationType) => set({ vacationType })}
+            offerSickDay={group?.organization?.sickDayBenefitActive === true}
+            current={current}
+          />
+          <TimesField
+            startTime={values.startTime}
+            endTime={values.endTime}
+            onChange={(times) => set(times)}
+          />
+          {isSingleDay(detail) ? (
+            <HalfDayField value={values.halfDay} onChange={(halfDay) => set({ halfDay })} />
+          ) : null}
+          <NoteField
+            value={values.note}
+            onChange={(note) => set({ note })}
+            required={values.vacationType === "OTHER"}
+          />
+        </ScrollView>
       </View>
     </Modal>
   );

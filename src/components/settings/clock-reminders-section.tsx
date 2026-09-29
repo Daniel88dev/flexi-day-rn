@@ -6,10 +6,11 @@ import {
   SignInIcon,
   SignOutIcon,
 } from "phosphor-react-native";
-import { Linking, Pressable, Switch, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 
 import { Divider, Row, Section } from "@/components/settings/grouped-list";
 import { Icon, useTone } from "@/components/ui/icon";
+import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
