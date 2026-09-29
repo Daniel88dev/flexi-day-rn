@@ -38,6 +38,32 @@ describe("devSignInTarget", () => {
     expect(devSignInTarget("/\\example.com")).toBe("/dashboard");
     expect(devSignInTarget("requests")).toBe("/dashboard");
   });
+
+  it("returns the path with the params the router split off it folded back on", () => {
+    expect(devSignInTarget("/requests/new?date=2026-10-12", { end: "2026-10-16" })).toBe(
+      "/requests/new?date=2026-10-12&end=2026-10-16"
+    );
+  });
+
+  it("returns a path without a query with the split params as its query", () => {
+    expect(devSignInTarget("/requests/new", { date: "2026-10-12", end: "2026-10-16" })).toBe(
+      "/requests/new?date=2026-10-12&end=2026-10-16"
+    );
+  });
+
+  it("returns the split params encoded, a repeated one once per value", () => {
+    expect(devSignInTarget("/requests", { note: "a&b=c d", tag: ["x", "y"] })).toBe(
+      "/requests?note=a%26b%3Dc%20d&tag=x&tag=y"
+    );
+  });
+
+  it("returns the dashboard for split params with no path or one that leaves the app", () => {
+    expect(devSignInTarget(undefined, { end: "2026-10-16" })).toBe("/dashboard");
+    expect(devSignInTarget("https://example.com/requests", { end: "2026-10-16" })).toBe(
+      "/dashboard"
+    );
+    expect(devSignInTarget("//example.com?a=1", { end: "2026-10-16" })).toBe("/dashboard");
+  });
 });
 
 describe("devSignIn", () => {

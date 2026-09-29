@@ -4,7 +4,7 @@ type Refusal = { status?: number; code?: string; message?: string };
 
 export type AuthAnswer = { data?: unknown; error?: Refusal | null };
 
-/** A `flexiday://dev-sign-in` link's params, as the router hands them over. */
+/** A dev sign-in link's ticket and landing path, its stray params already folded into `to`. */
 export type DevSignInLink = { ticket: unknown; to?: unknown };
 
 export type DevSignInSteps = {
@@ -16,10 +16,22 @@ export type DevSignInSteps = {
   land: (landing: string | null) => void;
 };
 
-export function devSignInTarget(to: unknown): string {
+/**
+ * `strayParams` is every other param of the link. expo-router decodes a deep link's query twice and
+ * rejoins it with a raw `&`, so the params of `to`'s own query past the first arrive beside it.
+ */
+export function devSignInTarget(to: unknown, strayParams: Record<string, unknown> = {}): string {
   if (typeof to !== "string") return DASHBOARD;
   const inApp = to.startsWith("/") && !to.startsWith("//") && !to.includes("\\");
-  return inApp ? to : DASHBOARD;
+  if (!inApp) return DASHBOARD;
+
+  const folded = Object.entries(strayParams).flatMap(([key, value]) =>
+    (Array.isArray(value) ? value : [value])
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => `${encodeURIComponent(key)}=${encodeURIComponent(item)}`)
+  );
+  if (folded.length === 0) return to;
+  return `${to}${to.includes("?") ? "&" : "?"}${folded.join("&")}`;
 }
 
 function describeRefusal(refusal: Refusal): string {
