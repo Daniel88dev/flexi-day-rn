@@ -48,7 +48,7 @@ describe("useStoreOpen", () => {
     expect(result.current).toBe(false);
   });
 
-  it("re-renders a mounted consumer on each change and not otherwise", async () => {
+  it("returns the new value and re-renders once per change", async () => {
     const { hook, renders } = renderCounted();
     const { result } = await hook;
     const settled = renders();

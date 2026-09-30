@@ -192,3 +192,30 @@ describe("destroyStore", () => {
     await expect(store.destroyStore()).resolves.toBeUndefined();
   });
 });
+
+describe("subscribeOpen", () => {
+  it("calls the listener after an open, a close and a destroy", async () => {
+    const store = createStoreLifecycle(adapter);
+    const seen: boolean[] = [];
+    store.subscribeOpen(() => seen.push(store.isOpen()));
+
+    await store.openStore("user-1");
+    await store.closeStore();
+    await store.openStore("user-1");
+    await store.destroyStore();
+
+    expect(seen).toEqual([true, false, true, false]);
+  });
+
+  it("stops calling the listener once it unsubscribes", async () => {
+    const store = createStoreLifecycle(adapter);
+    const listener = jest.fn();
+    const unsubscribe = store.subscribeOpen(listener);
+
+    await store.openStore("user-1");
+    unsubscribe();
+    await store.destroyStore();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+});

@@ -8,7 +8,6 @@ export type StoreLifecycle = {
   destroyStore(): Promise<void>;
   closeStore(): Promise<void>;
   isOpen(): boolean;
-  /** Calls `listener` after each open, close and destroy; returns the unsubscribe. */
   subscribeOpen(listener: () => void): () => void;
   getDatabase(): StoreDatabase;
 };
