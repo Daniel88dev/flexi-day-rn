@@ -22,10 +22,7 @@ export function NotificationBell() {
     >
       <Icon icon={BellIcon} tone="foreground" size={20} />
       {unread ? (
-        <View
-          testID="notification-bell-dot"
-          className="absolute top-[9px] right-[10px] h-2.5 w-2.5 rounded-full border-2 border-card bg-warm"
-        />
+        <View className="absolute top-[9px] right-[10px] h-2.5 w-2.5 rounded-full border-2 border-card bg-warm" />
       ) : null}
     </Pressable>
   );

@@ -113,10 +113,7 @@ export function StripeMonth({
                   className="items-center pt-1"
                 >
                   {holiday ? (
-                    <View
-                      testID={`calendar-holiday-${iso}`}
-                      className="absolute inset-x-[3px] top-[3px] bottom-[3px] overflow-hidden rounded-[12px]"
-                    >
+                    <View className="absolute inset-x-[3px] top-[3px] bottom-[3px] overflow-hidden rounded-[12px]">
                       <View className="absolute inset-0 bg-leave-bank" style={{ opacity: 0.18 }} />
                     </View>
                   ) : null}

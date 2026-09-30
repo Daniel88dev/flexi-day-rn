@@ -57,22 +57,22 @@ beforeEach(() => jest.clearAllMocks());
 afterEach(() => queryClient.clear());
 
 describe("NotificationBell", () => {
-  it("renders the unread dot while any notification is unread", async () => {
+  it("says some are unread in the bell's label while any notification is unread", async () => {
     notifications("2026-09-27T09:00:00.000Z", null);
     await renderBell();
 
-    expect(await screen.findByTestId("notification-bell-dot")).toBeOnTheScreen();
-    expect(screen.getByTestId("notification-bell").props.accessibilityLabel).toBe(
-      en.notifications.openUnread
+    await screen.findByLabelText(en.notifications.openUnread);
+    expect(screen.getByTestId("notification-bell")).toHaveAccessibleName(
+      "Notifications, some unread"
     );
   });
 
-  it("renders no dot once everything is read", async () => {
+  it("drops the unread note from the bell's label once everything is read", async () => {
     notifications("2026-09-27T09:00:00.000Z");
     await renderBell();
 
     await screen.findByLabelText(en.notifications.open);
-    expect(screen.queryByTestId("notification-bell-dot")).toBeNull();
+    expect(screen.getByTestId("notification-bell")).toHaveAccessibleName("Notifications");
   });
 
   it("opens the notification list", async () => {

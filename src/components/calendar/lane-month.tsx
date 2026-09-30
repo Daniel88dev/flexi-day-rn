@@ -91,7 +91,7 @@ function LaneBar({
     >
       <Tint className={classes.fill} opacity={pending ? 0.08 : 0.2} />
       {!bar.continuesLeft && !pending ? (
-        <View testID="calendar-bar-edge" className={cn("h-full w-[3px]", classes.fill)} />
+        <View className={cn("h-full w-[3px]", classes.fill)} />
       ) : (
         <View className="w-[2px]" />
       )}

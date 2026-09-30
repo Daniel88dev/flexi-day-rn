@@ -405,9 +405,9 @@ describe("DashboardScreen", () => {
     await renderDashboard();
 
     expect(screen.queryByTestId("stat-pending")).toBeNull();
-    expect(screen.getByTestId("stat-outToday-value")).toHaveTextContent("3");
-    expect(screen.getByTestId("stat-comingUp-value")).toHaveTextContent("4");
-    expect(screen.getByTestId("stat-workingToday-value")).toHaveTextContent("5");
+    expect(screen.getByTestId("stat-outToday")).toHaveAccessibleName("Out today: 3");
+    expect(screen.getByTestId("stat-comingUp")).toHaveAccessibleName("Coming up · 14d: 4");
+    expect(screen.getByTestId("stat-workingToday")).toHaveAccessibleName("Working today: 5");
     expect(screen.queryByText("approvals card")).toBeNull();
   });
 
@@ -422,7 +422,7 @@ describe("DashboardScreen", () => {
       .getAllByTestId(/^stat-(pending|outToday|comingUp|workingToday)$/)
       .map((tile) => tile.props.testID);
     expect(tiles).toEqual(["stat-pending", "stat-outToday", "stat-comingUp", "stat-workingToday"]);
-    expect(screen.getByTestId("stat-pending-value")).toHaveTextContent("0");
+    expect(screen.getByTestId("stat-pending")).toHaveAccessibleName("Pending approvals: 0");
     expect(screen.getByText("approvals card")).toBeTruthy();
   });
 

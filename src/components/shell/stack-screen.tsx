@@ -11,10 +11,18 @@ import { useTranslation } from "@/i18n/use-translation";
  * A destination reached from the More sheet: it pushes over the tab bar rather than replacing a
  * tab, so it carries its own way back. Without children it is a placeholder.
  */
-export function StackScreen({ title, children }: { title: string; children?: ReactNode }) {
+export function StackScreen({
+  title,
+  children,
+  testID,
+}: {
+  title: string;
+  children?: ReactNode;
+  testID?: string;
+}) {
   const { t } = useTranslation();
   return (
-    <View className="flex-1 bg-background pt-safe pb-safe">
+    <View testID={testID} className="flex-1 bg-background pt-safe pb-safe">
       <View className="h-14 flex-row items-center gap-1 px-3">
         <Pressable
           testID="stack-back"

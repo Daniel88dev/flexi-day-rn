@@ -63,11 +63,28 @@ describe("ClockDisc", () => {
     expect(screen.queryByTestId("clock-disc")).toBeNull();
   });
 
-  it("wears the offline badge over the last read when the phone is offline", async () => {
+  it("reads its face label as the disc's value while the clock is reachable", async () => {
+    await renderDisc((client) => client.setQueryData(qk.attendanceState(), attendance()));
+
+    const disc = screen.getByTestId("clock-disc");
+    expect(disc).toHaveAccessibilityValue({ text: "Clock" });
+    expect(disc).not.toBeBusy();
+  });
+
+  it("says on the disc that the server can't be reached when the phone is offline", async () => {
     onlineManager.setOnline(false);
     await renderDisc((client) => client.setQueryData(qk.attendanceState(), attendance()));
 
-    expect(screen.getByTestId("clock-disc-offline")).toBeTruthy();
+    expect(screen.getByTestId("clock-disc")).toHaveAccessibilityValue({
+      text: "Clock, Can't reach the server",
+    });
     expect(screen.getByText("Clock")).toBeTruthy();
+  });
+
+  it("marks the disc busy while the first read is in flight", async () => {
+    mockFetch.mockReturnValue(new Promise(() => undefined));
+    await renderDisc(() => undefined);
+
+    expect(screen.getByTestId("clock-disc")).toBeBusy();
   });
 });

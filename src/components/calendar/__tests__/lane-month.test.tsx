@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { LaneMonth } from "@/components/calendar/lane-month";
 import { TranslationProvider } from "@/i18n/use-translation";
@@ -66,16 +66,11 @@ describe("LaneMonth", () => {
     expect(screen.getByTestId("calendar-bar-bob-8")).toHaveTextContent("Bob");
   });
 
-  it("renders a pending bar dashed, without the solid edge an approved one has", async () => {
+  it("renders a pending bar dashed and an approved one solid", async () => {
     await renderMonth([bar("eva", 5, 5, { status: "pending" }), bar("tom", 12, 12)]);
 
-    const pending = screen.getByTestId("calendar-bar-eva-5");
-    expect(pending).toHaveStyle({ borderStyle: "dashed" });
-    expect(within(pending).queryByTestId("calendar-bar-edge")).toBeNull();
+    expect(screen.getByTestId("calendar-bar-eva-5")).toHaveStyle({ borderStyle: "dashed" });
     expect(screen.getByTestId("calendar-bar-tom-12")).toHaveStyle({ borderStyle: "solid" });
-    expect(
-      within(screen.getByTestId("calendar-bar-tom-12")).getByTestId("calendar-bar-edge")
-    ).toBeOnTheScreen();
   });
 
   it("renders the bars past two lanes as +N on each day they cover, the viewer's kept", async () => {

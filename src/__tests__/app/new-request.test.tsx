@@ -19,7 +19,7 @@ import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
-const mockParams = jest.fn((): { date?: string } => ({ date: "2026-10-05" }));
+const mockParams = jest.fn((): { date?: string; end?: string } => ({ date: "2026-10-05" }));
 const mockScreenOptions = jest.fn();
 
 jest.mock("@/lib/api", () => {
@@ -213,6 +213,35 @@ describe("NewRequest route", () => {
       pathname: "/requests/new",
       params: { date: "2026-10-05" },
     });
+  });
+
+  it("keeps the end day when it puts the shell under a cold deep link", async () => {
+    mockCanGoBack.mockReturnValue(false);
+    mockParams.mockReturnValue({ date: "2026-10-12", end: "2026-10-16" });
+
+    await renderForm();
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/requests/new",
+      params: { date: "2026-10-12", end: "2026-10-16" },
+    });
+  });
+
+  it("opens on the range it was opened for", async () => {
+    mockParams.mockReturnValue({ date: "2026-10-12", end: "2026-10-16" });
+
+    await renderLoaded();
+
+    expect(valueOf("dates-field-from")).toBe("2026-10-12");
+    expect(valueOf("dates-field-to")).toBe("2026-10-16");
+  });
+
+  it("opens on one day when the end day falls before it", async () => {
+    mockParams.mockReturnValue({ date: "2026-10-12", end: "2026-10-09" });
+
+    await renderLoaded();
+
+    expect(valueOf("dates-field-to")).toBe("2026-10-12");
   });
 
   it("opens on the day it was opened for, in the viewer's first group, as a Vacation", async () => {

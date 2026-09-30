@@ -38,7 +38,7 @@ import {
   newRequestDraft,
   newRequestValues,
   offersHalfDay,
-  openingDay,
+  openingRange,
   shownType,
   submitFailureMessage,
   withFrom,
@@ -87,7 +87,7 @@ function PickerRow({
  * Booking waits for the server: the rows show in the lists as the write goes out, and a failure
  * keeps the sheet open with the entry as it was and the reason above it.
  */
-export function NewRequestForm({ day }: { day?: string }) {
+export function NewRequestForm({ date, end }: { date?: string; end?: string }) {
   const { t } = useTranslation();
   const labels = t.newRequest;
   const primary = useTone("primary");
@@ -97,9 +97,10 @@ export function NewRequestForm({ day }: { day?: string }) {
 
   const today = useToday();
   const bookable = bookableWindow(today);
-  const [values, setValues] = useState<NewRequestValues>(() =>
-    newRequestValues(openingDay(day, today))
-  );
+  const [values, setValues] = useState<NewRequestValues>(() => {
+    const { from, to } = openingRange(date, end, today);
+    return newRequestValues(from, to);
+  });
   const [error, setError] = useState<string | null>(null);
 
   const groups = useMemberGroups();

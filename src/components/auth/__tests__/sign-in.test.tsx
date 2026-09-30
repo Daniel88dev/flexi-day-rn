@@ -62,6 +62,15 @@ async function fillIn(dictionary: typeof en) {
 }
 
 describe("SignIn", () => {
+  it("renders under the sign-in root and goes back from auth-back", async () => {
+    await renderSignIn();
+
+    expect(screen.getByTestId("sign-in")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId("auth-back"));
+
+    expect(onBack).toHaveBeenCalled();
+  });
+
   it("renders the form the web's sign-in card carries", async () => {
     await renderSignIn();
 

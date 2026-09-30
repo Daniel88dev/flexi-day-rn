@@ -94,12 +94,10 @@ describe("StripeMonth", () => {
   it("tints a bank holiday's day and names it to a screen reader", async () => {
     await renderMonth([holiday(28, "Statehood")]);
 
-    expect(screen.getByTestId("calendar-holiday-2026-10-28")).toBeOnTheScreen();
-    expect(screen.queryByTestId("calendar-holiday-2026-10-27")).toBeNull();
-    expect(screen.getByTestId("calendar-day-2026-10-28")).toHaveProp(
-      "accessibilityLabel",
+    expect(screen.getByTestId("calendar-day-2026-10-28")).toHaveAccessibleName(
       "Wed 28 Oct, Statehood"
     );
+    expect(screen.getByTestId("calendar-day-2026-10-27")).toHaveAccessibleName("Tue 27 Oct");
   });
 
   it("says how many people are away on a day, and which day is today, to a screen reader", async () => {

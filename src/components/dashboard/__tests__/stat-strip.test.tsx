@@ -30,11 +30,11 @@ describe("StatStrip", () => {
   it("renders a tile per count", async () => {
     await renderStrip();
 
-    expect(screen.getByTestId("stat-pending-value")).toHaveTextContent("2");
-    expect(screen.getByTestId("stat-outToday-value")).toHaveTextContent("3");
-    expect(screen.getByTestId("stat-comingUp-value")).toHaveTextContent("4");
-    expect(screen.getByTestId("stat-workingToday-value")).toHaveTextContent("5");
-    expect(screen.getByLabelText(`${en.dashboard.stats.pending}: 2`)).toBeTruthy();
+    expect(screen.getByTestId("stat-pending")).toHaveAccessibleName("Pending approvals: 2");
+    expect(screen.getByTestId("stat-outToday")).toHaveAccessibleName("Out today: 3");
+    expect(screen.getByTestId("stat-comingUp")).toHaveAccessibleName("Coming up · 14d: 4");
+    expect(screen.getByTestId("stat-workingToday")).toHaveAccessibleName("Working today: 5");
+    expect(screen.getByTestId("stat-pending")).not.toBeBusy();
   });
 
   it("renders a dash in every tile while the counts can't be read", async () => {
@@ -82,7 +82,7 @@ describe("StatStrip", () => {
   it("renders a neutral placeholder, not a dash, while the first read is in flight", async () => {
     await renderStrip(statTiles({ state: "loading" }, { approver: false }));
 
-    expect(screen.getByTestId("stat-outToday-loading")).toBeTruthy();
+    expect(screen.getByTestId("stat-outToday")).toBeBusy();
     expect(screen.queryByText(en.dashboard.stats.noValue)).toBeNull();
     expect(
       screen.getByLabelText(`${en.dashboard.stats.outToday}: ${en.dashboard.stats.loading}`)

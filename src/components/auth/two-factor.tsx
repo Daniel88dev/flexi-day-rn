@@ -18,7 +18,7 @@ export function TwoFactor({ methods, onBack }: { methods: string[]; onBack: () =
     form.cooldown > 0 ? `${t.auth.twoFactor.resend} (${form.cooldown})` : t.auth.twoFactor.resend;
 
   return (
-    <View className="flex-1 bg-background pt-safe">
+    <View testID="auth-two-factor" className="flex-1 bg-background pt-safe">
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
           <ScreenHeader onBack={onBack} backLabel={t.auth.signIn.back} />
@@ -37,6 +37,7 @@ export function TwoFactor({ methods, onBack }: { methods: string[]; onBack: () =
               {form.info ? <Notice tone="success" message={form.info} /> : null}
               {form.method === "backup" ? (
                 <Field
+                  testID="auth-two-factor-backup-code"
                   label={t.auth.twoFactor.backupCode}
                   icon={KeyIcon}
                   placeholder={t.auth.twoFactor.backupPlaceholder}
@@ -51,6 +52,7 @@ export function TwoFactor({ methods, onBack }: { methods: string[]; onBack: () =
                 />
               ) : (
                 <CodeBoxes
+                  testID="auth-two-factor-code"
                   label={t.auth.twoFactor.code}
                   value={form.code}
                   onChange={form.setCode}
@@ -59,9 +61,14 @@ export function TwoFactor({ methods, onBack }: { methods: string[]; onBack: () =
                 />
               )}
               {form.challengeDead ? (
-                <Button label={t.auth.twoFactor.backToSignIn} onPress={onBack} />
+                <Button
+                  testID="auth-two-factor-restart"
+                  label={t.auth.twoFactor.backToSignIn}
+                  onPress={onBack}
+                />
               ) : (
                 <Button
+                  testID="auth-two-factor-submit"
                   label={form.loading ? t.auth.twoFactor.submitting : t.auth.twoFactor.submit}
                   loading={form.loading}
                   disabled={!form.canSubmit}
@@ -73,6 +80,7 @@ export function TwoFactor({ methods, onBack }: { methods: string[]; onBack: () =
               <View className="mt-7 items-center gap-4">
                 {form.method === "otp" ? (
                   <TextLink
+                    testID="auth-two-factor-resend"
                     label={resendLabel}
                     onPress={() => void form.sendOtp()}
                     disabled={!form.canResend}
@@ -80,18 +88,21 @@ export function TwoFactor({ methods, onBack }: { methods: string[]; onBack: () =
                 ) : null}
                 {form.method !== "totp" && form.offered.totp ? (
                   <TextLink
+                    testID="auth-two-factor-use-totp"
                     label={t.auth.twoFactor.useAuthenticator}
                     onPress={() => form.setMethod("totp")}
                   />
                 ) : null}
                 {form.method !== "otp" && form.offered.otp ? (
                   <TextLink
+                    testID="auth-two-factor-use-otp"
                     label={t.auth.twoFactor.useEmail}
                     onPress={() => form.setMethod("otp")}
                   />
                 ) : null}
                 {form.method !== "backup" ? (
                   <TextLink
+                    testID="auth-two-factor-use-backup"
                     label={t.auth.twoFactor.useBackup}
                     onPress={() => form.setMethod("backup")}
                   />
@@ -101,7 +112,12 @@ export function TwoFactor({ methods, onBack }: { methods: string[]; onBack: () =
           </View>
           <View className="items-center px-6 pt-4 pb-safe">
             <View className="pb-4">
-              <TextLink label={t.auth.twoFactor.backToSignIn} onPress={onBack} muted />
+              <TextLink
+                testID="auth-two-factor-back-to-sign-in"
+                label={t.auth.twoFactor.backToSignIn}
+                onPress={onBack}
+                muted
+              />
             </View>
           </View>
         </ScrollView>

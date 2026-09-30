@@ -12,4 +12,10 @@ describe("ScreenHeader", () => {
 
     expect(onBack).toHaveBeenCalled();
   });
+
+  it("carries the auth-back id on the back button", async () => {
+    await render(<ScreenHeader onBack={jest.fn()} backLabel="Back" />);
+
+    expect(screen.getByTestId("auth-back")).toHaveAccessibleName("Back");
+  });
 });

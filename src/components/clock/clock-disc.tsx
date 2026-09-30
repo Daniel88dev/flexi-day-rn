@@ -47,7 +47,10 @@ export function ClockDisc({ onPress }: { onPress: () => void }) {
       testID="clock-disc"
       accessibilityRole="button"
       accessibilityLabel={t.clock.sheetTitle}
-      accessibilityValue={{ text: face.label }}
+      accessibilityValue={{
+        text: face.offline ? `${face.label}, ${t.clock.unreachable}` : face.label,
+      }}
+      accessibilityState={{ busy: face.loading }}
     >
       <View className="-mt-[26px] rounded-full bg-background p-[5px]">
         <View
@@ -59,10 +62,7 @@ export function ClockDisc({ onPress }: { onPress: () => void }) {
             <Glyph color={glyphColor} size={26} />
           )}
           {face.offline ? (
-            <View
-              testID="clock-disc-offline"
-              className="absolute -top-1 -right-1 h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-card"
-            >
+            <View className="absolute -top-1 -right-1 h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-card">
               <Icon icon={WifiSlashIcon} tone="muted" size={11} weight="bold" />
             </View>
           ) : null}

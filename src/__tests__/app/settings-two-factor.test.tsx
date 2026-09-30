@@ -221,6 +221,7 @@ describe("Two-factor sheet", () => {
     await renderRoute();
 
     await enterPassword();
+    expect(screen.getByTestId("two-factor-code")).toBeOnTheScreen();
     await typeCode("000000");
 
     expect(screen.getByTestId("two-factor-code-error")).toHaveTextContent(

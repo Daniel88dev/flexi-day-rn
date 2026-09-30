@@ -85,12 +85,11 @@ function Tile({ tile, open, onPress }: { tile: StatTile; open: boolean; onPress:
         <Icon icon={look.icon} tone={look.tone} size={18} weight="bold" />
       </View>
       {tile.value === "loading" ? (
-        <View testID={`stat-${tile.id}-loading`} className="h-[27px] justify-center">
+        <View className="h-[27px] justify-center">
           <View className="h-3.5 w-6 rounded-full bg-muted" />
         </View>
       ) : (
         <Text
-          testID={`stat-${tile.id}-value`}
           className={cn(
             "font-display text-[22px] font-bold tabular-nums",
             tile.value === "unavailable" ? "text-faint" : look.value

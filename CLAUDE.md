@@ -219,6 +219,8 @@ throws `ApiError` with the server's message.
   go in `src/__tests__/app/`.
 - Every new function in `src/lib/` needs unit tests; every new component needs at least a smoke test.
 - Naming: `describe("functionName")` with `it("returns …")`.
+- A new interactive element or screen root carries a `testID`, on the outer pressable and never on
+  a child inside it: iOS hides a pressable's children from the accessibility tree agents drive.
 - CI runs lint, prettier, `tsc --noEmit` and the tests on every PR. There is no native build in
   CI, so a change that touches native code or a native module is checked by hand in the simulator
   before it merges ([`docs/ci-and-dependabot.md`](docs/ci-and-dependabot.md)).

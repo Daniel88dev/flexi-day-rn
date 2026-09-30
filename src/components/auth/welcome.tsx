@@ -21,7 +21,7 @@ export function Welcome({
 }) {
   const { t } = useTranslation();
   return (
-    <View className="flex-1 bg-background pt-safe pb-safe">
+    <View testID="welcome" className="flex-1 bg-background pt-safe pb-safe">
       {/* The band the signed-out notice takes, held open so the mark sits where it does with one. */}
       <View className="min-h-[72px] px-6 pt-2">
         {signedOut ? <Notice tone="accent" message={t.auth.welcome.signedOut} /> : null}
@@ -34,8 +34,14 @@ export function Welcome({
         </Text>
       </View>
       <View className="gap-1 px-6 pb-3">
-        <Button label={t.auth.welcome.signIn} onPress={onSignIn} icon={ArrowRightIcon} />
+        <Button
+          testID="welcome-sign-in"
+          label={t.auth.welcome.signIn}
+          onPress={onSignIn}
+          icon={ArrowRightIcon}
+        />
         <TextLink
+          testID="welcome-create-account"
           label={t.auth.welcome.createOnWeb}
           onPress={onCreateAccount}
           external

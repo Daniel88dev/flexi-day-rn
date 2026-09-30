@@ -13,12 +13,14 @@ export function CodeBoxes({
   onChange,
   onComplete,
   disabled,
+  testID,
 }: {
   label: string;
   value: string;
   onChange: (code: string) => void;
   onComplete?: (code: string) => void;
   disabled?: boolean;
+  testID?: string;
 }) {
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
@@ -26,6 +28,7 @@ export function CodeBoxes({
 
   return (
     <Pressable
+      testID={testID}
       onPress={() => inputRef.current?.focus()}
       disabled={disabled}
       className={cn("flex-row gap-2.5", disabled && "opacity-50")}

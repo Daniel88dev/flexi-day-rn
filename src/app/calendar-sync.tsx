@@ -3,5 +3,5 @@ import { useTranslation } from "@/i18n/use-translation";
 
 export default function Screen() {
   const { t } = useTranslation();
-  return <StackScreen title={t.nav.calendarSync} />;
+  return <StackScreen testID="calendar-sync" title={t.nav.calendarSync} />;
 }
