@@ -135,6 +135,19 @@ describe("DevSignInRoute", () => {
     expect(rootRoute()).toBe("signed-in");
   });
 
+  it("lands on the path with the params the router split off it folded back on", async () => {
+    params.mockReturnValue({
+      ticket: "a-ticket",
+      to: "/requests/new?date=2026-10-12",
+      end: "2026-10-16",
+    });
+
+    await renderRoute("welcome");
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/dashboard"));
+    expect(takeDevSignInLanding()).toBe("/requests/new?date=2026-10-12&end=2026-10-16");
+  });
+
   it("lands on the dashboard when the link names no path", async () => {
     params.mockReturnValue({ ticket: "a-ticket" });
 
