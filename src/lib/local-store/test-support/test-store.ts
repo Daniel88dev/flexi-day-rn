@@ -10,13 +10,22 @@ export type TestStoreOptions = {
   clock?: StoreClock;
 };
 
+/** An in-memory store installed as the active runtime but not opened, the way a cold start finds it. */
+export function installTestStore({
+  filePath = ":memory:",
+  clock = systemClock,
+}: TestStoreOptions = {}): StoreRuntime {
+  const runtime = installStoreRuntime(createBetterSqlite3Adapter(filePath));
+  installPendingChanges({ runtime, clock });
+  return runtime;
+}
+
 /** An in-memory store, installed as the active runtime so `useStoreQuery` reads it too. */
 export async function openTestStore(
   userId = "user-1",
-  { filePath = ":memory:", clock = systemClock }: TestStoreOptions = {}
+  options: TestStoreOptions = {}
 ): Promise<StoreRuntime> {
-  const runtime = installStoreRuntime(createBetterSqlite3Adapter(filePath));
-  installPendingChanges({ runtime, clock });
+  const runtime = installTestStore(options);
   await runtime.lifecycle.openStore(userId);
   return runtime;
 }

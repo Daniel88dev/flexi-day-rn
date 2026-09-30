@@ -8,6 +8,8 @@ export type StoreLifecycle = {
   destroyStore(): Promise<void>;
   closeStore(): Promise<void>;
   isOpen(): boolean;
+  /** Calls `listener` after each open, close and destroy; returns the unsubscribe. */
+  subscribeOpen(listener: () => void): () => void;
   getDatabase(): StoreDatabase;
 };
 
@@ -39,6 +41,10 @@ export function createStoreLifecycle(
 ): StoreLifecycle {
   let connection: StoreConnection | null = null;
   let openUserId: string | null = null;
+  const openListeners = new Set<() => void>();
+  const announce = () => {
+    for (const listener of [...openListeners]) listener();
+  };
 
   const recreate = (userId: string): StoreConnection => {
     connection?.close();
@@ -61,6 +67,7 @@ export function createStoreLifecycle(
       if (stale) connection = recreate(userId);
 
       openUserId = userId;
+      announce();
     },
 
     async destroyStore() {
@@ -68,6 +75,7 @@ export function createStoreLifecycle(
       connection = null;
       openUserId = null;
       adapter.deleteDatabaseFile();
+      announce();
     },
 
     /** Closes without deleting, so a test can reopen the file the way a relaunch would. */
@@ -75,9 +83,17 @@ export function createStoreLifecycle(
       connection?.close();
       connection = null;
       openUserId = null;
+      announce();
     },
 
     isOpen: () => connection !== null,
+
+    subscribeOpen(listener) {
+      openListeners.add(listener);
+      return () => {
+        openListeners.delete(listener);
+      };
+    },
 
     getDatabase() {
       if (!connection) throw new Error("The local store is not open.");
