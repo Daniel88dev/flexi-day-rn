@@ -374,6 +374,7 @@ export function NewRequestForm({ date, end }: { date?: string; end?: string }) {
               value={values.note}
               onChange={(note) => set({ note })}
               required={type === "OTHER"}
+              scrollRef={scrollRef}
             />
             {offerAttachments ? (
               <View testID="new-request-attachments">

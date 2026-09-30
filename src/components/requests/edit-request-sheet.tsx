@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
 import { HalfDayField } from "@/components/requests/fields/half-day-field";
@@ -38,6 +38,7 @@ export function EditRequestSheet({
   const primary = useTone("primary");
   const [values, setValues] = useState<EditValues>(() => editValuesOf(detail));
   const group = useGroupDetail(open ? detail.groupId : null).data;
+  const scrollRef = useRef<ScrollView>(null);
 
   const set = (patch: Partial<EditValues>) => setValues((current) => ({ ...current, ...patch }));
   const patch = editPatch(detail, values);
@@ -94,6 +95,7 @@ export function EditRequestSheet({
           </Pressable>
         </View>
         <ScrollView
+          ref={scrollRef}
           testID="edit-request-scroll"
           className="flex-1"
           keyboardShouldPersistTaps="handled"
@@ -131,6 +133,7 @@ export function EditRequestSheet({
             value={values.note}
             onChange={(note) => set({ note })}
             required={values.vacationType === "OTHER"}
+            scrollRef={scrollRef}
           />
         </ScrollView>
       </View>

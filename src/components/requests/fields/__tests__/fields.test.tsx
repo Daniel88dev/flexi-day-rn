@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
-import type { ReactNode } from "react";
-import { StyleSheet } from "react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { createRef, type ReactNode } from "react";
+import { DeviceEventEmitter, ScrollView, StyleSheet, TextInput } from "react-native";
 
 import { DatesField } from "@/components/requests/fields/dates-field";
 import { HalfDayField } from "@/components/requests/fields/half-day-field";
@@ -102,13 +102,13 @@ describe("HalfDayField", () => {
 describe("NoteField", () => {
   it("labels the note optional, or required for Other", async () => {
     const { rerender } = await renderField(
-      <NoteField value="" onChange={jest.fn()} required={false} />
+      <NoteField value="" onChange={jest.fn()} required={false} scrollRef={createRef()} />
     );
     expect(screen.getByText(en.requestForm.note)).toBeOnTheScreen();
 
     await rerender(
       <TranslationProvider>
-        <NoteField value="" onChange={jest.fn()} required />
+        <NoteField value="" onChange={jest.fn()} required scrollRef={createRef()} />
       </TranslationProvider>
     );
     expect(screen.getByText(en.requestForm.noteRequired)).toBeOnTheScreen();
@@ -116,11 +116,74 @@ describe("NoteField", () => {
 
   it("answers what was typed", async () => {
     const onChange = jest.fn();
-    await renderField(<NoteField value="" onChange={onChange} required={false} />);
+    await renderField(
+      <NoteField value="" onChange={onChange} required={false} scrollRef={createRef()} />
+    );
 
     await fireEvent.changeText(screen.getByTestId("note-field"), "Conference");
 
     expect(onChange).toHaveBeenCalledWith("Conference");
+  });
+
+  describe("when the keyboard shows", () => {
+    // The sheet's ScrollView sits 116 pt down the window, 700 pt tall, scrolled 150 pt; the box
+    // starts 600 pt into the content and is 96 pt tall. A 300 pt keyboard leaves 400 pt.
+    const input = TextInput.prototype as unknown as {
+      measureLayout: jest.Mock;
+      measureInWindow: jest.Mock;
+    };
+    const scrollTo = jest.fn();
+    const scrollRef = {
+      current: {
+        scrollTo,
+        getNativeScrollRef: () => ({
+          measureInWindow: (answer: (...frame: number[]) => void) => answer(0, 116, 402, 700),
+        }),
+      } as unknown as ScrollView,
+    };
+    const showKeyboard = () =>
+      act(() => {
+        DeviceEventEmitter.emit("keyboardDidShow", {
+          endCoordinates: { screenX: 0, screenY: 574, width: 402, height: 300 },
+        });
+      });
+
+    beforeEach(() => {
+      scrollTo.mockReset();
+      input.measureLayout.mockImplementation((_relativeTo, answer) => answer(16, 600, 370, 96));
+      input.measureInWindow.mockImplementation((answer) => answer(16, 116 + 600 - 150, 370, 96));
+    });
+
+    afterEach(() => {
+      DeviceEventEmitter.emit("keyboardDidHide", {
+        endCoordinates: { screenX: 0, screenY: 874, width: 402, height: 0 },
+      });
+      input.measureLayout.mockReset();
+      input.measureInWindow.mockReset();
+    });
+
+    it("scrolls the sheet so the box's bottom edge sits above the keyboard", async () => {
+      await renderField(
+        <NoteField value="" onChange={jest.fn()} required={false} scrollRef={scrollRef} />
+      );
+
+      await fireEvent(screen.getByTestId("note-field"), "focus");
+      await showKeyboard();
+
+      expect(scrollTo).toHaveBeenCalledWith({ y: 308, animated: true });
+    });
+
+    it("leaves the sheet alone while the note is not focused", async () => {
+      await renderField(
+        <NoteField value="" onChange={jest.fn()} required={false} scrollRef={scrollRef} />
+      );
+
+      await fireEvent(screen.getByTestId("note-field"), "focus");
+      await fireEvent(screen.getByTestId("note-field"), "blur");
+      await showKeyboard();
+
+      expect(scrollTo).not.toHaveBeenCalled();
+    });
   });
 });
 
