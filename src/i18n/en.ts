@@ -392,6 +392,7 @@ export const en = {
     welcome: {
       tagline: "The calm, shared calendar for team time off.",
       signedOut: "You're signed out. Sign in again to pick up where you left off.",
+      accountDeleted: "Your account is deleted, and nothing of it is left on this phone.",
       signIn: "Sign in",
       createOnWeb: "Create an account on the web",
     },
@@ -551,6 +552,35 @@ export const en = {
     version: "Version",
     privacy: "Privacy policy",
     terms: "Terms",
+    deleteAccount: {
+      row: "Delete account",
+      title: "Delete account",
+      cancel: "Cancel",
+      checking: "Checking your account…",
+      blockedTitle: "Your account can't be deleted yet",
+      blockers: {
+        groupHasMembers: (group: string, others: number) =>
+          `You manage ${group}, which has ${others} other ${others === 1 ? "member" : "members"}. Remove them from the group first.`,
+        organizationHasMembers: (organization: string, others: number) =>
+          `You own ${organization}, which has ${others} other ${others === 1 ? "person" : "people"} in it. Remove them from the organization first.`,
+        subscriptionRenewing: (organization: string) =>
+          `${organization}'s subscription renews. Cancel it on the web first.`,
+        supportAdmin: "This is a support account. It can't be deleted here.",
+      },
+      whatGoes:
+        "Your account goes, with your leave and attendance records and the files attached to them. If you own an organization nobody else is in, it goes too, with its groups and its subscription record.",
+      cantUndo: "This can't be undone.",
+      password: "Password",
+      passwordPlaceholder: "Your password",
+      wrongPassword: "That password is not right.",
+      delete: "Delete account",
+      deleting: "Deleting…",
+      retry: "Retry",
+      failed: "The account could not be deleted.",
+      webHint:
+        "This account signs in with Google or Microsoft, so it is deleted on the web. Sign in there, then delete it.",
+      openWeb: "Delete on the web",
+    },
   },
   requests: {
     title: "Requests",

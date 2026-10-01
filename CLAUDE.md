@@ -116,6 +116,8 @@ wrapper, a session lookup that answers with none, and sign-out all end there: th
 session cache, the local store, the query cache, the scheduled clock reminders and their settings
 go, the Device id stays, and welcome says why.
 `signOut()` is the one path that tells the server first, and it wipes whatever the server answers.
+Deleting the account (`useAccountDeletion`) runs the wipe directly, not `signOut()`, because the
+204 already ended the server session; welcome then says the account was deleted.
 Never clear a piece of the session on its own.
 
 `src/app/_layout.tsx` waits for the Device id, reads the expo plugin's session cache
@@ -198,7 +200,7 @@ throws `ApiError` with the server's message.
   402, 403 or 409, shows the server's message, reloads the screen's queries and starts a sync
   pull. Any other 4xx shows the server's message. Neither offers Retry, because the same tap
   fails the same way; a 5xx or no answer at all does. It takes a Local store `WriteOutcome` as
-  well as a thrown error. Four sheets are exceptions, because the failure belongs where the
+  well as a thrown error. Five sheets are exceptions, because the failure belongs where the
   person is looking. The Clock sheet sorts its writes' failures with `classifyFailure` into
   notices inside the sheet (`src/lib/attendance/notice.ts`); attendance has no sync pull to
   start. The new-request form shows its failure inline above the entry it kept
@@ -209,7 +211,10 @@ throws `ApiError` with the server's message.
   (`useEnterSession`). The correction sheet does the same (`useCorrectSession`); its Save is
   several requests, and a retry sends only what has not landed (`correctionSteps`). An attachment
   upload words its failure on the file's own row (`useAttachmentUploads`), as the web does, and
-  the Request is read again either way.
+  the Request is read again either way. The Delete account sheet words its failures inline
+  (`src/lib/session/account-deletion.ts`): a wrong password on the field, a 409 reads the check
+  again and lists the blockers, and Delete turns into Retry when no answer came
+  (`useAccountDeletion`).
 
 ## Testing
 

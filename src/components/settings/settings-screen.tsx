@@ -9,6 +9,7 @@ import {
   LockKeyIcon,
   ShieldCheckIcon,
   TranslateIcon,
+  TrashIcon,
 } from "phosphor-react-native";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 
@@ -180,7 +181,15 @@ export function SettingsScreen() {
           />
         </Section>
 
-        {/* Delete account (T-37) comes last, in a section of its own. */}
+        <Section testID="settings-delete-account-section">
+          <Row
+            testID="settings-delete-account"
+            icon={TrashIcon}
+            label={t.settings.deleteAccount.row}
+            destructive
+            onPress={() => router.push("/settings/delete-account")}
+          />
+        </Section>
       </ScrollView>
     </StackScreen>
   );

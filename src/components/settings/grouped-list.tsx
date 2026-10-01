@@ -45,10 +45,12 @@ export function Row({
   accessory,
   onPress,
   accessibilityRole = "button",
+  destructive = false,
   testID,
 }: {
   icon: PhosphorIcon;
   label: string;
+  destructive?: boolean;
   value?: string | null;
   accessory?: ReactNode;
   onPress?: () => void;
@@ -57,8 +59,14 @@ export function Row({
 }) {
   const content = (
     <>
-      <Icon icon={icon} tone="muted" />
-      <Text className="flex-1 text-[15.5px] font-semibold text-foreground" numberOfLines={1}>
+      <Icon icon={icon} tone={destructive ? "danger" : "muted"} />
+      <Text
+        className={cn(
+          "flex-1 text-[15.5px] font-semibold",
+          destructive ? "text-danger" : "text-foreground"
+        )}
+        numberOfLines={1}
+      >
         {label}
       </Text>
       {value ? (

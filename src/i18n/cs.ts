@@ -376,6 +376,7 @@ export const cs: Dictionary = {
     welcome: {
       tagline: "Klidný sdílený kalendář volna pro celý tým.",
       signedOut: "Jste odhlášeni. Přihlaste se znovu a pokračujte tam, kde jste skončili.",
+      accountDeleted: "Váš účet je smazaný a v tomto telefonu z něj nic nezůstalo.",
       signIn: "Přihlásit se",
       createOnWeb: "Vytvořit účet na webu",
     },
@@ -534,6 +535,35 @@ export const cs: Dictionary = {
     version: "Verze",
     privacy: "Zásady ochrany osobních údajů",
     terms: "Podmínky",
+    deleteAccount: {
+      row: "Smazat účet",
+      title: "Smazat účet",
+      cancel: "Zrušit",
+      checking: "Kontrolujeme váš účet…",
+      blockedTitle: "Účet zatím nejde smazat",
+      blockers: {
+        groupHasMembers: (group: string, others: number) =>
+          `Spravujete skupinu ${group}, která má ještě ${others} ${others === 1 ? "dalšího člena" : others >= 2 && others <= 4 ? "další členy" : "dalších členů"}. Nejdřív je ze skupiny odeberte.`,
+        organizationHasMembers: (organization: string, others: number) =>
+          `Vlastníte organizaci ${organization}, ve které ${others === 1 ? "je" : others >= 2 && others <= 4 ? "jsou" : "je"} ještě ${others} ${others === 1 ? "další člověk" : others >= 2 && others <= 4 ? "další lidé" : "dalších lidí"}. Nejdřív je z organizace odeberte.`,
+        subscriptionRenewing: (organization: string) =>
+          `Předplatné organizace ${organization} se obnovuje. Nejdřív ho zrušte na webu.`,
+        supportAdmin: "Toto je účet podpory. Tady ho smazat nejde.",
+      },
+      whatGoes:
+        "Smaže se váš účet i s vašimi záznamy o volnu a docházce a soubory, které k nim patří. Pokud vlastníte organizaci, ve které nikdo další není, smaže se také, i s jejími skupinami a záznamem o předplatném.",
+      cantUndo: "Tento krok nejde vrátit.",
+      password: "Heslo",
+      passwordPlaceholder: "Vaše heslo",
+      wrongPassword: "Heslo není správné.",
+      delete: "Smazat účet",
+      deleting: "Mažeme…",
+      retry: "Zkusit znovu",
+      failed: "Účet se nepodařilo smazat.",
+      webHint:
+        "Tento účet se přihlašuje přes Google nebo Microsoft, proto se maže na webu. Přihlaste se tam a pak ho smažte.",
+      openWeb: "Smazat na webu",
+    },
   },
   requests: {
     title: "Žádosti",

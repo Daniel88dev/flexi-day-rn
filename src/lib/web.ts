@@ -9,6 +9,7 @@ export const WEB_PATHS = {
   groups: "/groups/",
   privacy: "/privacy/",
   terms: "/terms/",
+  deleteAccount: "/settings/?delete-account",
 } as const;
 
 /**

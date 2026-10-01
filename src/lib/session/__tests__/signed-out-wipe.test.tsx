@@ -9,7 +9,11 @@ import { SESSION_COOKIE_KEY } from "@/lib/session/auth-client";
 import { DEVICE_ID_KEY } from "@/lib/session/device-id";
 import { RootRouteProvider, useRootRoute } from "@/lib/session/root-route-context";
 import { SESSION_CACHE_KEY } from "@/lib/session/session-cache";
-import { signedOutNoticeShowing, clearSignedOutNotice } from "@/lib/session/signed-out-notice";
+import {
+  clearSignedOutNotice,
+  signedOutNotice,
+  signedOutNoticeShowing,
+} from "@/lib/session/signed-out-notice";
 import { signedOutWipe, useSignedOutWipe } from "@/lib/session/signed-out-wipe";
 import { createFakeKeychain, type FakeKeychain } from "@/test-support/fake-keychain";
 
@@ -231,5 +235,21 @@ describe("useSignedOutWipe", () => {
     expect(sessionAtom.value).toMatchObject({ data: null });
     expect(result.current.route).toBe("welcome");
     expect(replace).toHaveBeenCalledWith("/welcome");
+    expect(signedOutNotice()).toBe("signed-out");
+  });
+
+  it("leaves welcome saying the account is deleted when the deletion asks for it", async () => {
+    const { result } = await renderHook(
+      () => ({ wipe: useSignedOutWipe("account-deleted"), route: useRootRoute() }),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.wipe();
+    });
+
+    expect(destroyStore).toHaveBeenCalledTimes(1);
+    expect(result.current.route).toBe("welcome");
+    expect(signedOutNotice()).toBe("account-deleted");
   });
 });

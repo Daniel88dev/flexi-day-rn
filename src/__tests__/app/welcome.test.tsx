@@ -124,6 +124,24 @@ describe("WelcomeScreen, after a signed-out wipe", () => {
     expect(screen.getByText(cs.auth.welcome.signedOut)).toBeTruthy();
   });
 
+  it("says the account is deleted after a deletion's wipe", async () => {
+    showSignedOutNotice("account-deleted");
+
+    await renderWelcome();
+
+    expect(screen.getByText(en.auth.welcome.accountDeleted)).toBeTruthy();
+    expect(screen.queryByText(en.auth.welcome.signedOut)).toBeNull();
+  });
+
+  it("says the account is deleted in Czech for a phone set to Czech", async () => {
+    speakCzech();
+    showSignedOutNotice("account-deleted");
+
+    await renderWelcome();
+
+    expect(screen.getByText(cs.auth.welcome.accountDeleted)).toBeTruthy();
+  });
+
   it("drops the notice once a sign-in has answered it", async () => {
     showSignedOutNotice();
     await renderWelcome();
