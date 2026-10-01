@@ -41,6 +41,7 @@ jest.mock("@/lib/viewer/use-viewer", () => ({
 jest.mock("@/lib/local-store", () => ({
   pull: jest.fn().mockResolvedValue({ ok: true }),
   useStoredRequest: jest.fn(() => null),
+  useStoreOpen: () => true,
   vacationStatusOf: jest.requireActual("@/lib/local-store/queries").vacationStatusOf,
 }));
 jest.mock("@/lib/haptics", () => ({ haptic: jest.fn() }));

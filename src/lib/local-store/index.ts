@@ -63,6 +63,7 @@ export {
   useRequestScopeGroups,
   useStoredRequest,
 } from "./use-request-list";
+export { useStoreOpen } from "./use-store-open";
 export { useStoreQuery } from "./use-store-query";
 export { useStoreRowCounts } from "./use-store-row-counts";
 export { useSyncStatus, type SyncStatus } from "./use-sync-status";

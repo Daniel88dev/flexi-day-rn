@@ -8,7 +8,14 @@ import { toast } from "sonner-native";
 import NewRequestRoute from "@/app/requests/new";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
-import { createVacation, pull, useMemberGroups, type CreateOutcome } from "@/lib/local-store";
+import {
+  createVacation,
+  pull,
+  useMemberGroups,
+  useStoreOpen,
+  type CreateOutcome,
+} from "@/lib/local-store";
+import { installTestStore } from "@/lib/local-store/test-support/test-store";
 import { queryClient } from "@/lib/query";
 import type { Attachment, GroupDetail, GroupMember, VacationDetail } from "@/lib/query";
 import { fakeFiles } from "@/test-support/fake-file-system";
@@ -54,6 +61,7 @@ jest.mock("@/lib/local-store", () => ({
   pull: jest.fn().mockResolvedValue({ ok: true }),
   createVacation: jest.fn(),
   useMemberGroups: jest.fn(),
+  useStoreOpen: jest.fn(),
 }));
 jest.mock("@/lib/haptics", () => ({ haptic: jest.fn() }));
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
@@ -90,6 +98,7 @@ queryClient.setDefaultOptions({
 
 const create = createVacation as jest.MockedFunction<typeof createVacation>;
 const memberGroups = useMemberGroups as jest.MockedFunction<typeof useMemberGroups>;
+const storeOpen = useStoreOpen as jest.MockedFunction<typeof useStoreOpen>;
 
 const ENGINEERING = { groupId: "group-1", groupName: "Engineering" };
 const DESIGN = { groupId: "group-2", groupName: "Design" };
@@ -148,6 +157,7 @@ beforeEach(() => {
   mockCanGoBack.mockReturnValue(true);
   mockParams.mockReturnValue({ date: "2026-10-05" });
   memberGroups.mockReturnValue([ENGINEERING]);
+  storeOpen.mockReturnValue(true);
   create.mockResolvedValue(CREATED);
   groupDetails = {
     "group-1": { id: "group-1", organization: { sickDayBenefitActive: false } },
@@ -213,6 +223,8 @@ describe("NewRequest route", () => {
       pathname: "/requests/new",
       params: { date: "2026-10-05" },
     });
+    expect(router.replace).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the end day when it puts the shell under a cold deep link", async () => {
@@ -224,6 +236,47 @@ describe("NewRequest route", () => {
     expect(router.push).toHaveBeenCalledWith({
       pathname: "/requests/new",
       params: { date: "2026-10-12", end: "2026-10-16" },
+    });
+  });
+
+  describe("while the local store is not open yet", () => {
+    const realStoreOpen = jest.requireActual("@/lib/local-store/use-store-open").useStoreOpen;
+    const realMemberGroups = jest.requireActual(
+      "@/lib/local-store/use-request-list"
+    ).useMemberGroups;
+    let store: ReturnType<typeof installTestStore>;
+
+    beforeEach(() => {
+      store = installTestStore();
+      storeOpen.mockImplementation(realStoreOpen);
+      memberGroups.mockImplementation(realMemberGroups);
+    });
+
+    afterEach(() => act(() => store.lifecycle.closeStore()));
+
+    it("renders nothing and moves nothing over the shell, then opens the form once the store opens", async () => {
+      await renderForm();
+
+      expect(screen.toJSON()).toBeNull();
+      expect(router.replace).not.toHaveBeenCalled();
+      expect(router.push).not.toHaveBeenCalled();
+
+      await act(() => store.lifecycle.openStore("user-9"));
+
+      expect(screen.getByTestId("new-request")).toBeOnTheScreen();
+      expect(valueOf("dates-field-from")).toBe("2026-10-05");
+      expect(router.replace).not.toHaveBeenCalled();
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it("still puts the shell under a cold deep link, exactly once", async () => {
+      mockCanGoBack.mockReturnValue(false);
+
+      await renderForm();
+
+      expect(screen.toJSON()).toBeNull();
+      expect(router.replace).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledTimes(1);
     });
   });
 

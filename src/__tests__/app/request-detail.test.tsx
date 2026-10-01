@@ -13,7 +13,9 @@ import {
   rejectVacations,
   updateVacation,
   useStoredRequest,
+  useStoreOpen,
 } from "@/lib/local-store";
+import { installTestStore } from "@/lib/local-store/test-support/test-store";
 import { queryClient } from "@/lib/query";
 import type { VacationDetail } from "@/lib/query/vacation-detail";
 import type { RootRoute } from "@/lib/session/root-route";
@@ -54,6 +56,7 @@ jest.mock("@/lib/local-store", () => ({
   cancelVacations: jest.fn(),
   updateVacation: jest.fn(),
   useStoredRequest: jest.fn(),
+  useStoreOpen: jest.fn(),
   vacationStatusOf: jest.requireActual("@/lib/local-store/queries").vacationStatusOf,
 }));
 jest.mock("@/lib/haptics", () => ({ haptic: jest.fn() }));
@@ -74,6 +77,7 @@ const reject = rejectVacations as jest.MockedFunction<typeof rejectVacations>;
 const cancel = cancelVacations as jest.MockedFunction<typeof cancelVacations>;
 const update = updateVacation as jest.MockedFunction<typeof updateVacation>;
 const storedRequest = useStoredRequest as jest.MockedFunction<typeof useStoredRequest>;
+const storeOpen = useStoreOpen as jest.MockedFunction<typeof useStoreOpen>;
 
 const ADMIN = { id: "user-9", name: "Petr Novák", initials: "PN", avatarColor: "hsl(0 0% 50%)" };
 
@@ -121,6 +125,7 @@ beforeEach(() => {
   mockCanGoBack.mockReturnValue(true);
   detail = vacationDetail();
   storedRequest.mockReturnValue(null);
+  storeOpen.mockReturnValue(true);
   mockFetch.mockImplementation(async (url: string) =>
     String(url).includes("/api/group/")
       ? answer(200, { id: "group-1", organization: { sickDayBenefitActive: false } })
@@ -162,6 +167,48 @@ describe("RequestDetail route", () => {
     expect(router.push).toHaveBeenCalledWith({
       pathname: "/requests/[vacationId]",
       params: { vacationId: "vacation-1" },
+    });
+    expect(router.replace).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledTimes(1);
+  });
+
+  describe("while the local store is not open yet", () => {
+    const realStoreOpen = jest.requireActual("@/lib/local-store/use-store-open").useStoreOpen;
+    const realStoredRequest = jest.requireActual(
+      "@/lib/local-store/use-request-list"
+    ).useStoredRequest;
+    let store: ReturnType<typeof installTestStore>;
+
+    beforeEach(() => {
+      store = installTestStore();
+      storeOpen.mockImplementation(realStoreOpen);
+      storedRequest.mockImplementation(realStoredRequest);
+    });
+
+    afterEach(() => act(() => store.lifecycle.closeStore()));
+
+    it("renders nothing and moves nothing over the shell, then shows the detail once the store opens", async () => {
+      await renderDetail();
+
+      expect(screen.toJSON()).toBeNull();
+      expect(router.replace).not.toHaveBeenCalled();
+      expect(router.push).not.toHaveBeenCalled();
+
+      await act(() => store.lifecycle.openStore("user-9"));
+
+      expect(await screen.findByTestId("request-detail")).toBeOnTheScreen();
+      expect(router.replace).not.toHaveBeenCalled();
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it("still puts the shell under a cold deep link, exactly once", async () => {
+      mockCanGoBack.mockReturnValue(false);
+
+      await renderDetail();
+
+      expect(screen.toJSON()).toBeNull();
+      expect(router.replace).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledTimes(1);
     });
   });
 
