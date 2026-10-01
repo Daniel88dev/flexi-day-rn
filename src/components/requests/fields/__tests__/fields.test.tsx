@@ -125,6 +125,15 @@ describe("NoteField", () => {
     expect(onChange).toHaveBeenCalledWith("Conference");
   });
 
+  it("grows from 96 pt and stops at 180 pt, so a long note scrolls inside the box", async () => {
+    await renderField(
+      <NoteField value="" onChange={jest.fn()} required={false} scrollRef={createRef()} />
+    );
+
+    const classes = String(screen.getByTestId("note-field").props.className).split(" ");
+    expect(classes).toEqual(expect.arrayContaining(["min-h-[96px]", "max-h-[180px]"]));
+  });
+
   describe("when the keyboard shows", () => {
     // The sheet's ScrollView sits 116 pt down the window, 700 pt tall, scrolled 150 pt; the box
     // starts 600 pt into the content and is 96 pt tall. A 300 pt keyboard leaves 400 pt.
@@ -146,6 +155,11 @@ describe("NoteField", () => {
         DeviceEventEmitter.emit("keyboardDidShow", {
           endCoordinates: { screenX: 0, screenY: 574, width: 402, height: 300 },
         });
+      });
+
+    const growBox = () =>
+      fireEvent(screen.getByTestId("note-field"), "layout", {
+        nativeEvent: { layout: { x: 16, y: 600, width: 370, height: 180 } },
       });
 
     beforeEach(() => {
@@ -171,6 +185,36 @@ describe("NoteField", () => {
       await showKeyboard();
 
       expect(scrollTo).toHaveBeenCalledWith({ y: 308, animated: true });
+    });
+
+    it("scrolls again as the box grows toward its cap, so its bottom edge stays above the keyboard", async () => {
+      await renderField(
+        <NoteField value="" onChange={jest.fn()} required={false} scrollRef={scrollRef} />
+      );
+      await fireEvent(screen.getByTestId("note-field"), "focus");
+      await showKeyboard();
+      scrollTo.mockReset();
+
+      // Scrolled to 308, the box has grown to 180 pt.
+      input.measureLayout.mockImplementation((_relativeTo, answer) => answer(16, 600, 370, 180));
+      input.measureInWindow.mockImplementation((answer) => answer(16, 116 + 600 - 308, 370, 180));
+      await growBox();
+
+      expect(scrollTo).toHaveBeenCalledWith({ y: 392, animated: true });
+    });
+
+    it("leaves the sheet alone when the box grows while the note is not focused", async () => {
+      await renderField(
+        <NoteField value="" onChange={jest.fn()} required={false} scrollRef={scrollRef} />
+      );
+      await fireEvent(screen.getByTestId("note-field"), "focus");
+      await showKeyboard();
+      await fireEvent(screen.getByTestId("note-field"), "blur");
+      scrollTo.mockReset();
+
+      await growBox();
+
+      expect(scrollTo).not.toHaveBeenCalled();
     });
 
     it("leaves the sheet alone while the note is not focused", async () => {
