@@ -11,7 +11,7 @@ import { keychain } from "./keychain";
 import type { RootRoute } from "./root-route";
 import { useSetRootRoute } from "./root-route-context";
 import { SESSION_CACHE_KEY } from "./session-cache";
-import { showSignedOutNotice } from "./signed-out-notice";
+import { showSignedOutNotice, type SignedOutNotice } from "./signed-out-notice";
 
 /** What the expo plugin reads an entry it holds nothing in as; deleting the key orphans chunks. */
 const EMPTY_ENTRY = "{}";
@@ -77,8 +77,14 @@ async function wipe({
   replace("/welcome");
 }
 
-/** The wipe as the screens call it, carrying the root route the guards read. */
-export function useSignedOutWipe(): () => Promise<void> {
+/**
+ * The wipe as the screens call it, carrying the root route the guards read. A deleted account
+ * passes `"account-deleted"` so welcome says that instead.
+ */
+export function useSignedOutWipe(notice: SignedOutNotice = "signed-out"): () => Promise<void> {
   const setRootRoute = useSetRootRoute();
-  return useCallback(() => signedOutWipe({ setRootRoute }), [setRootRoute]);
+  return useCallback(
+    () => signedOutWipe({ setRootRoute, showNotice: () => showSignedOutNotice(notice) }),
+    [notice, setRootRoute]
+  );
 }

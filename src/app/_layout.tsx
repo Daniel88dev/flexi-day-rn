@@ -46,6 +46,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="requests/new" options={{ presentation: "modal" }} />
           <Stack.Screen name="settings/two-factor" options={{ presentation: "modal" }} />
+          <Stack.Screen name="settings/delete-account" options={{ presentation: "modal" }} />
           <Stack.Screen
             name="notifications-intro"
             options={{

@@ -15,6 +15,8 @@ export const qk = {
   mySettings: () => ["my-settings"] as const,
   /** The web keeps this one in `lib/auth/use-linked-accounts.ts`, outside its `qk`. */
   authAccounts: () => ["auth", "accounts"] as const,
+  /** Not on the web yet: its Delete account card (T-128) should read under the same key. */
+  accountDeletion: () => ["account-deletion"] as const,
   attendanceState: (organizationId?: string | null) =>
     ["attendance-state", organizationId ?? "own"] as const,
   attendanceMonth: (year: number, month: number, organizationId?: string | null) =>

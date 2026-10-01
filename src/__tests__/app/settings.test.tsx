@@ -150,7 +150,7 @@ describe("Settings", () => {
     expect(screen.getByText("/dashboard")).toBeOnTheScreen();
   });
 
-  it("renders the account, Notifications, Dashboard calendar, Security, Language and About in that order", async () => {
+  it("renders the account, Notifications, Dashboard calendar, Security, Language, About and Delete account in that order", async () => {
     await renderLoaded();
     await screen.findByTestId("settings-security");
 
@@ -162,6 +162,7 @@ describe("Settings", () => {
       "settings-security",
       "settings-language-section",
       "settings-about",
+      "settings-delete-account-section",
     ].map((testID) => tree.indexOf(`"testID":"${testID}"`));
     expect(order.every((index) => index >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
@@ -285,6 +286,17 @@ describe("Settings", () => {
       expect.stringMatching(/\/privacy\/$/),
       expect.stringMatching(/\/terms\/$/),
     ]);
+  });
+
+  it("opens the Delete account sheet from the last row", async () => {
+    await renderLoaded();
+
+    expect(screen.getByTestId("settings-delete-account")).toHaveTextContent(
+      en.settings.deleteAccount.row
+    );
+    await fireEvent.press(screen.getByTestId("settings-delete-account"));
+
+    expect(router.push).toHaveBeenCalledWith("/settings/delete-account");
   });
 
   it("goes back to where More opened it", async () => {

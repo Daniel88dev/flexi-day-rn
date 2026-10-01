@@ -7,24 +7,34 @@ import { Notice } from "@/components/ui/notice";
 import { Text } from "@/components/ui/text";
 import { TextLink } from "@/components/ui/text-link";
 import { useTranslation } from "@/i18n/use-translation";
+import type { SignedOutNotice } from "@/lib/session/signed-out-notice";
 
 /** Where a phone with no session lands: the mark, one line about the product, one way on. */
 export function Welcome({
   onSignIn,
   onCreateAccount,
-  signedOut = false,
+  notice = null,
 }: {
   onSignIn: () => void;
   onCreateAccount: () => void;
   /** What the signed-out wipe left: shown until the next sign-in answers it. */
-  signedOut?: boolean;
+  notice?: SignedOutNotice | null;
 }) {
   const { t } = useTranslation();
   return (
     <View testID="welcome" className="flex-1 bg-background pt-safe pb-safe">
       {/* The band the signed-out notice takes, held open so the mark sits where it does with one. */}
       <View className="min-h-[72px] px-6 pt-2">
-        {signedOut ? <Notice tone="accent" message={t.auth.welcome.signedOut} /> : null}
+        {notice ? (
+          <Notice
+            tone="accent"
+            message={
+              notice === "account-deleted"
+                ? t.auth.welcome.accountDeleted
+                : t.auth.welcome.signedOut
+            }
+          />
+        ) : null}
       </View>
       <View className="flex-1 items-center justify-center px-8">
         <LogoMark size={92} />
