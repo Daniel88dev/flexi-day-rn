@@ -1,0 +1,22 @@
+{
+  "cli": {
+    "version": ">= 24.10.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "production": {
+      "node": "24.21.0",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.flexi-day.com"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6818769107"
+      }
+    }
+  }
+}

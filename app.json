@@ -2,7 +2,7 @@
   "expo": {
     "name": "Flexi Day",
     "slug": "flexi-day",
-    "version": "0.0.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "flexiday",
     "userInterfaceStyle": "automatic",
@@ -11,7 +11,10 @@
       "bundleIdentifier": "com.flexiday.app",
       "icon": "./assets/icon.png",
       "supportsTablet": false,
-      "appleTeamId": "7DD5F92WWS"
+      "appleTeamId": "S6FC47MMXJ",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "locales": {
       "cs": "./locales/cs.json"
@@ -62,7 +65,7 @@
           "locationWhenInUsePermission": "Flexi Day records where you clock in and out when your organization asks for it.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
-          "motionUsagePermission": false
+          "motionUsagePermission": "Flexi Day does not use motion or fitness data and never asks for it."
         }
       ],
       "@react-native-community/datetimepicker",
@@ -78,6 +81,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1b7a19f2-8f35-4612-a5e0-32cff0549adb"
+      }
+    },
+    "owner": "daniel88dev"
   }
 }

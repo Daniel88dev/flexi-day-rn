@@ -1,8 +1,11 @@
 # Running the dev client on a phone
 
 The everyday loop is the iOS Simulator. A real iPhone matters for the Keychain, the local network
-prompt, push and anything else the simulator fakes. Both go through Xcode with a free Apple ID: no
-Apple Developer Program, no EAS, no TestFlight.
+prompt, push and anything else the simulator fakes. Both go through Xcode; TestFlight builds are
+in [`releasing.md`](releasing.md).
+
+The signing sections below still describe the free personal team and its seven-day profiles. The
+app now signs with the paid team in `app.json`, and fenro task T-68 (the push client) rewrites them.
 
 ## Mac prerequisites
 
@@ -172,8 +175,9 @@ On the simulator a dev build skips the form: `flexiday://dev-sign-in?ticket=…&
 dev sign-in ticket minted by the backend's `/api/dev/sign-in-ticket` and lands on `to`; the
 workspace `ui-test` skill has the whole loop.
 
-## Known state (2026-09-17)
+## Known state (2026-10-03)
 
 - Mac: Xcode 27.0, CocoaPods 1.17.0 from Homebrew, Node 24.
-- Apple ID: `daniel.hrynusiw@gmail.com`, personal team `7DD5F92WWS`.
+- Apple ID: `daniel.hrynusiw@gmail.com`, paid team `S6FC47MMXJ` since 2026-10-03. The free personal
+  team `7DD5F92WWS` is retired.
 - Phone: "Daniel's iPhone pro", iPhone 16 Pro on iOS 27.0, paired.
