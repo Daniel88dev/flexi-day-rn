@@ -54,6 +54,10 @@ class SyncPullError extends Error {
   }
 }
 
+// A cursor-less pull answers a snapshot, which never restarts, so a correct server needs one
+// restart; the second absorbs one inconsistent answer before a server that never settles fails.
+const MAX_RESET_RESTARTS = 2;
+
 const PULLED: PullOutcome = { ok: true };
 
 /** Offline, and any failure the server put no words to: the caller supplies the copy. */
@@ -119,9 +123,23 @@ export function createPullController({
     let generation = state?.generation ?? 0;
     let snapshot = false;
     let selfReset = false;
+    let restarts = 0;
+    let first = true;
 
-    for (let first = true; ; first = false) {
+    for (;;) {
       const page = await requestPage(cursor);
+
+      if (!first && page.reset && !snapshot) {
+        // Only a loop that starts as a snapshot sweeps, so a delta reset mid-loop starts over.
+        if (restarts === MAX_RESET_RESTARTS) {
+          throw new Error("The sync pull kept answering a reset in the middle of a delta.");
+        }
+        restarts += 1;
+        selfReset = false;
+        cursor = null;
+        first = true;
+        continue;
+      }
 
       if (first && page.reset) {
         snapshot = true;
@@ -153,6 +171,7 @@ export function createPullController({
 
       if (last) return selfReset;
       cursor = page.cursor;
+      first = false;
     }
   };
 

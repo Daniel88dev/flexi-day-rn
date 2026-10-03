@@ -320,6 +320,94 @@ describe("pull", () => {
     expect(sync.cursors).toEqual(["old"]);
   });
 
+  it("restarts a delta loop answered with a reset mid-loop as a snapshot that sweeps", async () => {
+    seed(syncPage({ vacations: [vacationRow({ id: "revoked" })] }), 1, "old");
+    const storedCursors: (string | null | undefined)[] = [];
+    const sync = createFakeSync(
+      [
+        reply.page(
+          syncPage({ hasMore: true, cursor: "delta-1", vacations: [vacationRow({ id: "delta" })] })
+        ),
+        reply.page(
+          syncPage({
+            reset: true,
+            hasMore: true,
+            cursor: "reset-1",
+            vacations: [vacationRow({ id: "abandoned" })],
+          })
+        ),
+        reply.page(
+          syncPage({ reset: true, hasMore: true, cursor: "page-1", vacations: [vacationRow()] })
+        ),
+        reply.page(syncPage({ reset: true, hasMore: false, cursor: "page-2" })),
+      ],
+      { onRequest: () => storedCursors.push(storedSyncState()?.cursor) }
+    );
+
+    await expect(controllerFor(sync).pull("foreground")).resolves.toEqual({ ok: true });
+
+    expect(sync.cursors).toEqual(["old", "delta-1", null, "page-1"]);
+    expect(storedCursors).toEqual(["old", "old", "old", null]);
+    expect(storedSyncState()).toMatchObject({ cursor: "page-2", lastPulledAt: NOW, generation: 2 });
+    expect(rowCount("vacations")).toBe(1);
+  });
+
+  it("runs no second loop for a tombstone the restarted delta loop saw", async () => {
+    seed(syncPage(), 1, "old");
+    const { sync, controller } = pullWith([
+      reply.page(
+        syncPage({
+          hasMore: true,
+          cursor: "delta-1",
+          groupUsers: [groupUserRow({ deletedAt: TOMBSTONED })],
+        })
+      ),
+      reply.page(syncPage({ reset: true, hasMore: true, cursor: "reset-1" })),
+      reply.page(syncPage({ reset: true, hasMore: false, cursor: "page-1" })),
+    ]);
+
+    await controller.pull("foreground");
+
+    expect(sync.cursors).toEqual(["old", "delta-1", null]);
+    expect(storedSyncState()).toMatchObject({ cursor: "page-1", generation: 2 });
+  });
+
+  it("fails the pull and keeps the cursor when the reset mid-loop keeps coming", async () => {
+    seed(syncPage(), 1, "old");
+    const deltaThenReset = () => [
+      reply.page(syncPage({ hasMore: true, cursor: "delta-1" })),
+      reply.page(syncPage({ reset: true, hasMore: true, cursor: "reset-1" })),
+    ];
+    const { sync, controller } = pullWith([
+      ...deltaThenReset(),
+      ...deltaThenReset(),
+      ...deltaThenReset(),
+      reply.page(syncPage({ reset: true, hasMore: false, cursor: "page-1" })),
+    ]);
+
+    await expect(controller.pull("foreground")).resolves.toEqual({ ok: false, message: null });
+
+    expect(sync.cursors).toEqual(["old", "delta-1", null, "delta-1", null, "delta-1"]);
+    expect(storedSyncState()).toMatchObject({ cursor: "old", generation: 1 });
+    expect(controller.status().lastError).toMatch(/reset/i);
+  });
+
+  it("stays in a snapshot loop that answered its first page with a reset", async () => {
+    seed(syncPage({ vacations: [vacationRow({ id: "revoked" })] }), 1, "old");
+    const { sync, controller } = pullWith([
+      reply.page(
+        syncPage({ reset: true, hasMore: true, cursor: "page-1", vacations: [vacationRow()] })
+      ),
+      reply.page(syncPage({ reset: true, hasMore: false, cursor: "page-2" })),
+    ]);
+
+    await controller.pull("foreground");
+
+    expect(sync.cursors).toEqual(["old", "page-1"]);
+    expect(storedSyncState()).toMatchObject({ cursor: "page-2", generation: 2 });
+    expect(rowCount("vacations")).toBe(1);
+  });
+
   it("runs exactly one more loop for the triggers that arrive during one", async () => {
     let triggered = false;
     const sync = createFakeSync(
