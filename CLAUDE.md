@@ -8,7 +8,8 @@ for the native session.
 ## Working style
 
 Solo developer and owner, expert with this stack. Skip explanations of standard conventions and
-framework basics. Be terse: show results rather than narrating the work. When several
+framework basics. Be terse: lead with results, and while working say a line when you start a new
+phase or hit something unexpected. When several
 implementation approaches are open, state which you chose and why. Propose a plan and wait for
 approval before starting any non-trivial implementation.
 
@@ -44,9 +45,8 @@ reminders need none, so `plugins/without-push-entitlement.js` strips it again; k
 Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 27 kills an app
 built with Xcode 27 that lacks it, and only a real phone shows that.
 
-Adding a native module — `expo-sqlite`, `expo-secure-store`, `expo-crypto`, `expo-application`,
-`expo-web-browser`, `expo-haptics`, `expo-image-picker`, `expo-location`, `expo-notifications`,
-`expo-clipboard` and `@react-native-community/datetimepicker` are the ones here — means
+Adding a package that ships native iOS code (most `expo-*` modules, and
+`@react-native-community/datetimepicker`; `package.json` lists the ones already here) means
 `npm run prebuild` and then `npm run ios` or `npm run ios:device` to rebuild the dev client. Metro
 alone cannot load them, and the JavaScript fails at the import with a missing native module until
 the rebuild lands. `expo-file-system` is a direct dependency as well, but `expo` itself already
@@ -168,7 +168,7 @@ store's one overridable handler: the shell passes the signed-out wipe
 (`src/lib/session/signed-out-wipe.ts`) through `openStore`, and the wipe calls `destroyStore()`
 itself along with everything else the phone holds. The module's own default, a bare destroy, only
 answers a request nobody opened the store for. The pull and the writes only report an unauthorized
-answer in their own result; they no longer call the handler themselves. Keep the session out of the
+answer in their own result and never call the handler. Keep the session out of the
 rest of the module.
 
 The seam is the Drizzle instance: expo-sqlite on the device, `better-sqlite3` in Jest, on the same
