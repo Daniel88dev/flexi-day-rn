@@ -12,6 +12,7 @@
       "icon": "./assets/icon.png",
       "supportsTablet": false,
       "appleTeamId": "S6FC47MMXJ",
+      "associatedDomains": ["applinks:www.flexi-day.com"],
       "config": {
         "usesNonExemptEncryption": false
       }

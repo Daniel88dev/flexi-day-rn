@@ -44,6 +44,9 @@ Prebuild runs `expo-notifications`' own config plugin whenever the package is in
 or not, and it writes the push entitlement (`aps-environment`). Local Clock reminders need none,
 so `plugins/without-push-entitlement.js` strips it again; keep it in `app.json` until the push
 client lands.
+`ios.associatedDomains` makes invite links on `www.flexi-day.com/join/*` open the app. A new
+capability invalidates the App ID's profiles, and the refresh is the user's; see "Invite links
+open the app" in [`docs/device-testing.md`](docs/device-testing.md).
 Setting a purpose string to `false` can pass every local build and still fail App Store processing
 (ITMS-90683); see "When Apple rejects an upload" in [`docs/releasing.md`](docs/releasing.md).
 Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 27 kills an app

@@ -62,6 +62,32 @@ The APNs key (`.p8`) is not an EAS credential and EAS should not create one: the
 straight to APNs with its own key, which lives in 1Password. Answer "no" if EAS offers to set up
 push notifications.
 
+## Associated Domains
+
+Invite links on `https://www.flexi-day.com/join/` open the app through the Associated Domains
+capability; [`device-testing.md`](device-testing.md) has the whole setup. A capability added to the
+App ID makes the App Store profile EAS holds invalid, so the first build after it needs a new one.
+
+`eas build` syncs the App ID's capabilities with the entitlements in the introspected config
+(`npx expo config --type introspect`), then checks the profile against the App ID. Run that first
+build interactively, without `--non-interactive`, and sign in to Apple when it asks.
+`--non-interactive` neither syncs capabilities nor replaces the profile. EAS enables Associated
+Domains if the portal step was skipped, and offers to replace the invalid profile.
+`eas credentials -p ios` shows the profile and can remove it before the build, which then creates
+a new one.
+
+The sync runs both ways, so it also turns off capabilities the entitlements lack.
+`plugins/without-push-entitlement.js` strips `aps-environment`, so every `eas build` turns Push
+Notifications off on the App ID until the push client keeps the entitlement, unless the build runs
+with `EXPO_NO_CAPABILITY_SYNC=1`.
+
+Check the entitlements of the `.ipa` EAS built (download it from the build page):
+
+```bash
+unzip -q <build>.ipa -d /tmp/ipa
+codesign -d --entitlements - --xml /tmp/ipa/Payload/FlexiDay.app
+```
+
 ## When Apple rejects an upload
 
 `eas submit` reports success as soon as the upload lands; Apple's processing comes after. A

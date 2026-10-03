@@ -175,6 +175,63 @@ On the simulator a dev build skips the form: `flexiday://dev-sign-in?ticket=…&
 dev sign-in ticket minted by the backend's `/api/dev/sign-in-ticket` and lands on `to`; the
 workspace `ui-test` skill has the whole loop.
 
+## Invite links open the app
+
+An invite email links to `https://www.flexi-day.com/join/?token=<secret>`. Associated Domains is
+the capability that lets iOS hand that link to the app instead of Safari. Three pieces make it
+work:
+
+- `ios.associatedDomains` in `app.json` lists `applinks:www.flexi-day.com`. Prebuild writes it into
+  `ios/FlexiDay/FlexiDay.entitlements` as `com.apple.developer.associated-domains`.
+- The web serves `https://www.flexi-day.com/.well-known/apple-app-site-association` as
+  `application/json`. It names `S6FC47MMXJ.com.flexiday.app` for `/join/*` only, so no other web
+  page opens the app. The path needs the trailing slash. `/join?token=` stays in Safari.
+- The App ID `com.flexiday.app` has Associated Domains enabled, and the profile the build signs
+  with includes it.
+
+The last piece is a one-time step. Enabling a capability makes every existing profile for the App
+ID invalid, so regenerate each one:
+
+1. developer.apple.com › Account › Certificates, IDs & Profiles › Identifiers › `com.flexiday.app`.
+   Tick **Associated Domains** under Capabilities, press **Save**, then **Confirm**. With automatic
+   signing Xcode can usually enable the capability on the App ID by itself, so this tick is the
+   sure path rather than a hard requirement.
+2. `npm run prebuild`, then `npm run ios:device`. The script passes `-allowProvisioningUpdates`,
+   so Xcode replaces the development profile with one that carries the capability.
+   `expo run:ios --device` would not, and its build fails with "Provisioning profile … doesn't
+   include the com.apple.developer.associated-domains entitlement"; see
+   [Why `ios:device` is not `expo run:ios --device`](#why-iosdevice-is-not-expo-runios---device).
+   Xcode's Signing & Capabilities tab, with automatic signing on, refreshes the development
+   profile as well.
+3. The App Store profile is EAS's to refresh; see "Associated Domains" in
+   [`releasing.md`](releasing.md).
+
+The simulator needs no profile, so `npm run prebuild` and `npm run ios` are enough there.
+
+Check what a Debug build is signed with. A Release build lands in
+`ios/build/Build/Products/Release-iphoneos/` instead.
+
+```bash
+codesign -d --entitlements - --xml ios/build/Build/Products/Debug-iphoneos/FlexiDay.app
+```
+
+The output lists `com.apple.developer.associated-domains` with `applinks:www.flexi-day.com`, and no
+`aps-environment`.
+
+Expo Router turns both link forms into the same route. The `https` link's path becomes the route
+(`/join/`), and in `flexiday://join?token=` the host `join` does. Both arrive with `token` as a
+search param. The Groups build adds the join screen at `src/app/join.tsx`, outside `(app)`, so both
+URLs land there and it renders signed out. Once that route exists, open it on the simulator with a
+token issued by the local backend:
+
+```bash
+xcrun simctl openurl booted "flexiday://join?token=<secret>"
+```
+
+A dev build talks to the local backend. A real invite link tapped on a phone running one opens the
+join screen and then gets a 404, because the token only exists in production. That is expected.
+Test the `https` link end to end on a TestFlight build.
+
 ## Known state (2026-10-03)
 
 - Mac: Xcode 27.0, CocoaPods 1.17.0 from Homebrew, Node 24.
