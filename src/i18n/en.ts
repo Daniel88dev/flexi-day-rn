@@ -27,7 +27,6 @@ export const en = {
     requests: "Requests",
     report: "Report",
     groups: "Groups",
-    calendarSync: "Calendar sync",
     myAttendance: "My attendance",
     settings: "Settings",
     sections: {

@@ -15,14 +15,7 @@ describe("buildSections", () => {
 
   it("returns none of the web's admin pages, which the phone does not have", () => {
     const keys = buildSections(en).flatMap((section) => section.links.map((link) => link.key));
-    expect(keys).toEqual([
-      "dashboard",
-      "requests",
-      "report",
-      "groups",
-      "calendarSync",
-      "myAttendance",
-    ]);
+    expect(keys).toEqual(["dashboard", "requests", "report", "groups", "myAttendance"]);
   });
 
   it("returns the My attendance link hidden when it is not shown", () => {
@@ -51,16 +44,14 @@ describe("splitForTabBar", () => {
   it("leaves everything else in its section for the sheet", () => {
     const { sheet } = splitForTabBar(buildSections(en));
     expect(sheet.map((section) => section.links.map((link) => link.key))).toEqual([
-      ["report", "groups", "calendarSync"],
+      ["report", "groups"],
     ]);
   });
 
   it("puts Report in the attendance slot when there is no attendance link", () => {
     const { bar, sheet } = splitForTabBar(buildSections(en, { attendanceLink: false }));
     expect(bar.map((link) => link.key)).toEqual(["dashboard", "requests", "report"]);
-    expect(sheet.map((section) => section.links.map((link) => link.key))).toEqual([
-      ["groups", "calendarSync"],
-    ]);
+    expect(sheet.map((section) => section.links.map((link) => link.key))).toEqual([["groups"]]);
   });
 
   it("returns the tab routes the bar leaves off, so the layout keeps them reachable", () => {
