@@ -19,6 +19,8 @@ adds only the terms the mobile client coins. Use the backend's words for everyth
 | **Provisional row** | A row the local store holds in the state the server just confirmed but has not yet sent back, written when a write returns no row. The next sync pull overwrites it. Avoid: optimistic row.                                                                                          |
 | **Clock reminder**  | A local notification the phone schedules for itself: clock in at the user's chosen time, or clock out once today's required time has passed. Never sent by the server. Avoid: shift reminder, alarm.                                                                                 |
 | **Clock sheet**     | The sheet the tab bar's centre disc opens, at `/clock`: the one place the phone clocks in, clocks out and takes breaks. Reminders and deep links open it too. Avoid: clock drawer, clock modal.                                                                                      |
+| **Join sheet**      | The sheet where the user pastes or types an invite code or invite link to join a group. Avoid: join dialog.                                                                                                                                                                          |
+| **Join screen**     | The screen an invite link opens in the app, at `/join`: it describes the invite and joins only when the user presses Join. Avoid: invite page.                                                                                                                                       |
 
 ## Boundaries
 
