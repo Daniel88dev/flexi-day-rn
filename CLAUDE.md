@@ -29,19 +29,23 @@ stays cross-platform, but nothing is configured or tested there.
 
 Bundle id `com.flexiday.app`, URL scheme `flexiday`, display name "Flexi Day". The home-screen icon
 is `assets/icon.png` (`ios.icon`), 1024 px, opaque and square because iOS masks the corners; it
-is rendered from `assets/icon.svg`, the web's `app/icon.svg` without the corner radius. Device testing uses
-a free Apple ID through Xcode (seven-day signing); there is no EAS, TestFlight or paid program.
-The personal team id sits in `app.json` so prebuild signs without Xcode clicks; the phone setup,
-the re-sign loop and how the app finds the backend are in
+is rendered from `assets/icon.svg`, the web's `app/icon.svg` without the corner radius. The app
+signs with the paid Apple Developer Program team, whose id sits in `app.json` as
+`ios.appleTeamId` so prebuild signs without Xcode clicks. Release builds run on EAS Build and reach
+TestFlight through `eas submit`; the loop, the credentials and the App Store Connect ids are in
+[`docs/releasing.md`](docs/releasing.md). Dev-client builds stay on Xcode; the phone setup and how
+the app finds the backend are in
 [`docs/device-testing.md`](docs/device-testing.md). `npm run ios` targets the simulator,
 `npm run ios:device` the phone. The latter is `scripts/ios-device.js`, not `expo run:ios --device`:
 Expo drops `-allowProvisioningUpdates` whenever the project names a team, so it cannot refill an
 empty profile store. The script passes the flags itself. `--configuration Release` embeds the bundle
 and reads the backend URL from `.env`; see "Production build" in the same doc.
 Prebuild runs `expo-notifications`' own config plugin whenever the package is installed, listed
-or not, and it writes the push entitlement (`aps-environment`) a free team cannot sign. Local Clock
-reminders need none, so `plugins/without-push-entitlement.js` strips it again; keep it in
-`app.json` until the paid program brings push.
+or not, and it writes the push entitlement (`aps-environment`). Local Clock reminders need none,
+so `plugins/without-push-entitlement.js` strips it again; keep it in `app.json` until the push
+client lands.
+Setting a purpose string to `false` can pass every local build and still fail App Store processing
+(ITMS-90683); see "When Apple rejects an upload" in [`docs/releasing.md`](docs/releasing.md).
 Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 27 kills an app
 built with Xcode 27 that lacks it, and only a real phone shows that.
 
@@ -134,7 +138,9 @@ about the session.
 `EXPO_PUBLIC_WEB_URL` is the second environment variable, beside the backend URL above: the web
 app that sign-up and password reset open in a browser sheet, `https://flexi-day.com` unless it is
 set. Both are read as literal `process.env.EXPO_PUBLIC_*` expressions so Expo inlines them, and
-both are documented in [`README.md`](README.md) and [`.env.example`](.env.example).
+both are documented in [`README.md`](README.md) and [`.env.example`](.env.example). EAS never sees
+`.env`, so a variable the release build needs also goes into the production profile's `env` in
+`eas.json`.
 
 ## The local store
 
