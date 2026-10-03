@@ -1,7 +1,7 @@
 // PROTOTYPE (T-143, prototype/report): one member's report, and the viewer's own report when
 // their scope is "self".
 import { router, useLocalSearchParams } from "expo-router";
-import { CaretLeftIcon } from "phosphor-react-native";
+import { CaretDownIcon, CaretLeftIcon } from "phosphor-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
@@ -57,7 +57,9 @@ function AllowanceCard({
   usage,
   pending,
   tip,
+  collapsed,
 }: {
+  collapsed: boolean;
   pending: boolean;
   report: MemberReport;
   type: CalendarRecordType;
@@ -71,6 +73,7 @@ function AllowanceCard({
   const r = remainingFor(member, report.summary, type);
   const quota = totalQuotaFor(report.summary, report.member.id, type);
   const series = monthlySeriesFor(usage, report.member.id, slots, type);
+  const [open, setOpen] = useState(!collapsed);
   return (
     <Card testID={`allowance-${type}`}>
       <View className="flex-row items-center gap-2">
@@ -100,22 +103,35 @@ function AllowanceCard({
         <StatPair label="Pending" value={formatDays(r.pending)} />
         <StatPair label="Carried in" value={formatDays(r.carriedOver)} />
       </View>
-      <View className="mt-4">
-        <Text className="mb-2 text-[12.5px] text-faint">{windowLabel(slots)}</Text>
-        {!pending && series.every((p) => p.used + p.pending === 0) ? (
-          <View className="rounded-[16px] bg-muted px-4 py-3">
-            <Text className="text-[13.5px] text-muted-foreground">
-              None taken or booked in these months.
-            </Text>
-          </View>
-        ) : pending ? (
-          <View className="h-[150px] items-center justify-center rounded-[16px] bg-muted">
-            <Text className="text-[13px] text-faint">Loading the months</Text>
-          </View>
-        ) : (
-          <QuotaChart slots={slots} type={type} quota={quota} series={series} initialTip={tip} />
-        )}
-      </View>
+      {open ? null : (
+        <Pressable
+          testID={`allowance-${type}-expand`}
+          onPress={() => setOpen(true)}
+          accessibilityRole="button"
+          className="mt-3 flex-row items-center gap-1 self-start py-1 active:opacity-60"
+        >
+          <Text className="text-[13.5px] font-semibold text-primary">Show months</Text>
+          <Icon icon={CaretDownIcon} tone="primary" size={13} weight="bold" />
+        </Pressable>
+      )}
+      {open ? (
+        <View className="mt-4">
+          <Text className="mb-2 text-[12.5px] text-faint">{windowLabel(slots)}</Text>
+          {!pending && series.every((p) => p.used + p.pending === 0) ? (
+            <View className="rounded-[16px] bg-muted px-4 py-3">
+              <Text className="text-[13.5px] text-muted-foreground">
+                None taken or booked in these months.
+              </Text>
+            </View>
+          ) : pending ? (
+            <View className="h-[150px] items-center justify-center rounded-[16px] bg-muted">
+              <Text className="text-[13px] text-faint">Loading the months</Text>
+            </View>
+          ) : (
+            <QuotaChart slots={slots} type={type} quota={quota} series={series} initialTip={tip} />
+          )}
+        </View>
+      ) : null}
     </Card>
   );
 }
@@ -311,6 +327,7 @@ export function MemberBody({
           usage={win.usage}
           pending={win.state === "pending"}
           tip={i === 0 ? proto.tip : null}
+          collapsed={i > 0}
         />
       ))}
       <View>

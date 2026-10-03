@@ -57,7 +57,7 @@ export function useProto(): Proto {
     sheet: p.sheet ?? null,
     tip: p.tip === undefined ? null : Number(p.tip),
     bar: p.bar !== "off",
-    layout: p.layout === "merged" ? "merged" : "split",
+    layout: p.layout === "split" ? "split" : "merged",
   };
 }
 
