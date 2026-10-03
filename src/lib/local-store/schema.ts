@@ -24,6 +24,8 @@ const generation = () => integer("generation").notNull().default(0);
 export const organizations = sqliteTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  /** Null until the sync pull carries the toggle: unknown, not off. */
+  sickDayBenefitEnabled: integer("sickDayBenefitEnabled", { mode: "boolean" }),
   generation: generation(),
 });
 
