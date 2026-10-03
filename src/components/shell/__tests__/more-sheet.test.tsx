@@ -30,7 +30,6 @@ describe("MoreSheet", () => {
     await renderSheet(true);
     expect(screen.getByText("Report")).toBeTruthy();
     expect(screen.getByText("Groups")).toBeTruthy();
-    expect(screen.getByText("Calendar sync")).toBeTruthy();
     expect(screen.getByText("Settings")).toBeTruthy();
   });
 

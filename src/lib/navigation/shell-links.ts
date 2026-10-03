@@ -1,5 +1,4 @@
 import {
-  ArrowsClockwiseIcon,
   CalendarBlankIcon,
   ChartBarIcon,
   GearIcon,
@@ -69,12 +68,6 @@ export function buildSections(
         },
         { key: "report", label: t.nav.report, icon: ChartBarIcon, href: "/report" },
         { key: "groups", label: t.nav.groups, icon: UsersIcon, href: "/groups" },
-        {
-          key: "calendarSync",
-          label: t.nav.calendarSync,
-          icon: ArrowsClockwiseIcon,
-          href: "/calendar-sync",
-        },
       ],
     },
     {

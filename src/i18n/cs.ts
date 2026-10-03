@@ -11,7 +11,6 @@ export const cs: Dictionary = {
     requests: "Žádosti",
     report: "Report",
     groups: "Skupiny",
-    calendarSync: "Synchronizace kalendáře",
     myAttendance: "Moje docházka",
     settings: "Nastavení",
     sections: {

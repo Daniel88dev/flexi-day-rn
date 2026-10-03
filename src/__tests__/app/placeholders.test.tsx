@@ -1,6 +1,5 @@
 import { render, screen, within } from "@testing-library/react-native";
 
-import CalendarSyncScreen from "@/app/calendar-sync";
 import GroupsScreen from "@/app/groups";
 import ReportScreen from "@/app/report";
 import { TranslationProvider } from "@/i18n/use-translation";
@@ -12,7 +11,6 @@ describe("placeholder screens", () => {
   it.each([
     ["groups", GroupsScreen, "Groups"],
     ["report", ReportScreen, "Report"],
-    ["calendar-sync", CalendarSyncScreen, "Calendar sync"],
   ])("renders /%s with its root id and a coming-soon line", async (id, Screen, title) => {
     await render(
       <TranslationProvider>
