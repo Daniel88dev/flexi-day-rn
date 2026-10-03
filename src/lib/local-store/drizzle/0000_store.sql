@@ -62,6 +62,7 @@ CREATE INDEX `groups_organizationId_idx` ON `groups` (`organizationId`);--> stat
 CREATE TABLE `organizations` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
+	`sickDayBenefitEnabled` integer,
 	`generation` integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint

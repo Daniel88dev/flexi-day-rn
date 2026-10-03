@@ -7,6 +7,7 @@ import type { StoreRuntime } from "../runtime";
 import {
   groupRow,
   groupUserRow,
+  organizationRow,
   syncPage,
   userYearQuotaRow,
   vacationRow,
@@ -33,18 +34,34 @@ async function pullIn(page: Partial<SyncEnvelope>) {
 const vacation = (buckets: ReturnType<typeof useBalanceBuckets>) =>
   buckets.find((bucket) => bucket.type === "VACATION");
 
+const sickDay = (buckets: ReturnType<typeof useBalanceBuckets>) =>
+  buckets.find((bucket) => bucket.type === "SICK_DAY");
+
 describe("useBalanceBuckets", () => {
   it("returns the year's balance again once quotas and bookings land", async () => {
     await pullIn({ groups: [groupRow()], groupUsers: [groupUserRow()] });
     const { result } = await renderHook(() => useBalanceBuckets(2026));
-    expect(vacation(result.current)).toMatchObject({ allocated: 0, used: 0 });
+    expect(vacation(result.current)).toMatchObject({
+      allocated: groupRow().defaultVacationDays,
+      used: 0,
+    });
 
     await pullIn({
-      userYearQuotas: [userYearQuotaRow({ vacationDays: 25 })],
+      userYearQuotas: [userYearQuotaRow({ vacationDays: 20 })],
       vacations: [vacationRow({ approvedAt: "2026-09-01T00:00:00.000Z" })],
     });
 
-    expect(vacation(result.current)).toMatchObject({ allocated: 25, used: 1 });
+    expect(vacation(result.current)).toMatchObject({ allocated: 20, used: 1 });
+  });
+
+  it("returns the balance again once the organization's Sick day benefit lands", async () => {
+    await pullIn({ groups: [groupRow({ defaultSickDays: 5 })], groupUsers: [groupUserRow()] });
+    const { result } = await renderHook(() => useBalanceBuckets(2026));
+    expect(sickDay(result.current)).toBeUndefined();
+
+    await pullIn({ organizations: [organizationRow({ sickDayBenefitEnabled: true })] });
+
+    expect(sickDay(result.current)).toMatchObject({ allocated: 5 });
   });
 
   it("returns a decision in flight over the row it holds", async () => {

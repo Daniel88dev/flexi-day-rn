@@ -21,7 +21,7 @@ import {
  * for a nullable column. A drift here is the store no longer mirroring what a pull returns.
  */
 const SYNC_ROWS: Record<string, [Table, Record<string, string>]> = {
-  organizations: [organizations, { id: "text", name: "text" }],
+  organizations: [organizations, { id: "text", name: "text", sickDayBenefitEnabled: "boolean?" }],
   users: [users, { id: "text", name: "text", image: "text?", updatedAt: "text" }],
   groups: [
     groups,

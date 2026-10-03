@@ -9,6 +9,7 @@ import { useStoreQuery } from "./use-store-query";
 
 const BALANCE_CHANNELS = [
   ...MERGED_VACATION_CHANNELS,
+  "organizations",
   "groupUsers",
   "userYearQuotas",
   "syncState",

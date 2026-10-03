@@ -4,7 +4,13 @@ import type { StoreDatabase } from "./adapter";
 import { readSyncState } from "./apply";
 import type { OverlayEntry } from "./pending";
 import { mergedVacations } from "./queries";
-import { groupUsers, userYearQuotas, type CalendarRecordType } from "./schema";
+import {
+  groups,
+  groupUsers,
+  organizations,
+  userYearQuotas,
+  type CalendarRecordType,
+} from "./schema";
 
 /** One allowance of the viewer's year, the way the backend's `GET /api/users/me/balances` sums it. */
 export type BalanceBucket = {
@@ -13,6 +19,25 @@ export type BalanceBucket = {
   used: number;
   pending: number;
 };
+
+type QuotaFigures = {
+  vacationDays: number;
+  homeOfficeDays: number;
+  sickDays: number;
+  carriedOverDays: number;
+};
+
+/** Unknown while the sync pull leaves the organization's toggle out. */
+type SickDayBenefit = "on" | "off" | "unknown";
+
+type GroupPolicy = {
+  defaultVacationDays: number;
+  defaultHomeOfficeDays: number;
+  defaultSickDays: number;
+  sickDayBenefit: SickDayBenefit;
+};
+
+type YearAllocation = QuotaFigures & { sickDayMetered: boolean };
 
 const HALF_DAY_WEIGHT = 0.5;
 
@@ -25,11 +50,84 @@ function liveGroupIds(db: StoreDatabase, viewerId: string): string[] {
     .map((row) => row.groupId);
 }
 
+function yearQuotas(
+  db: StoreDatabase,
+  viewerId: string,
+  groupIds: string[],
+  year: number
+): Map<string, QuotaFigures> {
+  if (groupIds.length === 0) return new Map();
+  const rows = db
+    .select()
+    .from(userYearQuotas)
+    .where(
+      and(
+        eq(userYearQuotas.userId, viewerId),
+        eq(userYearQuotas.relatedYear, String(year)),
+        inArray(userYearQuotas.groupId, groupIds)
+      )
+    )
+    .all();
+  return new Map(rows.map((row) => [row.groupId, row]));
+}
+
+function sickDayBenefit(enabled: boolean | null): SickDayBenefit {
+  if (enabled == null) return "unknown";
+  return enabled ? "on" : "off";
+}
+
+function groupPolicies(db: StoreDatabase, groupIds: string[]): Map<string, GroupPolicy> {
+  if (groupIds.length === 0) return new Map();
+  const rows = db
+    .select({
+      id: groups.id,
+      defaultVacationDays: groups.defaultVacationDays,
+      defaultHomeOfficeDays: groups.defaultHomeOfficeDays,
+      defaultSickDays: groups.defaultSickDays,
+      sickDayBenefitEnabled: organizations.sickDayBenefitEnabled,
+    })
+    .from(groups)
+    .leftJoin(organizations, eq(groups.organizationId, organizations.id))
+    .where(and(inArray(groups.id, groupIds), isNull(groups.deletedAt)))
+    .all();
+  return new Map(
+    rows.map(({ id, sickDayBenefitEnabled, ...defaults }) => [
+      id,
+      { ...defaults, sickDayBenefit: sickDayBenefit(sickDayBenefitEnabled) },
+    ])
+  );
+}
+
 /**
- * The backend's counting, over what the store mirrors: the viewer's quotas for the year across
- * the groups they belong to, and their bookings in those groups. Approved days are used, days
- * neither approved nor rejected are pending, cancelled days count for nothing, and a half day
- * weighs 0.5. A booking in flight counts as pending.
+ * The backend's `resolveYearAllocation` and the Sick day gate of its `allowanceFor`: a missing
+ * quota row means the group defaults with nothing carried over, and a group meters sick days only
+ * while its organization has the benefit on.
+ */
+function yearAllocation(
+  quota: QuotaFigures | undefined,
+  policy: GroupPolicy | undefined
+): YearAllocation {
+  const figures = quota ?? {
+    vacationDays: policy?.defaultVacationDays ?? 0,
+    homeOfficeDays: policy?.defaultHomeOfficeDays ?? 0,
+    sickDays: policy?.defaultSickDays ?? 0,
+    carriedOverDays: 0,
+  };
+  switch (policy?.sickDayBenefit) {
+    case "on":
+      return { ...figures, sickDayMetered: true };
+    case "unknown":
+      return { ...figures, sickDays: quota?.sickDays ?? 0, sickDayMetered: false };
+    case "off":
+    case undefined:
+      return { ...figures, sickDays: 0, sickDayMetered: false };
+  }
+}
+
+/**
+ * A Sick day bucket shows once any group meters sick days, even with none allocated, the way
+ * `GET /api/users/me/balances` does; while the pull has not sent the toggle, it shows only once
+ * quota rows allocate some.
  */
 export function balanceBuckets(
   db: StoreDatabase,
@@ -45,33 +143,25 @@ export function balanceBuckets(
     return created;
   };
 
+  const vacation = ensure("VACATION");
+  const homeOffice = ensure("HOME_OFFICE");
+
   const viewerId = readSyncState(db)?.userId;
-  const groupIds = viewerId ? liveGroupIds(db, viewerId) : [];
-
-  const quotas =
-    viewerId && groupIds.length > 0
-      ? db
-          .select()
-          .from(userYearQuotas)
-          .where(
-            and(
-              eq(userYearQuotas.userId, viewerId),
-              eq(userYearQuotas.relatedYear, String(year)),
-              inArray(userYearQuotas.groupId, groupIds)
-            )
-          )
-          .all()
-      : [];
-  const sum = (pick: (quota: (typeof quotas)[number]) => number) =>
-    quotas.reduce((total, quota) => total + pick(quota), 0);
-
-  ensure("VACATION").allocated = sum((quota) => quota.vacationDays + quota.carriedOverDays);
-  ensure("HOME_OFFICE").allocated = sum((quota) => quota.homeOfficeDays);
-  // Only once allocated: an organization without the Sick day benefit shows no empty bucket.
-  const sickDays = sum((quota) => quota.sickDays);
-  if (sickDays > 0) ensure("SICK_DAY").allocated = sickDays;
-
   if (!viewerId) return [...buckets.values()];
+
+  const groupIds = liveGroupIds(db, viewerId);
+  const quotas = yearQuotas(db, viewerId, groupIds, year);
+  const policies = groupPolicies(db, groupIds);
+  let sickDays = 0;
+  let sickDayMetered = false;
+  for (const groupId of groupIds) {
+    const allocation = yearAllocation(quotas.get(groupId), policies.get(groupId));
+    vacation.allocated += allocation.vacationDays + allocation.carriedOverDays;
+    homeOffice.allocated += allocation.homeOfficeDays;
+    sickDays += allocation.sickDays;
+    sickDayMetered ||= allocation.sickDayMetered;
+  }
+  if (sickDayMetered || sickDays > 0) ensure("SICK_DAY").allocated = sickDays;
 
   const inGroups = new Set(groupIds);
   const range = { from: `${year}-01-01`, until: `${year + 1}-01-01` };

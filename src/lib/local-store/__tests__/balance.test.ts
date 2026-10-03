@@ -6,6 +6,7 @@ import type { StoreRuntime } from "../runtime";
 import {
   groupRow,
   groupUserRow,
+  organizationRow,
   syncPage,
   userYearQuotaRow,
   vacationRow,
@@ -17,12 +18,17 @@ const APPROVED = "2026-03-01T09:00:00.000Z";
 const REJECTED = "2026-03-02T09:00:00.000Z";
 const CANCELLED = "2026-03-03T09:00:00.000Z";
 
+const NO_DEFAULTS = { defaultVacationDays: 0, defaultHomeOfficeDays: 0, defaultSickDays: 0 };
+
 let store: StoreRuntime;
 
 beforeEach(async () => {
   store = await openTestStore(VIEWER);
   pullIn({
-    groups: [groupRow({ id: "group-1" }), groupRow({ id: "group-2", holidayCountry: null })],
+    groups: [
+      groupRow({ id: "group-1", ...NO_DEFAULTS }),
+      groupRow({ id: "group-2", holidayCountry: null, ...NO_DEFAULTS }),
+    ],
     groupUsers: [
       groupUserRow({ id: "member-1", groupId: "group-1", userId: VIEWER }),
       groupUserRow({ id: "member-2", groupId: "group-2", userId: VIEWER }),
@@ -58,7 +64,7 @@ beforeEach(() => {
 });
 
 describe("balanceBuckets", () => {
-  it("returns nothing allocated for a year without quotas", () => {
+  it("returns nothing allocated where neither a quota row nor a group default allocates", () => {
     expect(buckets()).toEqual([
       { type: "VACATION", allocated: 0, used: 0, pending: 0 },
       { type: "HOME_OFFICE", allocated: 0, used: 0, pending: 0 },
@@ -165,6 +171,139 @@ describe("balanceBuckets", () => {
     pullIn({ vacations: [booking({ vacationType: "SICK", approvedAt: APPROVED })] });
 
     expect(bucket("SICK")).toEqual({ type: "SICK", allocated: 0, used: 1, pending: 0 });
+  });
+
+  it("returns a group's defaults, nothing carried over, where the viewer has no quota row", () => {
+    pullIn({
+      groups: [
+        groupRow({ id: "group-1", defaultVacationDays: 20, defaultHomeOfficeDays: 8 }),
+        groupRow({ id: "group-2", defaultVacationDays: 5, defaultHomeOfficeDays: 2 }),
+      ],
+    });
+
+    expect(bucket("VACATION")).toMatchObject({ allocated: 25 });
+    expect(bucket("HOME_OFFICE")).toMatchObject({ allocated: 10 });
+  });
+
+  it("returns a group's quota row, never its defaults, where the viewer has one", () => {
+    pullIn({
+      groups: [
+        groupRow({ id: "group-1", defaultVacationDays: 20, defaultHomeOfficeDays: 8 }),
+        groupRow({ id: "group-2", defaultVacationDays: 5, defaultHomeOfficeDays: 2 }),
+      ],
+      userYearQuotas: [
+        userYearQuotaRow({
+          groupId: "group-1",
+          vacationDays: 12,
+          homeOfficeDays: 0,
+          carriedOverDays: 3,
+        }),
+      ],
+    });
+
+    expect(bucket("VACATION")).toMatchObject({ allocated: 12 + 3 + 5 });
+    expect(bucket("HOME_OFFICE")).toMatchObject({ allocated: 0 + 2 });
+  });
+
+  it("returns a group's defaults where the viewer's quota row is of another year", () => {
+    pullIn({
+      groups: [groupRow({ id: "group-1", defaultVacationDays: 20 })],
+      userYearQuotas: [userYearQuotaRow({ relatedYear: "2025", vacationDays: 30 })],
+    });
+
+    expect(bucket("VACATION", 2026)).toMatchObject({ allocated: 20 });
+    expect(bucket("VACATION", 2025)).toMatchObject({ allocated: 30 });
+  });
+
+  it("returns nothing of a deleted group's defaults", () => {
+    pullIn({ groups: [groupRow({ id: "group-1", defaultVacationDays: 20 })] });
+    pullIn({ groups: [groupRow({ id: "group-1", deletedAt: CANCELLED })] });
+
+    expect(bucket("VACATION")).toMatchObject({ allocated: 0 });
+  });
+
+  it("returns zero remaining once the viewer books up to a default without a quota row", () => {
+    pullIn({
+      organizations: [organizationRow({ sickDayBenefitEnabled: true })],
+      groups: [
+        groupRow({
+          id: "group-1",
+          defaultVacationDays: 2,
+          defaultHomeOfficeDays: 1,
+          defaultSickDays: 1,
+        }),
+      ],
+      vacations: [booking({ approvedAt: APPROVED }), booking({ approvedAt: APPROVED })],
+    });
+
+    const vacation = bucket("VACATION");
+    expect(vacation).toMatchObject({ allocated: 2, used: 2, pending: 0 });
+    expect(vacation!.allocated - vacation!.used).toBe(0);
+    expect(bucket("HOME_OFFICE")).toMatchObject({ allocated: 1 });
+    expect(bucket("SICK_DAY")).toMatchObject({ allocated: 1 });
+  });
+
+  describe("with the organization's Sick day benefit", () => {
+    const withSickDayBenefit = (sickDayBenefitEnabled: boolean | undefined) =>
+      pullIn({
+        organizations: [organizationRow({ sickDayBenefitEnabled })],
+        groups: [groupRow({ id: "group-1", defaultSickDays: 4 })],
+      });
+
+    it("returns a group's default sick days where the viewer has no quota row", () => {
+      withSickDayBenefit(true);
+
+      expect(bucket("SICK_DAY")).toMatchObject({ allocated: 4 });
+    });
+
+    it("returns the quota row's sick days where the viewer has one", () => {
+      withSickDayBenefit(true);
+      pullIn({ userYearQuotas: [userYearQuotaRow({ groupId: "group-1", sickDays: 2 })] });
+
+      expect(bucket("SICK_DAY")).toMatchObject({ allocated: 2 });
+    });
+
+    it("returns an empty sick day bucket while the benefit allocates nothing", () => {
+      withSickDayBenefit(true);
+      pullIn({ userYearQuotas: [userYearQuotaRow({ groupId: "group-1", sickDays: 0 })] });
+
+      expect(bucket("SICK_DAY")).toEqual({ type: "SICK_DAY", allocated: 0, used: 0, pending: 0 });
+    });
+
+    it("returns no sick day allocation while the benefit is off, whatever the quota row says", () => {
+      withSickDayBenefit(false);
+      pullIn({ userYearQuotas: [userYearQuotaRow({ groupId: "group-1", sickDays: 5 })] });
+
+      expect(bucket("SICK_DAY")).toBeUndefined();
+    });
+
+    it("returns only the quota row's sick days while the pull has not said", () => {
+      withSickDayBenefit(undefined);
+      pullIn({ userYearQuotas: [userYearQuotaRow({ groupId: "group-1", sickDays: 3 })] });
+
+      expect(bucket("SICK_DAY")).toMatchObject({ allocated: 3 });
+    });
+
+    it("returns no default sick days while the pull has not said", () => {
+      withSickDayBenefit(undefined);
+
+      expect(bucket("SICK_DAY")).toBeUndefined();
+    });
+
+    it("returns sick days only through the organizations that have the benefit", () => {
+      pullIn({
+        organizations: [
+          organizationRow({ id: "org-1", sickDayBenefitEnabled: true }),
+          organizationRow({ id: "org-2", sickDayBenefitEnabled: false }),
+        ],
+        groups: [
+          groupRow({ id: "group-1", organizationId: "org-1", defaultSickDays: 4 }),
+          groupRow({ id: "group-2", organizationId: "org-2", defaultSickDays: 6 }),
+        ],
+      });
+
+      expect(bucket("SICK_DAY")).toMatchObject({ allocated: 4 });
+    });
   });
 
   it("returns a booking in flight as pending", () => {
