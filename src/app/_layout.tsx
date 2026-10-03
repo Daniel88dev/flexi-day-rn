@@ -44,6 +44,16 @@ export default function RootLayout() {
               sheetCornerRadius: 28,
             }}
           />
+          <Stack.Screen
+            name="groups/join"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: "fitToContents",
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 28,
+            }}
+          />
+          <Stack.Screen name="join" options={{ presentation: "modal" }} />
           <Stack.Screen name="requests/new" options={{ presentation: "modal" }} />
           <Stack.Screen name="settings/two-factor" options={{ presentation: "modal" }} />
           <Stack.Screen name="settings/delete-account" options={{ presentation: "modal" }} />
