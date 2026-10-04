@@ -28,6 +28,26 @@ walk-through confirms it in the portal.
 The backend's trusted origins (`TRUSTED_ORIGINS`, `trusted_origins` in Terraform) list the web
 origins and `flexiday://`.
 
+## What the walk-through settled
+
+The portal work ran on 2026-10-04 with the Account Holder. The resulting public values and the
+answers to the questions the research left open are folded into the sections below and summarised
+here:
+
+| Value                       | Result                                                                         |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| Google iOS client id        | `456983325414-tt5nktncl12ece3qjrtb043jlc4lia37.apps.googleusercontent.com`     |
+| Google iOS URL scheme       | `com.googleusercontent.apps.456983325414-tt5nktncl12ece3qjrtb043jlc4lia37`     |
+| Google publishing status    | In production, after verifying `flexi-day.com` in Search Console (section 1.2) |
+| Entra redirect URI          | `flexiday://auth` on Mobile and desktop applications; the portal accepts it    |
+| Apple Services ID           | `com.flexiday.web` (`APPLE_CLIENT_ID`)                                         |
+| Apple Key ID                | `337627W447` (`APPLE_KEY_ID`); the `.p8` is in 1Password                       |
+| Apple Services ID domains   | `api.flexi-day.com` and `www.flexi-day.com`                                    |
+| Apple App Store requirement | Not enforced by the portal for a TestFlight-only app                           |
+| Apple email relay           | `flexi-day.com` and `no-reply@flexi-day.com` registered                        |
+
+The `.p8` key, the only secret, stayed with the user throughout.
+
 ## Order of work
 
 1. Google Cloud (section 1). Nothing here invalidates anything; the new client takes up to a few
@@ -69,6 +89,9 @@ only in the token's `azp`, which better-auth ignores.
    the client id reversed, `com.googleusercontent.apps.<id>`. Both stay readable in the console
    later.
 
+Done: client id `456983325414-tt5nktncl12ece3qjrtb043jlc4lia37.apps.googleusercontent.com`, scheme
+`com.googleusercontent.apps.456983325414-tt5nktncl12ece3qjrtb043jlc4lia37`.
+
 ### 1.2 What stays untouched
 
 - The Web client. Its id stays the token audience. Native clients have no redirect URIs, so
@@ -77,10 +100,17 @@ only in the token's `azp`, which better-auth ignores.
   logo appear once the app is verified, same as today.
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and the Google Terraform variables.
 
-Google says client changes can take from five minutes to a few hours to apply. Open question for the
-walk-through: look at the project's Audience page once before the first TestFlight build, to see
-whether the project's publishing status (testing or production) treats the iOS client differently
-from the Web one. No Google page answers it.
+Google says client changes can take from five minutes to a few hours to apply.
+
+The project's **publishing status** (Google Auth Platform › Audience) is per project and applies to
+every client in it, the iOS one included. It was **Testing**, which caps sign-in to the listed test
+users and expires consent after seven days. Publishing failed at first with "The website of your
+homepage URL 'https://www.flexi-day.com' is not registered to you": Google wants the domain verified
+in **Search Console** under the project owner's account. The fix is a `google-site-verification=`
+TXT value at the apex. Route 53 keeps one TXT record set per name and the emails repo owns the apex
+one, so the token lives in `flexi-day-emails/terraform` as `google_site_verification_txt`, next to
+the Entra ownership token. After the apply and **Verify** in Search Console, **Publish app** went
+through and the status is **In production**.
 
 ### 1.3 What goes into the app
 
@@ -132,10 +162,8 @@ own `tid`, which is how Microsoft shapes `iss` for work and for personal account
    flexiday://auth
    ```
 
-   No query parameters; registrations that admit personal accounts reject them. Open question for
-   the walk-through: Microsoft says the platform takes custom redirect URIs but lists no allowed
-   schemes, and MSAL's own `msauth.` URIs prove custom schemes work here. Confirm the portal accepts
-   it when you enter it.
+   No query parameters; registrations that admit personal accounts reject them. Microsoft lists no
+   allowed schemes for this platform, but the portal accepted `flexiday://auth` without complaint.
 
 4. **Save.**
 
@@ -203,12 +231,12 @@ included. That is why section 5.2 exists. Do the Services ID and the key before 
 
 ### 3.2 Services ID for the web
 
-1. Identifiers › **+** › **Services IDs** › Continue. Description "Flexi Day", identifier of your
-   choosing; this identifier is the web flow's `client_id` and becomes `APPLE_CLIENT_ID`. It is case
-   sensitive.
+1. Identifiers › **+** › **Services IDs** › Continue. Description "Flexi Day", identifier
+   `com.flexiday.web`; this identifier is the web flow's `client_id` and becomes `APPLE_CLIENT_ID`.
+   It is case sensitive and must differ from the bundle id.
 2. On the new Services ID, tick **Sign in with Apple** › **Configure**.
 3. Primary App ID: `com.flexiday.app`.
-4. Domains and Subdomains: `api.flexi-day.com`. Return URLs:
+4. Domains and Subdomains: `api.flexi-day.com` and `www.flexi-day.com`. Return URLs:
 
    ```text
    https://api.flexi-day.com/api/auth/callback/apple
@@ -219,21 +247,22 @@ included. That is why section 5.2 exists. Do the Services ID and the key before 
    At least one domain is required and no verification file is uploaded. An Individual can register
    up to ten website URLs.
 
-   Open question: Apple asks to register "all top-level domains and subdomains that incorporate Sign
-   in with Apple" but does not say whether the page hosting a plain link counts. Adding
-   `www.flexi-day.com` costs one slot and removes the doubt; the walk-through decides.
+   Apple asks to register "all top-level domains and subdomains that incorporate Sign in with Apple"
+   without saying whether the page hosting a plain link counts; `www.flexi-day.com` costs one slot
+   and removes the doubt, so it is registered too.
 
 5. **Save**, then **Continue** and **Register**.
 
-Second open question, surfaced here because the portal may or may not enforce it: Apple's
-environment guide says web sign-in needs "an existing app in the App Store that uses Sign in with
-Apple", and Flexi Day ships through TestFlight only. Note what the portal does.
+Apple's environment guide says web sign-in needs "an existing app in the App Store that uses Sign in
+with Apple". The portal did not enforce it: the Services ID registered without a word while Flexi
+Day ships through TestFlight only.
 
 ### 3.3 The key, once
 
 1. Keys › **+**. Name "Flexi Day Sign in with Apple". Tick **Sign in with Apple** › **Configure** ›
    primary App ID `com.flexiday.app` › Save › Continue › **Register**.
-2. Note the **Key ID** on the confirmation page. It becomes `APPLE_KEY_ID`.
+2. Note the **Key ID** on the confirmation page. It becomes `APPLE_KEY_ID`. The live key is
+   `337627W447`.
 3. **Download** the `.p8`. Apple: "you won't be able to download it again". Put it in 1Password at
    once, next to the APNs key, and keep it out of every repo. The file is a multi-line PEM.
 
@@ -249,10 +278,13 @@ only from registered sources, and only when the source passes SPF or DKIM.
    **Configure** › **Email Sources**.
 2. Register the domain `flexi-day.com` and the address `no-reply@flexi-day.com` (the `email_from`
    default in `flexi-day-be/terraform/variables.tf`).
-3. Read the result Apple shows per source. SPF cannot match: Apple wants the envelope sender domain
-   to equal the registered domain exactly, and SES sends with an `amazonses.com` MAIL FROM because
-   this repo sets no custom one. DKIM is what lets it through: `flexi-day.com` has Easy DKIM, and
-   Apple wants the `d=` domain to equal the header From domain, which it does.
+3. Read the result Apple shows per source. Both rows show a green **SPF** mark: the registration
+   check reads the domain's SPF record, which exists, not a live envelope. At delivery time SPF
+   still cannot match, because Apple wants the envelope sender domain to equal the registered
+   domain exactly and SES sends with an `amazonses.com` MAIL FROM, this repo setting no custom one.
+   DKIM is what lets a message through: `flexi-day.com` has Easy DKIM, and Apple wants the `d=`
+   domain to equal the header From domain, which it does. The first hidden-email sign-in is the
+   real test; section 7 lists it.
 
 A hidden-email user's confirmation email and every later notification go to the relay address, and
 they arrive only once this is done.
@@ -280,9 +312,11 @@ the public values, Secrets Manager for the one secret.
 | `APPLE_APP_BUNDLE_IDENTIFIER` | `apple_app_bundle_identifier` | `com.flexiday.app`                       | plain env                                  |
 | `APPLE_PRIVATE_KEY`           | `apple_private_key`           | the `.p8` contents                       | sensitive; Secrets Manager, runtime secret |
 
-Plus one existing variable: `https://appleid.apple.com` joins `TRUSTED_ORIGINS` and
-`trusted_origins`. Apple POSTs the web callback (`form_post`), and better-auth's origin check rejects
-an untrusted `Origin` on any non-GET request that carries a cookie.
+Plus `https://appleid.apple.com` in `TRUSTED_ORIGINS`. Apple POSTs the web callback (`form_post`),
+and better-auth's origin check rejects an untrusted `Origin` on any non-GET request that carries a
+cookie. Locally it goes into `.env` by hand; in production `apprunner.tf` appends it whenever
+`apple_client_id` is set, so `trusted_origins` stays as it is. Listing it there instead would also
+land it in the attachments bucket's CORS rule, which takes every https origin from that variable.
 
 ### 4.1 Local
 
@@ -307,11 +341,10 @@ at boot.
 In `flexi-day-be/terraform/terraform.tfvars`, the public values only:
 
 ```hcl
-apple_client_id             = "<Services ID>"
+apple_client_id             = "com.flexiday.web"
 apple_team_id               = "S6FC47MMXJ"
-apple_key_id                = "<Key ID>"
+apple_key_id                = "337627W447"
 apple_app_bundle_identifier = "com.flexiday.app"
-trusted_origins             = ["https://flexi-day.com", "https://www.flexi-day.com", "flexiday://", "https://appleid.apple.com"]
 ```
 
 The key goes through the environment, never into `terraform.tfvars`:
@@ -325,13 +358,13 @@ cd flexi-day-be/terraform && TF_VAR_apple_private_key="$(cat ~/Downloads/AuthKey
 ```
 
 The value still lands in `terraform.tfstate` in the clear, as every secret here does; what the
-environment buys is keeping it out of a file you might paste from. The plan should show one new
-Secrets Manager secret and version (`flexi-day-be-production-apple-private-key`, following the
-Microsoft secret's naming), the four plain env
-vars and the runtime secret on the App Runner service, the ARN added to the instance role's
-secrets policy, and the changed `TRUSTED_ORIGINS`. Nothing else. `apple_client_id` set with an
-empty key fails at plan time, by design. The apply rolls a new App Runner deployment; give it three
-to five minutes.
+environment buys is keeping it out of a file you might paste from. The plan shows one new Secrets Manager secret and version
+(`flexi-day-be-production-apple-private-key`, following the Microsoft secret's naming), the App
+Runner service updated in place (the four plain env vars, the runtime secret and the changed
+`TRUSTED_ORIGINS`; the plan prints the env maps as sensitive, so the names do not appear), and the
+instance role's secrets policy with the new ARN. Nothing else from this change. `apple_client_id`
+set with an empty key fails at plan time, by design. The apply rolls a new App Runner deployment;
+give it three to five minutes.
 
 Open question: whether a multi-line Secrets Manager value reaches the process with real newlines was
 not checked. A parser that accepts both forms makes it moot, which is why the spec asks for one.
