@@ -1,10 +1,11 @@
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from "@/lib/auth/provider-config";
-import { createGoogleAdapter } from "@/lib/auth/providers/google";
+import { createGoogleAdapter, signOutGoogle } from "@/lib/auth/providers/google";
 
 const configure = jest.mocked(GoogleSignin.configure);
 const signIn = jest.mocked(GoogleSignin.signIn);
+const signOut = jest.mocked(GoogleSignin.signOut);
 
 function userWith(idToken: string | null) {
   return {
@@ -100,5 +101,14 @@ describe("createGoogleAdapter", () => {
 
     await expect(createGoogleAdapter().signIn()).resolves.toEqual({ kind: "failed", error });
     expect(signIn).not.toHaveBeenCalled();
+  });
+});
+
+describe("signOutGoogle", () => {
+  it("signs the SDK out without configuring it first", async () => {
+    await signOutGoogle();
+
+    expect(signOut).toHaveBeenCalledTimes(1);
+    expect(configure).not.toHaveBeenCalled();
   });
 });

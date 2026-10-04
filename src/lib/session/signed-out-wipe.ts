@@ -2,6 +2,7 @@ import { storageAdapter } from "@better-auth/expo/client";
 import { router } from "expo-router";
 import { useCallback } from "react";
 
+import { signOutGoogle as signOutGoogleSdk } from "@/lib/auth/providers/google";
 import { destroyStore } from "@/lib/local-store";
 import { queryClient } from "@/lib/query/runtime";
 import { clearClockReminders } from "@/lib/reminders/device";
@@ -25,6 +26,7 @@ export type SignedOutWipeOptions = {
   storage?: SessionStorage;
   destroyLocalStore?: () => Promise<void>;
   clearReminders?: () => Promise<void>;
+  signOutGoogle?: () => Promise<void>;
   clearSession?: () => void;
   showNotice?: () => void;
   replace?: (href: string) => void;
@@ -40,7 +42,7 @@ let running: Promise<void> | null = null;
  * What the app does when the server stops trusting the phone, and what signing out does after
  * the server has been told: the cookie jar, the session cache, the Local store, the query cache,
  * the scheduled clock reminders and their settings go, the Device id stays, and welcome says
- * why. It never signs out on its own.
+ * why. The Google SDK's own tokens go too. It never signs out on its own.
  */
 export function signedOutWipe(options: SignedOutWipeOptions): Promise<void> {
   running ??= wipe(options).finally(() => {
@@ -54,6 +56,7 @@ async function wipe({
   storage = sessionStorage,
   destroyLocalStore = destroyStore,
   clearReminders = clearClockReminders,
+  signOutGoogle = signOutGoogleSdk,
   clearSession = clearClientSession,
   showNotice = showSignedOutNotice,
   replace = (href) => router.replace(href as "/welcome"),
@@ -64,6 +67,7 @@ async function wipe({
       storage.setItemAsync(SESSION_CACHE_KEY, EMPTY_ENTRY),
       destroyLocalStore(),
       clearReminders(),
+      bestEffort(signOutGoogle, "The Google SDK did not sign out."),
     ]);
   } catch (cause: unknown) {
     // Whatever the phone could not let go of, staying on a signed-in screen is worse.
@@ -75,6 +79,16 @@ async function wipe({
   showNotice();
   setRootRoute("welcome");
   replace("/welcome");
+}
+
+// Settles on its own, so a failing step neither cuts short the wait on the others nor hides
+// their failure.
+async function bestEffort(step: () => Promise<void>, message: string): Promise<void> {
+  try {
+    await step();
+  } catch (cause: unknown) {
+    console.error(message, cause);
+  }
 }
 
 /**

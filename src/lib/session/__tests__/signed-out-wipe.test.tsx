@@ -1,3 +1,4 @@
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { act, renderHook } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { ReactNode } from "react";
@@ -57,6 +58,7 @@ const replace = router.replace as jest.Mock;
 
 let keychain: FakeKeychain;
 let destroyLocalStore: jest.Mock;
+let signOutGoogle: jest.Mock;
 let clearSession: jest.Mock;
 let setRootRoute: jest.Mock;
 
@@ -69,6 +71,7 @@ beforeEach(() => {
     [SESSION_CACHE_KEY]: '{"user":{"id":"kXk2Q7pR9sT1vW3yZ5aB7cD9eF1gH3iJ"}}',
   });
   destroyLocalStore = jest.fn().mockResolvedValue(undefined);
+  signOutGoogle = jest.fn().mockResolvedValue(undefined);
   clearSession = jest.fn();
   setRootRoute = jest.fn();
   sessionAtom.value = { data: { user: { id: "kXk2Q7pR9sT1vW3yZ5aB7cD9eF1gH3iJ" } } };
@@ -80,6 +83,7 @@ function wipe(overrides: Record<string, unknown> = {}) {
   return signedOutWipe({
     storage: keychain,
     destroyLocalStore,
+    signOutGoogle,
     clearSession,
     setRootRoute,
     ...overrides,
@@ -104,6 +108,21 @@ describe("signedOutWipe", () => {
     await wipe();
 
     expect(destroyLocalStore).toHaveBeenCalledTimes(1);
+  });
+
+  it("signs the Google SDK out, so no Google token outlives the session", async () => {
+    await wipe();
+
+    expect(signOutGoogle).toHaveBeenCalledTimes(1);
+  });
+
+  it("signs out a Google SDK that was never configured", async () => {
+    await wipe({ signOutGoogle: undefined });
+
+    expect(GoogleSignin.signOut).toHaveBeenCalledTimes(1);
+    expect(GoogleSignin.configure).not.toHaveBeenCalled();
+    expect(signedOutNoticeShowing()).toBe(true);
+    expect(replace).toHaveBeenCalledWith("/welcome");
   });
 
   it("empties the query client, so no answer the signed-out user read stays in memory", async () => {
@@ -162,6 +181,7 @@ describe("signedOutWipe", () => {
     await Promise.all([wipe(), wipe()]);
 
     expect(destroyLocalStore).toHaveBeenCalledTimes(1);
+    expect(signOutGoogle).toHaveBeenCalledTimes(1);
     expect(clearSession).toHaveBeenCalledTimes(1);
     expect(replace).toHaveBeenCalledTimes(1);
   });
@@ -172,6 +192,7 @@ describe("signedOutWipe", () => {
     await wipe();
 
     expect(destroyLocalStore).toHaveBeenCalledTimes(2);
+    expect(signOutGoogle).toHaveBeenCalledTimes(2);
     expect(replace).toHaveBeenCalledTimes(2);
   });
 
@@ -227,6 +248,34 @@ describe("signedOutWipe", () => {
     expect(queryClient.getQueryCache().getAll()).toEqual([]);
     expect(replace).toHaveBeenCalledWith("/welcome");
     expect(error).toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  it.each([
+    ["rejects", (failure: Error) => Promise.reject(failure)],
+    [
+      "throws",
+      (failure: Error) => {
+        throw failure;
+      },
+    ],
+  ])("lands on welcome even when the Google SDK %s on sign-out", async (_, fail) => {
+    const error = jest.spyOn(console, "error").mockImplementation(() => {});
+    const failure = new Error("GIDSignIn unavailable");
+    signOutGoogle.mockImplementation(() => fail(failure));
+    queryClient.setQueryData(["my-approvals"], []);
+
+    await wipe();
+
+    expect(keychain.entries()[SESSION_COOKIE_KEY]).toBe("{}");
+    expect(keychain.entries()[SESSION_CACHE_KEY]).toBe("{}");
+    expect(destroyLocalStore).toHaveBeenCalledTimes(1);
+    expect(queryClient.getQueryCache().getAll()).toEqual([]);
+    expect(clearSession).toHaveBeenCalledTimes(1);
+    expect(signedOutNoticeShowing()).toBe(true);
+    expect(setRootRoute).toHaveBeenCalledWith("welcome");
+    expect(replace).toHaveBeenCalledWith("/welcome");
+    expect(error).toHaveBeenCalledWith(expect.any(String), failure);
     error.mockRestore();
   });
 });
