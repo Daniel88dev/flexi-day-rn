@@ -252,6 +252,22 @@ The sheet opens on the iOS 27 simulator: the Microsoft button raises the system 
 `login.microsoftonline.com`, Continue opens Microsoft's sign-in page in the auth session browser,
 and closing it comes back as "Sign-in was cancelled."
 
+## Apple sign-in needs prebuild and a rebuild
+
+`expo-apple-authentication` ships native code, and `ios.usesAppleSignIn` in `app.json` adds the
+`com.apple.developer.applesignin` entitlement. Both reach the dev client only through
+`npm run prebuild` and a rebuild. Sign in with Apple is a capability, so the phone's development
+profile goes stale when it is added: `npm run ios:device` refreshes it, as it does for Associated
+Domains. The App ID already carries the capability, and the App Store profile is EAS's to refresh
+on the first interactive `eas build` (section 5.2 of
+[`native-sign-in-setup.md`](native-sign-in-setup.md)). The simulator needs no profile.
+
+The simulator cannot finish a sign-in without an Apple Account signed in under Settings. On the
+iOS 27 simulator without one, the Apple button raises "Sign in to your Apple Account" from the
+system, and Close there comes back as `ERR_REQUEST_UNKNOWN`, so the screen shows the generic
+"could not be completed" notice rather than "cancelled". A full Apple sign-in is checked on the
+phone, against the local backend over the LAN.
+
 ## Known state (2026-10-03)
 
 - Mac: Xcode 27.0, CocoaPods 1.17.0 from Homebrew, Node 24.

@@ -1,3 +1,4 @@
+import { appleAdapter } from "./apple";
 import { googleAdapter } from "./google";
 import { microsoftAdapter } from "./microsoft";
 import type { ProviderAdapter, SocialProvider } from "./types";
@@ -13,18 +14,8 @@ export const PROVIDER_NAMES: Record<SocialProvider, string> = {
   microsoft: "Microsoft",
 };
 
-function placeholder(provider: SocialProvider): ProviderAdapter {
-  return {
-    provider,
-    signIn: async () => ({
-      kind: "failed",
-      error: new Error(`${PROVIDER_NAMES[provider]} sign-in is not available yet.`),
-    }),
-  };
-}
-
 export const PROVIDER_ADAPTERS: Record<SocialProvider, ProviderAdapter> = {
-  apple: placeholder("apple"),
+  apple: appleAdapter,
   google: googleAdapter,
   microsoft: microsoftAdapter,
 };
