@@ -1,3 +1,4 @@
+import { googleAdapter } from "./google";
 import type { ProviderAdapter, SocialProvider } from "./types";
 
 export type { ProviderAdapter, ProviderOutcome, SocialProvider, TokenOutcome } from "./types";
@@ -23,6 +24,6 @@ function placeholder(provider: SocialProvider): ProviderAdapter {
 
 export const PROVIDER_ADAPTERS: Record<SocialProvider, ProviderAdapter> = {
   apple: placeholder("apple"),
-  google: placeholder("google"),
+  google: googleAdapter,
   microsoft: placeholder("microsoft"),
 };
