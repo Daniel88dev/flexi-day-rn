@@ -119,16 +119,27 @@ export function SignInSocialPrototype(props: SignInSocialPrototypeProps) {
       {__DEV__ ? (
         <View pointerEvents="box-none" className="absolute inset-x-0 bottom-0 items-center pb-safe">
           <View className="elevation-4 mb-1 flex-row items-center gap-1 rounded-full bg-foreground py-1.5 pr-1.5 pl-3">
-            <Pressable onPress={() => pick(variant - 1)} hitSlop={10} className="p-1">
+            <Pressable
+              testID="proto-prev"
+              onPress={() => pick(variant - 1)}
+              hitSlop={10}
+              className="p-1"
+            >
               <CaretLeftIcon color="#fcf9f5" size={16} weight="bold" />
             </Pressable>
             <Text className="min-w-[180px] text-center text-[12px] font-semibold text-background">
               {current.key} · {current.name}
             </Text>
-            <Pressable onPress={() => pick(variant + 1)} hitSlop={10} className="p-1">
+            <Pressable
+              testID="proto-next"
+              onPress={() => pick(variant + 1)}
+              hitSlop={10}
+              className="p-1"
+            >
               <CaretRightIcon color="#fcf9f5" size={16} weight="bold" />
             </Pressable>
             <Pressable
+              testID="proto-locale"
               onPress={() => setLocale(locale === "en" ? "cs" : "en")}
               hitSlop={10}
               className="ml-1 rounded-full bg-background px-2.5 py-1"
