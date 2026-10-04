@@ -319,7 +319,7 @@ describe("My attendance, self-service", () => {
     await renderScreen();
 
     await screen.findByTestId("window-lock");
-    expect(screen.getByTestId("session-group")).toBeTruthy();
+    expect(await screen.findByTestId("session-group")).toBeTruthy();
     expect(screen.queryByTestId("session-correct")).toBeNull();
   });
 

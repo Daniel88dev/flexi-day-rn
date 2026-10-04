@@ -43,4 +43,16 @@ describe("qk", () => {
     expect(qk.quotas("group-1", 2026)).toEqual(["quotas", "group-1", 2026, "all"]);
     expect(qk.quotas("group-1", 2026, "user-2")).toEqual(["quotas", "group-1", 2026, "user-2"]);
   });
+
+  it("returns the web's report keys, with the overview's filters as the query string it sends", () => {
+    expect(qk.reportScope()).toEqual(["report-scope"]);
+    expect(qk.reportOverview({ year: 2026 })).toEqual(["report-overview", "year=2026"]);
+    expect(qk.reportOverview({ year: 2026, groupIds: ["g-1"], userIds: ["u-1", "u-2"] })).toEqual([
+      "report-overview",
+      "year=2026&groupIds=g-1&userIds=u-1%2Cu-2",
+    ]);
+    expect(qk.reportOverviews()).toEqual(["report-overview"]);
+    expect(qk.memberReport("u-erin", 2025)).toEqual(["member-report", "u-erin", 2025]);
+    expect(qk.memberReports()).toEqual(["member-report"]);
+  });
 });

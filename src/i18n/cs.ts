@@ -5,6 +5,16 @@ import type { DayMonth, Dictionary } from "./en";
 
 const daysWord = (count: number) =>
   count === 1 ? "den" : count >= 2 && count <= 4 ? "dny" : "dní";
+const czechDays = (count: number) => {
+  if (!Number.isInteger(count)) return "dne";
+  if (count === 1) return "den";
+  return count >= 2 && count <= 4 ? "dny" : "dní";
+};
+
+const czechFew = (count: number) => Number.isInteger(count) && count >= 2 && count <= 4;
+
+const czechPlural = (count: number, one: string, few: string, many: string) =>
+  count === 1 ? one : count >= 2 && count <= 4 ? few : many;
 
 export const cs: Dictionary = {
   nav: {
@@ -761,6 +771,20 @@ export const cs: Dictionary = {
     weekdaysShort: ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"],
     dayTitle: (weekday: number, date: DayMonth) =>
       `${cs.calendar.weekdaysShort[weekday]} ${date.day}. ${date.month}.`,
+    monthsShort: [
+      "Led",
+      "Úno",
+      "Bře",
+      "Dub",
+      "Kvě",
+      "Čvn",
+      "Čvc",
+      "Srp",
+      "Zář",
+      "Říj",
+      "Lis",
+      "Pro",
+    ],
     months: [
       "Leden",
       "Únor",
@@ -965,8 +989,97 @@ export const cs: Dictionary = {
     alreadyMember: (group: string | null) =>
       group ? `Do skupiny ${group} už patříte` : "Do této skupiny už patříte",
   },
+  report: {
+    periodRolling: "Posledních 12 měsíců",
+    filters: {
+      period: "Období",
+      groups: "Skupiny",
+      people: "Lidé",
+      allGroups: "Všechny skupiny",
+      everyone: "Všichni",
+      groupCount: (count: number) =>
+        `${count} ${czechPlural(count, "skupina", "skupiny", "skupin")}`,
+      peopleCount: (count: number) => `${count} ${czechPlural(count, "člověk", "lidé", "lidí")}`,
+      yearHint: "Leden až prosinec",
+      thisYearHint: "Leden až prosinec, letos",
+      chipLabel: (name: string, choice: string) => `${name}, ${choice}`,
+      done: "Hotovo",
+      close: "Zavřít",
+    },
+    leaveTypes: "Druh volna",
+    peopleMeta: (count: number, year: number) =>
+      `${count} ${count === 1 ? "člověk" : count >= 2 && count <= 4 ? "lidé" : "lidí"}, ${year}`,
+    used: (days: string) => `${days} vybráno`,
+    planned: (days: string) => `${days} naplánováno`,
+    pending: (days: string) => `${days} ke schválení`,
+    of: (days: string) => `z ${days}`,
+    rowLabel: (name: string, left: number, leftText: string, ofText: string) => {
+      const few = Number.isInteger(left) && left >= 2 && left <= 4;
+      const word = !Number.isInteger(left) ? "dne" : left === 1 ? "den" : few ? "dny" : "dní";
+      return `${name}, ${few ? "zbývají" : "zbývá"} ${leftText} ${word} z ${ofText}`;
+    },
+    loading: "Načítám report",
+    empty: "Zatím není co zobrazit",
+    emptyBody:
+      "Report zahrnuje skupiny, ve kterých jste nebo které spravujete. Přidejte se do skupiny a vaše volno se tu objeví.",
+    offline: "Nepodařilo se spojit se serverem",
+    offlineBody:
+      "Report se pokaždé načítá z Flexi Day a v telefonu se neukládá. Připojte se a zkuste to znovu.",
+    stale: (time: string) => `Offline. Report ukazuje stav k\u00a0${time}.`,
+    retry: "Zkusit znovu",
+    taken: (type: string) => `${type}: vybráno`,
+    days: (count: number) => czechDays(count),
+    daysShort: (days: string) => `${days} d`,
+    windowRange: (from: string, to: string) => `${from} až ${to}`,
+    loadingMonths: "Načítám měsíce",
+    noOneMatches: "Filtrům nikdo neodpovídá.",
+    nobodyTookLeave: "Nikdo neměl volno",
+    incomplete: (year: number) =>
+      `Rok ${year} se nenačetl, takže jeho měsíce zatím neukazují žádné volno.`,
+    columnLabel: (month: string, total: number, totalText: string, people: string[]) =>
+      people.length === 0
+        ? `${month}, ${totalText} ${czechDays(total)}. Nikdo neměl volno`
+        : `${month}, ${totalText} ${czechDays(total)}: ${people.join(", ")}`,
+    member: {
+      daysLeftOf: (left: number, of: string) =>
+        `${czechDays(left)} ${czechFew(left) ? "zbývají" : "zbývá"} z ${of}`,
+      daysOverOf: (over: number, of: string) =>
+        `${czechDays(over)} ${over === 1 ? "přečerpán" : czechFew(over) ? "přečerpány" : "přečerpáno"} z ${of}`,
+      used: "Vybráno",
+      planned: "Naplánováno",
+      pending: "Ke schválení",
+      carriedIn: "Převedeno",
+      showMonths: "Zobrazit měsíce",
+      showMonthsLabel: (type: string) => `Zobrazit měsíce, ${type}`,
+      noneInWindow: "V těchto měsících není nic vybráno ani zarezervováno.",
+      approved: "Schváleno",
+      evenPace: "Rovnoměrné tempo",
+      columnLabel: (month: string, used: string, pending: string) =>
+        `${month}: ${cs.report.used(used)}, ${cs.report.pending(pending)}`,
+      quotas: "Nároky",
+      vacationDays: "Dny dovolené",
+      carriedOver: "Převedeno z minulého roku",
+      homeOfficeDays: "Dny home office",
+      sickDays: "Dny zdravotního volna",
+      bookings: "Záznamy volna",
+      bookingsCount: (count: number, year: number) => `${count} v roce ${year}`,
+      bookingsEmpty: (year: number) => `V roce ${year} není zaznamenáno žádné volno.`,
+      changes: "Historie změn",
+      changesEmpty: (year: number) => `V roce ${year} se nárok neměnil.`,
+      showAll: (count: number) => `Zobrazit ${czechFew(count) ? "všechny" : "všech"} ${count}`,
+      showFewer: "Zobrazit méně",
+      byPerson: (name: string) => `provedl(a) ${name}`,
+      byDeletedAccount: "provedl(a) smazaný účet",
+      byFlexiDay: "automaticky ve Flexi Day",
+    },
+    yourLeave: "Vaše volno",
+    forbidden: "Není ve vašem reportu",
+    forbiddenBody:
+      "Tento člověk není ve skupině, jejíž report vidíte, nebo jeho účet už neexistuje.",
+  },
   common: {
     locale: "cs-CZ",
+    decimalSeparator: ",",
     comingSoon: (screen: string) => `Tady bude: ${screen}.`,
     halfDay: "Půlden",
     fullDay: "Celý den",
