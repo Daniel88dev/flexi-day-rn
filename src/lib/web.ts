@@ -10,6 +10,7 @@ export const WEB_PATHS = {
   join: "/join/",
   privacy: "/privacy/",
   terms: "/terms/",
+  settings: "/settings/",
   deleteAccount: "/settings/?delete-account",
 } as const;
 
