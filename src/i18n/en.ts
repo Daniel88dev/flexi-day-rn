@@ -923,6 +923,7 @@ export const en = {
       byDeletedAccount: "by a deleted account",
       byFlexiDay: "by Flexi Day",
     },
+    yourLeave: "Your leave",
     forbidden: "Not in your report",
     forbiddenBody:
       "This person isn't in a group whose report you can see, or their account no longer exists.",

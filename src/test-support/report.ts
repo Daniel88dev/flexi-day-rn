@@ -434,3 +434,45 @@ export const crossMember2025: MemberReport = {
   ],
   changes: [],
 };
+
+/** Olivia with only her Design Guild membership: every group `self`, both years in scope. */
+export const selfScope: ReportScope = {
+  groups: [DESIGN],
+  members: [OLIVIA],
+  years: [2025, 2026],
+};
+
+/** Olivia's own year in Design Guild, as the self view reads it, with July 2025 booked. */
+export function selfMember(year: number): MemberReport {
+  const overview = crossOverview(year);
+  return {
+    year,
+    member: {
+      id: OLIVIA.id,
+      name: OLIVIA.name,
+      initials: OLIVIA.initials,
+      avatarColor: OLIVIA.avatarColor,
+    },
+    groups: [DESIGN],
+    quotas: [],
+    summary: overview.summary.filter((row) => row.userId === OLIVIA.id),
+    monthly: overview.monthly.filter((row) => row.userId === OLIVIA.id),
+    bookings:
+      year === 2025
+        ? [
+            booking({
+              userId: OLIVIA.id,
+              userName: OLIVIA.name,
+              groupId: DESIGN.groupId,
+              groupName: DESIGN.groupName,
+              from: "2025-07-14",
+              to: "2025-07-15",
+              days: 2,
+              year: 2025,
+              month: 7,
+            }),
+          ]
+        : [],
+    changes: [],
+  };
+}

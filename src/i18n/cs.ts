@@ -947,6 +947,7 @@ export const cs: Dictionary = {
       byDeletedAccount: "provedl(a) smazaný účet",
       byFlexiDay: "automaticky ve Flexi Day",
     },
+    yourLeave: "Vaše volno",
     forbidden: "Není ve vašem reportu",
     forbiddenBody:
       "Tento člověk není ve skupině, jejíž report vidíte, nebo jeho účet už neexistuje.",
