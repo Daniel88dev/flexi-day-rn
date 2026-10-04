@@ -84,3 +84,34 @@ export function monthlyTargetFor(slots: MonthSlot[], quota: number): number {
   if (yearsInWindow(slots).length > 1) return 0;
   return quota / slots.length;
 }
+
+export type GroupAllowance = {
+  carriedOverDays: number;
+  vacationDays: number;
+  homeOfficeDays: number;
+  /** Null where the group does not meter sick days. */
+  sickDays: number | null;
+};
+
+/**
+ * One person's allowance in one group from the summary, not the stored quota rows: a person with
+ * no row is allowed the group defaults, and only the summary applies them.
+ */
+export function groupAllowance(
+  summary: ReportSummaryRow[],
+  userId: string,
+  groupId: string
+): GroupAllowance {
+  const line = (type: CalendarRecordType) =>
+    summary.find(
+      (row) => row.userId === userId && row.groupId === groupId && row.vacationType === type
+    );
+  const vacation = line("VACATION");
+  const sickDay = line("SICK_DAY");
+  return {
+    carriedOverDays: vacation?.carriedOverDays ?? 0,
+    vacationDays: vacation?.yearQuota ?? 0,
+    homeOfficeDays: line("HOME_OFFICE")?.yearQuota ?? 0,
+    sickDays: sickDay ? sickDay.yearQuota : null,
+  };
+}

@@ -1,7 +1,10 @@
+import { crossMember2026, erinOnDefaults } from "@/test-support/report";
+
 import type { ReportSummaryRow } from "../types";
 import type { DatedUsage } from "../window";
 import {
   buildTeamMonthlySeries,
+  groupAllowance,
   monthlySeriesFor,
   monthlyTargetFor,
   seriesTotal,
@@ -159,5 +162,48 @@ describe("monthlyTargetFor", () => {
   it("returns zero without an allowance or a window", () => {
     expect(monthlyTargetFor(calendarMonths(2026), 0)).toBe(0);
     expect(monthlyTargetFor([], 24)).toBe(0);
+  });
+});
+
+describe("groupAllowance", () => {
+  it("returns the group defaults from the summary for a person with no quota row", () => {
+    expect(erinOnDefaults.quotas).toHaveLength(0);
+
+    expect(groupAllowance(erinOnDefaults.summary, "u-erin", "g-support")).toEqual({
+      carriedOverDays: 0,
+      vacationDays: 25,
+      homeOfficeDays: 10,
+      sickDays: null,
+    });
+  });
+
+  it("returns the sick days where the summary meters them", () => {
+    expect(groupAllowance(crossMember2026.summary, "u-bob", "g-team")).toEqual({
+      carriedOverDays: 0,
+      vacationDays: 22,
+      homeOfficeDays: 0,
+      sickDays: 5,
+    });
+  });
+
+  it("returns the summary's figures over a quota row that says otherwise", () => {
+    const rows = [summary({ yearQuota: 28, carriedOverDays: 3 })];
+
+    expect(groupAllowance(rows, "u-alice", "g-team")).toMatchObject({
+      carriedOverDays: 3,
+      vacationDays: 28,
+    });
+  });
+
+  it("returns each group's own figures and zeros for a group with no line", () => {
+    const rows = [summary({ yearQuota: 20 }), summary({ groupId: "g-support", yearQuota: 5 })];
+
+    expect(groupAllowance(rows, "u-alice", "g-support").vacationDays).toBe(5);
+    expect(groupAllowance(rows, "u-bob", "g-team")).toEqual({
+      carriedOverDays: 0,
+      vacationDays: 0,
+      homeOfficeDays: 0,
+      sickDays: null,
+    });
   });
 });

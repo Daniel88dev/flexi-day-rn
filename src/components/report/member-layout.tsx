@@ -5,6 +5,7 @@ import type { ReportWindow } from "@/lib/query";
 import { activeRecordTypes, type MemberReport, type ReportPeriod } from "@/lib/report";
 
 import { AllowanceCard } from "./allowance-card";
+import { MemberBookings, MemberChanges, MemberQuotas } from "./member-sections";
 import { ReportAvatar } from "./report-avatar";
 import { PeriodChip } from "./report-filters";
 import { IncompleteNote } from "./report-states";
@@ -15,8 +16,9 @@ export type MemberWindow = Pick<
 >;
 
 /**
- * One person's report: who it is, the period, then a card per allowance with only the first one's
- * months drawn. The member screen and the self view differ only in the heading they pass.
+ * One person's report: who it is, the period, a card per allowance with only the first one's months
+ * drawn, then quotas, bookings and change history. The member screen and the self view differ only
+ * in the heading they pass.
  */
 export function MemberLayout({
   testID,
@@ -79,6 +81,9 @@ export function MemberLayout({
           initiallyOpen={index === 0}
         />
       ))}
+      <MemberQuotas report={report} />
+      <MemberBookings report={report} />
+      <MemberChanges report={report} />
     </ScrollView>
   );
 }

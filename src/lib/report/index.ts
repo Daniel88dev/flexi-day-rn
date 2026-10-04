@@ -1,3 +1,4 @@
+export { bookingsNewestFirst, keyedBookings, type KeyedBooking } from "./bookings";
 export { reportBranch, type ReportBranch } from "./branch";
 export { CHART_FALLBACK_COLORS, assignMemberColors } from "./colors";
 export { formatDays } from "./format";
@@ -34,10 +35,12 @@ export {
 } from "./remaining";
 export {
   buildTeamMonthlySeries,
+  groupAllowance,
   monthlySeriesFor,
   monthlyTargetFor,
   seriesTotal,
   totalQuotaFor,
+  type GroupAllowance,
   type MonthPoint,
   type TeamMonthRow,
 } from "./series";

@@ -6,7 +6,7 @@ import { useReportScope, useReportWindow, useRereadReportOnFocus } from "@/lib/q
 import { assignMemberColors, type ReportPeriod } from "@/lib/report";
 
 import { MemberLayout } from "./member-layout";
-import { ReportSkeleton } from "./report-states";
+import { ReportForbidden, ReportSkeleton } from "./report-states";
 
 function MemberBody({ userId, initialPeriod }: { userId: string; initialPeriod: ReportPeriod }) {
   const [period, setPeriod] = useState(initialPeriod);
@@ -17,6 +17,7 @@ function MemberBody({ userId, initialPeriod }: { userId: string; initialPeriod: 
   const colors = useMemo(() => assignMemberColors(scope.data?.members ?? []), [scope.data]);
 
   const report = window.data;
+  if (window.forbidden) return <ReportForbidden />;
   if (!report) return <ReportSkeleton />;
   return (
     <MemberLayout

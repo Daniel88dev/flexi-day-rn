@@ -12,6 +12,7 @@ import {
   crossMember2025,
   crossMember2026,
   crossScope,
+  erinOnDefaults,
   memberReport,
   ownerScope,
   scopeGroup,
@@ -392,8 +393,153 @@ describe("Member report route", () => {
     await waitFor(() => expect(screen.queryByTestId("report-incomplete")).toBeNull());
   });
 
+  it("shows each group's quotas from the summary, the group defaults without a quota row", async () => {
+    mockParams.userId = "u-erin";
+    mockParams.period = "2026";
+    answer({ scope: ownerScope, member: (year) => ({ ...erinOnDefaults, year }) });
+
+    await renderMember();
+    await screen.findByTestId("member-report");
+
+    expect(within(screen.getByTestId("member-quotas")).getByText("2026")).toBeOnTheScreen();
+    const group = within(screen.getByTestId("quota-group-g-support"));
+    expect(group.getByText("Dev Support")).toBeOnTheScreen();
+    expect(group.getByLabelText("Vacation days, 25")).toBeOnTheScreen();
+    expect(group.getByLabelText("Carried over from last year, 0")).toBeOnTheScreen();
+    expect(group.getByLabelText("Home office days, 10")).toBeOnTheScreen();
+    expect(group.queryByText("Sick days")).toBeNull();
+  });
+
+  it("shows the sick days where the group meters them, from the summary", async () => {
+    mockParams.period = "2026";
+
+    await renderMember();
+    await screen.findByTestId("member-report");
+
+    const group = within(screen.getByTestId("quota-group-g-team"));
+    expect(group.getByText("Dev Team")).toBeOnTheScreen();
+    expect(group.getByLabelText("Vacation days, 22")).toBeOnTheScreen();
+    expect(group.getByLabelText("Home office days, 0")).toBeOnTheScreen();
+    expect(group.getByLabelText("Sick days, 5")).toBeOnTheScreen();
+  });
+
+  it("shows four bookings latest first with status and note, then Show all and Show fewer", async () => {
+    mockParams.period = "2026";
+
+    await renderMember();
+    await screen.findByTestId("member-report");
+
+    const bookings = within(screen.getByTestId("member-bookings"));
+    expect(bookings.getByText("Bookings")).toBeOnTheScreen();
+    expect(bookings.getByText("5 in 2026")).toBeOnTheScreen();
+    const rows = () =>
+      bookings
+        .getAllByLabelText(/, (Approved|Pending|Rejected)$/)
+        .map((row) => row.props.accessibilityLabel as string);
+    expect(rows()).toEqual([
+      "1-30 Jul, Vacation, Summer, 22 days, Approved",
+      "20 Feb, Vacation, 0.5 days, Pending",
+      "10 Feb, Sick day, 1 day, Approved",
+      "2-3 Feb, Vacation, Ski trip, 1.5 days, Approved",
+    ]);
+    expect(bookings.getByText("Pending")).toBeOnTheScreen();
+    expect(bookings.getByText("Vacation, Ski trip")).toBeOnTheScreen();
+
+    const more = screen.getByTestId("member-bookings-more");
+    expect(more).toHaveProp("accessibilityLabel", "Show all 5");
+    expect(more).toHaveProp("accessibilityState", { expanded: false });
+    await fireEvent.press(more);
+
+    expect(rows()).toHaveLength(5);
+    expect(rows()[4]).toBe("19-23 Jan, Vacation, Release week, 5 days, Rejected");
+    expect(bookings.getByText("Rejected")).toBeOnTheScreen();
+    expect(screen.getByTestId("member-bookings-more")).toHaveProp(
+      "accessibilityLabel",
+      "Show fewer"
+    );
+
+    await fireEvent.press(screen.getByTestId("member-bookings-more"));
+
+    expect(rows()).toHaveLength(4);
+  });
+
+  it("shows three changes by a person, a deleted account and Flexi Day, then Show all", async () => {
+    mockParams.period = "2026";
+
+    await renderMember();
+    await screen.findByTestId("member-report");
+
+    const changes = within(screen.getByTestId("member-changes"));
+    expect(changes.getByText("Change history")).toBeOnTheScreen();
+    expect(changes.getByText("Vacation days changed from 20 to 22")).toBeOnTheScreen();
+    expect(changes.getByText("12 Jan 2026, by Olivia Owner")).toBeOnTheScreen();
+    expect(changes.getByText("Carried over days changed from 2 to 0")).toBeOnTheScreen();
+    expect(changes.getByText(/^\d+ \w{3} 202\d, by a deleted account$/)).toBeOnTheScreen();
+    expect(changes.getByText("2026 quotas created from 2025")).toBeOnTheScreen();
+    expect(changes.getByText(/^\d+ \w{3} 202\d, by Flexi Day$/)).toBeOnTheScreen();
+    expect(changes.queryByText("Sick days changed from 3 to 5")).toBeNull();
+
+    const more = screen.getByTestId("member-changes-more");
+    expect(more).toHaveProp("accessibilityLabel", "Show all 4");
+    await fireEvent.press(more);
+
+    expect(changes.getByText("Sick days changed from 3 to 5")).toBeOnTheScreen();
+    expect(screen.getByTestId("member-changes-more")).toHaveProp(
+      "accessibilityLabel",
+      "Show fewer"
+    );
+  });
+
+  it("says so when the person has no bookings and no changes", async () => {
+    mockParams.userId = "u-erin";
+    mockParams.period = "2026";
+    answer({ scope: ownerScope, member: (year) => memberReport({ year }) });
+
+    await renderMember();
+    await screen.findByTestId("member-report");
+
+    const bookings = within(screen.getByTestId("member-bookings"));
+    expect(bookings.getByText("Nothing booked in 2026.")).toBeOnTheScreen();
+    expect(bookings.queryByText(/in 2026$/)).toBeNull();
+    const changes = within(screen.getByTestId("member-changes"));
+    expect(changes.getByText("No changes to the allowance in 2026.")).toBeOnTheScreen();
+    expect(screen.queryByTestId("member-bookings-more")).toBeNull();
+    expect(screen.queryByTestId("member-changes-more")).toBeNull();
+  });
+
+  it("shows Not in your report when the person's read answers 403", async () => {
+    answer({ members: { 2025: { status: 403 }, 2026: { status: 403, body: { message: "No" } } } });
+
+    await renderMember();
+
+    expect(await screen.findByTestId("report-forbidden")).toBeOnTheScreen();
+    expect(screen.getByText("Not in your report")).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        "This person isn't in a group whose report you can see, or their account no longer exists."
+      )
+    ).toBeOnTheScreen();
+    expect(screen.queryByTestId("report-loading")).toBeNull();
+    expect(screen.queryByTestId("member-report")).toBeNull();
+    expect(screen.getByTestId("stack-back")).toHaveProp("accessibilityLabel", "Report");
+  });
+
+  it("shows Not in your report when the person's read answers 404", async () => {
+    mockParams.period = "2026";
+    answer({ members: { 2026: { status: 404, body: { message: "Member not found" } } } });
+
+    await renderMember();
+
+    expect(await screen.findByTestId("report-forbidden")).toBeOnTheScreen();
+    expect(screen.getByText("Not in your report")).toBeOnTheScreen();
+    expect(screen.queryByTestId("report-loading")).toBeNull();
+    expect(screen.queryByTestId("report-offline")).toBeNull();
+    expect(screen.queryByTestId("member-report")).toBeNull();
+  });
+
   it("shows no Edit quota anywhere while every group says the viewer can edit quotas", async () => {
     mockParams.userId = "u-erin";
+    mockParams.period = "2026";
     const editable = scopeGroup({
       groupId: "g-support",
       groupName: "Dev Support",
@@ -416,11 +562,16 @@ describe("Member report route", () => {
             },
           ],
           summary: [summaryRow({ userId: "u-erin", groupId: "g-support", yearQuota: 20 })],
+          bookings: crossMember2026.bookings,
+          changes: crossMember2026.changes,
         }),
     });
 
     await renderMember();
     await screen.findByTestId("member-report");
+    expect(screen.getByTestId("quota-group-g-support")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId("member-bookings-more"));
+    await fireEvent.press(screen.getByTestId("member-changes-more"));
 
     expect(screen.queryByText(/edit/i)).toBeNull();
     expect(screen.queryByLabelText(/edit/i)).toBeNull();

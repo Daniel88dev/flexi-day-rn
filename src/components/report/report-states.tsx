@@ -1,4 +1,9 @@
-import { ChartBarIcon, CloudSlashIcon, type Icon as PhosphorIcon } from "phosphor-react-native";
+import {
+  ChartBarIcon,
+  CloudSlashIcon,
+  LockSimpleIcon,
+  type Icon as PhosphorIcon,
+} from "phosphor-react-native";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
@@ -96,6 +101,20 @@ export function ReportEmpty() {
       tinted
       title={t.report.empty}
       body={t.report.emptyBody}
+    />
+  );
+}
+
+/** The person's report answered 403 or 404: they are outside every group the viewer may read. */
+export function ReportForbidden() {
+  const { t } = useTranslation();
+  return (
+    <StateScreen
+      testID="report-forbidden"
+      icon={LockSimpleIcon}
+      tinted={false}
+      title={t.report.forbidden}
+      body={t.report.forbiddenBody}
     />
   );
 }

@@ -175,6 +175,24 @@ export function memberReport(overrides: Partial<MemberReport> = {}): MemberRepor
   };
 }
 
+/**
+ * Erin in Dev Support with no quota row of her own: the summary carries the group defaults the
+ * backend applies, and the group meters no sick days.
+ */
+export const erinOnDefaults = memberReport({
+  quotas: [],
+  summary: [
+    summaryRow({ userId: ERIN.id, groupId: SUPPORT.groupId, yearQuota: 25 }),
+    summaryRow({
+      userId: ERIN.id,
+      groupId: SUPPORT.groupId,
+      vacationType: "HOME_OFFICE",
+      yearQuota: 10,
+      remaining: 10,
+    }),
+  ],
+});
+
 /** Today for the cross-year fixtures: "Last 12 months" runs from Mar 2025 to Feb 2026. */
 export const CROSS_YEAR_TODAY = new Date(2026, 1, 16, 10);
 
@@ -341,7 +359,10 @@ function change(overrides: Partial<MemberChange>): MemberChange {
 
 const OWNER_ACTOR = { id: "u-owner", name: "Olivia Owner", initials: "OO", avatarColor: "#2a78d6" };
 
-/** Bookings in every status; changes by a person, by a deleted account and by the rollover. */
+/**
+ * Five bookings in every status, out of date order; four changes, newest first as the server sends
+ * them, by a person, by a deleted account, by the rollover and by a person again.
+ */
 export const crossMember2026: MemberReport = {
   year: 2026,
   member: { id: BOB.id, name: BOB.name, initials: BOB.initials, avatarColor: BOB.avatarColor },
@@ -370,6 +391,7 @@ export const crossMember2026: MemberReport = {
       note: "Release week",
     }),
     booking({ from: "2026-07-01", to: "2026-07-30", days: 22, month: 7, note: "Summer" }),
+    booking({ vacationType: "SICK_DAY", from: "2026-02-10", to: "2026-02-10", days: 1 }),
   ],
   changes: [
     change({ id: "c-person", actor: OWNER_ACTOR, createdAt: "2026-01-12T09:30:00.000Z" }),
@@ -383,6 +405,12 @@ export const crossMember2026: MemberReport = {
       id: "c-rollover",
       changeDetail: "2026 quotas created from 2025",
       createdAt: "2026-01-01T00:05:00.000Z",
+    }),
+    change({
+      id: "c-first",
+      actor: OWNER_ACTOR,
+      changeDetail: "Sick days changed from 3 to 5",
+      createdAt: "2026-01-01T00:00:00.000Z",
     }),
   ],
 };
