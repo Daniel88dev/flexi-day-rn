@@ -43,6 +43,8 @@ export type SyncEnvelope = {
   cursor: string;
   hasMore: boolean;
   reset: boolean;
+  /** Whether this page starts a loop; absent from a backend that predates the field. */
+  first?: boolean;
   organizations: SyncOrganizationRow[];
   users: SyncUserRow[];
   groups: SyncGroupRow[];

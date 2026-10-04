@@ -56,6 +56,15 @@ function rowCount(table: SyncTableName): number {
   return store.getDatabase().select({ rows: count() }).from(schema[table]).all()[0].rows;
 }
 
+function vacationIds(): string[] {
+  return store
+    .getDatabase()
+    .select({ id: schema.vacations.id })
+    .from(schema.vacations)
+    .all()
+    .map((row) => row.id);
+}
+
 function seed(page: Parameters<typeof applyPage>[1], generation: number, cursor: string | null) {
   store.write((transaction) => {
     applyPage(transaction, page, generation);
@@ -406,6 +415,85 @@ describe("pull", () => {
     expect(sync.cursors).toEqual(["old", "page-1"]);
     expect(storedSyncState()).toMatchObject({ cursor: "page-2", generation: 2 });
     expect(rowCount("vacations")).toBe(1);
+  });
+
+  it("stays in a snapshot loop whose later pages answer first: false", async () => {
+    const { sync, controller } = pullWith([
+      reply.page(syncPage({ reset: true, first: true, hasMore: true, cursor: "page-1" })),
+      reply.page(syncPage({ reset: true, first: false, hasMore: true, cursor: "page-2" })),
+      reply.page(syncPage({ reset: true, first: false, hasMore: false, cursor: "page-3" })),
+    ]);
+
+    await controller.pull("foreground");
+
+    expect(sync.cursors).toEqual([null, "page-1", "page-2"]);
+    expect(storedSyncState()).toMatchObject({ cursor: "page-3", generation: 1 });
+  });
+
+  it("restarts a snapshot loop answered with a fresh first page mid-loop and sweeps", async () => {
+    seed(syncPage(), 1, null);
+    const generations: (number | undefined)[] = [];
+    const sync = createFakeSync(
+      [
+        reply.page(
+          syncPage({
+            reset: true,
+            first: true,
+            hasMore: true,
+            cursor: "page-1",
+            vacations: [vacationRow({ id: "abandoned" })],
+          })
+        ),
+        reply.page(
+          syncPage({
+            reset: true,
+            first: true,
+            hasMore: true,
+            cursor: "fresh-1",
+            vacations: [vacationRow({ id: "dropped" })],
+          })
+        ),
+        reply.page(
+          syncPage({
+            reset: true,
+            first: true,
+            hasMore: true,
+            cursor: "page-1",
+            vacations: [vacationRow()],
+          })
+        ),
+        reply.page(syncPage({ reset: true, first: false, hasMore: false, cursor: "page-2" })),
+      ],
+      { onRequest: () => generations.push(storedSyncState()?.generation) }
+    );
+
+    await expect(controllerFor(sync).pull("foreground")).resolves.toEqual({ ok: true });
+
+    expect(sync.cursors).toEqual([null, "page-1", null, "page-1"]);
+    expect(generations).toEqual([1, 2, 2, 3]);
+    expect(storedSyncState()).toMatchObject({ cursor: "page-2", lastPulledAt: NOW, generation: 3 });
+    expect(vacationIds()).toEqual([vacationRow().id]);
+  });
+
+  it("fails the pull and keeps the cursor when a snapshot keeps answering a fresh first page", async () => {
+    seed(syncPage(), 1, null);
+    clock.advance(60_000);
+    const snapshotThenFresh = () => [
+      reply.page(syncPage({ reset: true, first: true, hasMore: true, cursor: "page-1" })),
+      reply.page(syncPage({ reset: true, first: true, hasMore: true, cursor: "fresh-1" })),
+    ];
+    const { sync, controller } = pullWith([
+      ...snapshotThenFresh(),
+      ...snapshotThenFresh(),
+      ...snapshotThenFresh(),
+      reply.page(syncPage({ reset: true, first: false, hasMore: false, cursor: "page-2" })),
+    ]);
+
+    await expect(controller.pull("foreground")).resolves.toEqual({ ok: false, message: null });
+
+    expect(sync.cursors).toEqual([null, "page-1", null, "page-1", null, "page-1"]);
+    expect(storedSyncState()).toMatchObject({ cursor: null, lastPulledAt: NOW, generation: 4 });
+    expect(controller.status().lastError).toMatch(/first page/i);
   });
 
   it("runs exactly one more loop for the triggers that arrive during one", async () => {
