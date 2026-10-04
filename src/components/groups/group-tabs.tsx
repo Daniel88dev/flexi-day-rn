@@ -11,6 +11,7 @@ import {
   quotaFigures,
   type QuotaDefaults,
 } from "@/lib/groups/members";
+import { clockTime } from "@/lib/format";
 import { tabReadState, type Read } from "@/lib/groups/read-state";
 import type { GroupMember, UserYearQuota } from "@/lib/query";
 
@@ -216,11 +217,7 @@ export function GroupTabs({
 
   const staleLine =
     state.kind === "ready" && state.staleSince !== null
-      ? t.groups.offlineUpdated(
-          new Intl.DateTimeFormat(t.common.locale, { hour: "2-digit", minute: "2-digit" }).format(
-            state.staleSince
-          )
-        )
+      ? t.groups.offlineUpdated(clockTime(t.common.locale, state.staleSince))
       : undefined;
 
   const rows = orderedMembers(members.data ?? [], managerUserId);

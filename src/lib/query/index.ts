@@ -20,10 +20,12 @@ export {
 export { useCreateRequest } from "./create-request";
 export { ApiError, classifyFailure, type FailureClass } from "./failure";
 export {
+  useAdministeredGroups,
   useGroupDetail,
   useGroupMembers,
   useHolidayCountries,
   useQuotas,
+  type AdministeredGroup,
   type GroupAccess,
   type GroupDetail,
   type GroupMember,

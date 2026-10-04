@@ -849,6 +849,16 @@ export const cs: Dictionary = {
     roles: { manager: "Manažer", admin: "Správce", approver: "Schvalovatel" },
     defaultsLine: (vacation: number, homeOffice: number) =>
       `${vacation} ${daysWord(vacation)} dovolené · ${homeOffice} home office`,
+    administered: {
+      heading: "Skupiny, které spravujete",
+      memberCount: (count: number) =>
+        `${count} ${count === 1 ? "člen" : count >= 2 && count <= 4 ? "členové" : "členů"}`,
+      footnote:
+        "Spravujete je prostřednictvím své organizace. Nejste jejich členem, takže v nich nemůžete brát ani schvalovat volno.",
+    },
+    orgAdmin: "Správce organizace",
+    orgAdminNotice: (organization: string) =>
+      `Tuto skupinu spravujete jako správce organizace ${organization}. Nejste jejím členem, takže si zde nemůžete brát ani schvalovat volno.`,
     empty: {
       title: "Zatím nejste v žádné skupině",
       body: "Připojte se pomocí kódu nebo odkazu z pozvánky od svého manažera. O volno můžete žádat, jakmile budete ve skupině.",

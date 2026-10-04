@@ -5,6 +5,7 @@ import { Text } from "react-native";
 
 import { ApiError } from "@/lib/query/failure";
 import {
+  useAdministeredGroups,
   useGroupDetail,
   useGroupMembers,
   useHolidayCountries,
@@ -12,7 +13,7 @@ import {
 } from "@/lib/query/groups";
 import { qk } from "@/lib/query/keys";
 import { queryClient } from "@/lib/query/runtime";
-import { groupDetail, groupMember, userYearQuota } from "@/test-support/groups";
+import { administeredGroup, groupDetail, groupMember, userYearQuota } from "@/test-support/groups";
 
 const mockFetch = jest.fn();
 
@@ -206,5 +207,53 @@ describe("useQuotas", () => {
     await renderHook(() => useQuotas(null, 2026), { wrapper });
 
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("useAdministeredGroups", () => {
+  const ADMINISTERED = [
+    administeredGroup(),
+    administeredGroup({
+      id: "group-3",
+      groupName: "Field Ops",
+      memberCount: 1,
+      viaOrgAdmin: false,
+    }),
+  ];
+
+  it("returns the groups the viewer administers without a membership from /api/group/administered", async () => {
+    mockFetch.mockResolvedValue(answer(200, ADMINISTERED));
+
+    const { result } = await renderHook(() => useAdministeredGroups(), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toEqual(ADMINISTERED));
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(requestedPath()).toMatch(/\/api\/group\/administered$/);
+    expect(mockFetch.mock.calls[0][1]?.method).toBeUndefined();
+    expect(
+      result.current.data?.map(({ memberCount, viaOrgAdmin }) => [memberCount, viaOrgAdmin])
+    ).toEqual([
+      [3, true],
+      [1, false],
+    ]);
+  });
+
+  it("returns the answer under the web's groups prefix", async () => {
+    mockFetch.mockResolvedValue(answer(200, ADMINISTERED));
+
+    await renderHook(() => useAdministeredGroups(), { wrapper });
+
+    await waitFor(() =>
+      expect(queryClient.getQueryData(["groups", "administered"])).toEqual(ADMINISTERED)
+    );
+    expect(queryClient.getQueriesData({ queryKey: ["groups"] })).toHaveLength(1);
+  });
+
+  it("returns an empty list for a viewer who administers nothing", async () => {
+    mockFetch.mockResolvedValue(answer(200, []));
+
+    const { result } = await renderHook(() => useAdministeredGroups(), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toEqual([]));
   });
 });

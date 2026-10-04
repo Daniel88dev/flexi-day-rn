@@ -6,6 +6,8 @@ export const qk = {
   vacation: (id: string) => ["vacation", id] as const,
   /** Every request detail: the prefix the web invalidates after a decision. */
   vacationDetails: () => ["vacation"] as const,
+  /** Phone-only, under the web's `groups` prefix so invalidating that covers it. */
+  administeredGroups: () => ["groups", "administered"] as const,
   group: (groupId: string) => ["group", groupId] as const,
   groupUsers: (groupId: string) => ["group-users", groupId] as const,
   quotas: (groupId: string, year: number, userId?: string) =>

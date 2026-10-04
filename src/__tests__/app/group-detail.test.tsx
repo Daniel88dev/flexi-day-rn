@@ -433,6 +433,146 @@ describe("GroupDetail access", () => {
   });
 });
 
+// Dev Support as the server answers it to an org admin who is not a member.
+const ADMINISTERED_ACCESS = { canView: true, canAdmin: true, viaOrgAdmin: true, isMember: false };
+const administered = (patch: Partial<GroupDetail> = {}) =>
+  serverGroup({
+    groupName: "Dev Support",
+    managerUserId: "dave",
+    access: ADMINISTERED_ACCESS,
+    ...patch,
+  });
+
+// Where a test ID sits in the rendered tree, to compare the order of two blocks.
+type Rendered = ReturnType<typeof screen.toJSON> | string;
+function testIDsInOrder(node: Rendered): string[] {
+  if (node === null || typeof node === "string") return [];
+  const own = typeof node.props.testID === "string" ? [node.props.testID as string] : [];
+  return [...own, ...(node.children ?? []).flatMap(testIDsInOrder)];
+}
+const positionOf = (testID: string) => testIDsInOrder(screen.toJSON()).indexOf(testID);
+
+describe("GroupDetail administered", () => {
+  beforeEach(() => {
+    myGroups.mockReturnValue([]);
+    replies.group = () => answer(200, administered());
+  });
+
+  it("takes the header from the server with a neutral monogram, the organization and the Org admin badge", async () => {
+    await renderDetail();
+
+    expect(await screen.findByTestId("group-header")).toBeOnTheScreen();
+    expect(header().getByText("Dev Support")).toBeOnTheScreen();
+    expect(header().getByText("Olivia Owner")).toBeOnTheScreen();
+    expect(header().getByTestId("org-admin-badge")).toHaveTextContent(en.groups.orgAdmin);
+    expect(header().getByTestId("monogram-neutral", { includeHiddenElements: true })).toBeTruthy();
+    expect(header().queryByTestId("monogram", { includeHiddenElements: true })).toBeNull();
+  });
+
+  it("shows the org-admin notice between the header and the facts when the server says org admin and not a member", async () => {
+    await renderDetail();
+
+    expect(await screen.findByTestId("group-org-admin-notice")).toHaveTextContent(
+      en.groups.orgAdminNotice("Olivia Owner")
+    );
+    expect(positionOf("group-header")).toBeLessThan(positionOf("group-org-admin-notice"));
+    expect(positionOf("group-org-admin-notice")).toBeLessThan(positionOf("group-facts"));
+  });
+
+  it("shows Members and Quotas when the server grants canView, and asks for both", async () => {
+    await renderDetail();
+
+    expect(await membersShown()).toBeOnTheScreen();
+    expect(screen.getByTestId("group-tab-quotas")).toBeOnTheScreen();
+    await waitFor(() => expect(requests("quotas")).toBe(1));
+    expect(requests("members")).toBe(1);
+  });
+
+  it("shows no notice and badges Manager for a group the viewer manages without belonging to it", async () => {
+    replies.group = () =>
+      answer(
+        200,
+        administered({
+          access: { canView: true, canAdmin: true, viaOrgAdmin: false, isMember: false },
+        })
+      );
+
+    await renderDetail();
+
+    expect(await membersShown()).toBeOnTheScreen();
+    expect(header().getByTestId("role-badge-manager")).toHaveTextContent("Manager");
+    expect(header().queryByTestId("org-admin-badge")).toBeNull();
+    expect(screen.queryByTestId("group-org-admin-notice")).toBeNull();
+  });
+
+  it("shows no notice in your own group, though the server says the organization is yours", async () => {
+    myGroups.mockReturnValue([group({ role: null })]);
+    replies.group = () =>
+      answer(
+        200,
+        serverGroup({
+          access: { canView: true, canAdmin: true, viaOrgAdmin: true, isMember: true },
+        })
+      );
+
+    await renderDetail();
+
+    expect(await membersShown()).toBeOnTheScreen();
+    expect(screen.queryByTestId("group-org-admin-notice")).toBeNull();
+    expect(header().queryByTestId("org-admin-badge")).toBeNull();
+    expect(header().getByTestId("monogram", { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  it("shows Members and Quotas to an org admin who is a plain member without view access, because the server grants canView", async () => {
+    myGroups.mockReturnValue([group({ role: null })]);
+    replies.group = () =>
+      answer(
+        200,
+        serverGroup({
+          access: { canView: true, canAdmin: true, viaOrgAdmin: true, isMember: true },
+        })
+      );
+
+    await renderDetail();
+
+    expect(await membersShown()).toBeOnTheScreen();
+    expect(screen.queryByTestId("group-no-view-access")).toBeNull();
+    expect(requests("members")).toBe(1);
+  });
+
+  it("offers Retry as the whole screen when nothing loaded and the read failed, then shows the notice", async () => {
+    replies.group = unreachable;
+
+    await renderDetail();
+
+    expect(await screen.findByTestId("group-detail-failed")).toHaveTextContent(
+      new RegExp(en.groups.detailFailed)
+    );
+    expect(screen.queryByTestId("group-header")).toBeNull();
+    expect(screen.queryByTestId("group-facts")).toBeNull();
+    expect(screen.queryByTestId("group-tabs-failed")).toBeNull();
+    replies.group = () => answer(200, administered());
+    await fireEvent.press(screen.getByTestId("group-detail-retry"));
+
+    expect(await screen.findByTestId("group-org-admin-notice")).toBeOnTheScreen();
+    expect(await membersShown()).toBeOnTheScreen();
+  });
+
+  it("keeps the notice and header after a failed refresh", async () => {
+    await renderDetail();
+    await membersShown();
+    replies.group = unreachable;
+    replies.members = unreachable;
+    replies.quotas = unreachable;
+
+    await pullToRefresh();
+
+    expect(screen.getByTestId("group-org-admin-notice")).toBeOnTheScreen();
+    expect(header().getByTestId("org-admin-badge")).toBeOnTheScreen();
+    expect(screen.getByTestId("group-tabs-stale")).toHaveTextContent("Offline, updated 09:41");
+  });
+});
+
 describe("GroupDetail members", () => {
   it("lists the people with the manager first, then by name", async () => {
     await renderDetail();

@@ -853,6 +853,15 @@ export const en = {
     roles: { manager: "Manager", admin: "Admin", approver: "Approver" },
     defaultsLine: (vacation: number, homeOffice: number) =>
       `${vacation} vacation ${vacation === 1 ? "day" : "days"} · ${homeOffice} home office`,
+    administered: {
+      heading: "Groups you administer",
+      memberCount: (count: number) => `${count} ${count === 1 ? "member" : "members"}`,
+      footnote:
+        "You manage these through your organization. You aren't a member, so you can't book or approve leave in them.",
+    },
+    orgAdmin: "Org admin",
+    orgAdminNotice: (organization: string) =>
+      `You're managing this group as an administrator of ${organization}. You're not a member of it, so you can't book or approve leave here.`,
     empty: {
       title: "You're not in a group yet",
       body: "Join with the invite code or link your manager sent you. Booking leave starts once you're in a group.",

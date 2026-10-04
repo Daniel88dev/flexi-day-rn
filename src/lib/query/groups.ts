@@ -34,6 +34,16 @@ export type GroupDetail = {
   uploadsAvailable?: boolean;
 };
 
+/** A `GET /api/group/administered` item, trimmed to what the phone shows. */
+export type AdministeredGroup = {
+  id: string;
+  groupName: string;
+  organization: GroupOrganization | null;
+  memberCount: number;
+  /** False when the viewer is the group's manager rather than an admin of its organization. */
+  viaOrgAdmin: boolean;
+};
+
 export type GroupMember = {
   id: string;
   groupId: string;
@@ -66,6 +76,14 @@ export function useHolidayCountries({ enabled = true }: { enabled?: boolean } = 
     // The dataset ships with the backend, so it never changes while the app runs.
     staleTime: Infinity,
     enabled,
+  });
+}
+
+/** The groups the viewer administers without being a member; the backend alone decides which (ADR 0003). */
+export function useAdministeredGroups() {
+  return useQuery({
+    queryKey: qk.administeredGroups(),
+    queryFn: ({ signal }) => apiRequest<AdministeredGroup[]>("/api/group/administered", { signal }),
   });
 }
 

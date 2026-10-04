@@ -72,3 +72,29 @@ describe("groups.offlineUpdated", () => {
     expect(cs.groups.offlineUpdated("09:41")).toBe("Offline, aktualizováno 09:41");
   });
 });
+
+describe("groups.administered.memberCount", () => {
+  it("returns one member in the singular", () => {
+    expect(en.groups.administered.memberCount(1)).toBe("1 member");
+    expect(en.groups.administered.memberCount(3)).toBe("3 members");
+  });
+
+  it("returns the three Czech plural forms", () => {
+    expect(cs.groups.administered.memberCount(1)).toBe("1 člen");
+    expect(cs.groups.administered.memberCount(2)).toBe("2 členové");
+    expect(cs.groups.administered.memberCount(4)).toBe("4 členové");
+    expect(cs.groups.administered.memberCount(5)).toBe("5 členů");
+    expect(cs.groups.administered.memberCount(0)).toBe("0 členů");
+  });
+});
+
+describe("groups.orgAdminNotice", () => {
+  it("returns the web's wording with the organization's name", () => {
+    expect(en.groups.orgAdminNotice("Olivia Owner")).toBe(
+      "You're managing this group as an administrator of Olivia Owner. You're not a member of it, so you can't book or approve leave here."
+    );
+    expect(cs.groups.orgAdminNotice("Olivia Owner")).toBe(
+      "Tuto skupinu spravujete jako správce organizace Olivia Owner. Nejste jejím členem, takže si zde nemůžete brát ani schvalovat volno."
+    );
+  });
+});

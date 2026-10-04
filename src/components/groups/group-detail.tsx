@@ -5,8 +5,9 @@ import { StackScreen } from "@/components/shell/stack-screen";
 import { useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
-import { type Read } from "@/lib/groups/read-state";
-import { useMyGroups, type GroupRole, type MyGroup } from "@/lib/local-store";
+import { serverBadge, showsOrgAdminNotice } from "@/lib/groups/access";
+import { snapshot } from "@/lib/groups/read-state";
+import { useMyGroups, type MyGroup } from "@/lib/local-store";
 import {
   ApiError,
   useGroupDetail,
@@ -17,9 +18,7 @@ import {
 
 import { FactsCard } from "./facts-card";
 import { GroupTabs, TabsFailed, TabsSkeleton } from "./group-tabs";
-import { Monogram, RetryNotice, RoleBadge } from "./parts";
-
-type Header = { name: string; organizationName: string | null; role: GroupRole | null };
+import { GroupBadge, Monogram, OrgAdminNotice, RetryNotice, type GroupIdentity } from "./parts";
 
 type Facts = Pick<
   MyGroup,
@@ -40,10 +39,10 @@ function serverFacts(group: ServerGroup): Facts {
   };
 }
 
-function GroupHeader({ header }: { header: Header }) {
+function GroupHeader({ header }: { header: GroupIdentity }) {
   return (
     <View testID="group-header" className="gap-3 px-1 pt-1">
-      <Monogram name={header.name} size={56} />
+      <Monogram name={header.name} size={56} neutral={header.neutral} />
       <View className="gap-1.5">
         <Text
           accessibilityRole="header"
@@ -56,7 +55,7 @@ function GroupHeader({ header }: { header: Header }) {
           {header.organizationName ? (
             <Text className="text-[15px] text-muted-foreground">{header.organizationName}</Text>
           ) : null}
-          <RoleBadge role={header.role} />
+          <GroupBadge badge={header.badge} />
         </View>
       </View>
     </View>
@@ -83,14 +82,6 @@ function Message({ testID, children }: { testID: string; children: string }) {
 
 const statusOf = (error: unknown) => (error instanceof ApiError ? error.status : null);
 
-// A plain copy read during this render: TanStack re-renders only for the fields a render touched,
-// and the tabs touch the quotas read only while its tab shows.
-const snapshot = <T,>({ data, isError, dataUpdatedAt }: Read<T>): Read<T> => ({
-  data,
-  isError,
-  dataUpdatedAt,
-});
-
 /**
  * Your own group's header and facts come from the Local store, so they show offline; any other
  * group's come from the server. Members and Quotas are asked for only once the group detail read
@@ -111,11 +102,18 @@ export function GroupDetail({ groupId }: { groupId: string }) {
   const [refreshing, setRefreshing] = useState(false);
 
   const server = gone || refused ? undefined : detail.data;
-  const header: Header | null = own
-    ? own
+  const header: GroupIdentity | null = own
+    ? { name: own.name, organizationName: own.organizationName, badge: own.role, neutral: false }
     : server
-      ? { name: server.groupName, organizationName: server.organization?.name ?? null, role: null }
+      ? {
+          name: server.groupName,
+          organizationName: server.organization?.name ?? null,
+          badge: serverBadge(server.access),
+          neutral: true,
+        }
       : null;
+  const noticeOrganization =
+    server && showsOrgAdminNotice(server.access) ? (server.organization?.name ?? null) : null;
   const facts: Facts | null = own ?? (server ? serverFacts(server) : null);
 
   const refresh = async () => {
@@ -173,6 +171,7 @@ export function GroupDetail({ groupId }: { groupId: string }) {
     body = (
       <>
         <GroupHeader header={header} />
+        {noticeOrganization ? <OrgAdminNotice organization={noticeOrganization} /> : null}
         <FactsCard facts={facts} />
         {tabs}
       </>

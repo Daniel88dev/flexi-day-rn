@@ -31,6 +31,10 @@ describe("qk", () => {
     expect(qk.bankHolidayCountries()).toEqual(["bank-holiday-countries"]);
   });
 
+  it("returns the administered groups under the web's groups prefix", () => {
+    expect(qk.administeredGroups()).toEqual(["groups", "administered"]);
+  });
+
   it("returns the web's key for a group's quotas, every member's unless one is named", () => {
     expect(qk.quotas("group-1", 2026)).toEqual(["quotas", "group-1", 2026, "all"]);
     expect(qk.quotas("group-1", 2026, "user-2")).toEqual(["quotas", "group-1", 2026, "user-2"]);

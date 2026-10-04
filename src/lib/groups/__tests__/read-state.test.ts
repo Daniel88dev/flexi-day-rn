@@ -1,4 +1,4 @@
-import { tabReadState } from "@/lib/groups/read-state";
+import { shownList, snapshot, tabReadState } from "@/lib/groups/read-state";
 
 const loaded = (dataUpdatedAt: number, isError = false) => ({
   data: [],
@@ -26,5 +26,41 @@ describe("tabReadState", () => {
       kind: "ready",
       staleSince: 1500,
     });
+  });
+});
+
+describe("shownList", () => {
+  const rows = (dataUpdatedAt: number, isError = false) => ({
+    data: ["a", "b"],
+    isError,
+    dataUpdatedAt,
+  });
+
+  it("returns nothing before the read first answers", () => {
+    expect(shownList(pending)).toBeNull();
+  });
+
+  it("returns nothing when the first read failed", () => {
+    expect(shownList(neverLoaded)).toBeNull();
+  });
+
+  it("returns nothing for an empty answer, failed refetch or not", () => {
+    expect(shownList(loaded(1000))).toBeNull();
+    expect(shownList(loaded(1000, true))).toBeNull();
+  });
+
+  it("returns the rows with nothing stale while the last read answered", () => {
+    expect(shownList(rows(1000))).toEqual({ items: ["a", "b"], staleSince: null });
+  });
+
+  it("returns the kept rows stale since their answer after a failed refetch", () => {
+    expect(shownList(rows(1000, true))).toEqual({ items: ["a", "b"], staleSince: 1000 });
+  });
+});
+
+describe("snapshot", () => {
+  it("returns only the data, the error flag and when the data was read", () => {
+    const read = { data: [1], isError: true, dataUpdatedAt: 1000, refetch: () => undefined };
+    expect(snapshot(read)).toEqual({ data: [1], isError: true, dataUpdatedAt: 1000 });
   });
 });

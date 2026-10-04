@@ -1,25 +1,37 @@
+import { ShieldCheckIcon, type Icon as PhosphorIcon } from "phosphor-react-native";
 import { View } from "react-native";
 
+import { Icon } from "@/components/ui/icon";
 import { Notice } from "@/components/ui/notice";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
+import { badgeLabel, type StandingBadge } from "@/lib/groups/access";
 import { weekdayPills, workingDayRuns } from "@/lib/groups/facts";
 import type { GroupRole } from "@/lib/local-store";
 import { initials } from "@/lib/viewer/viewer";
 
-/** A group's initials on a violet tile; VoiceOver reads the name beside it instead. */
-export function Monogram({ name, size = 44 }: { name: string; size?: number }) {
+/** A group's initials; VoiceOver reads the name beside it instead. */
+export function Monogram({
+  name,
+  size = 44,
+  neutral = false,
+}: {
+  name: string;
+  size?: number;
+  neutral?: boolean;
+}) {
   return (
     <View
+      testID={neutral ? "monogram-neutral" : "monogram"}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={{ width: size, height: size, borderRadius: 16 }}
-      className="items-center justify-center bg-accent"
+      className={cn("items-center justify-center", neutral ? "bg-muted" : "bg-accent")}
     >
       <Text
         style={{ fontSize: Math.round(size * 0.36), letterSpacing: -0.3 }}
-        className="font-display font-bold text-primary"
+        className={cn("font-display font-bold", neutral ? "text-muted-foreground" : "text-primary")}
       >
         {initials(name) || "?"}
       </Text>
@@ -28,23 +40,29 @@ export function Monogram({ name, size = 44 }: { name: string; size?: number }) {
 }
 
 const PILL_TONES = {
-  accent: { surface: "bg-accent", text: "text-primary" },
-  muted: { surface: "bg-muted", text: "text-muted-foreground" },
+  accent: { surface: "bg-accent", text: "text-primary", icon: "primary" },
+  muted: { surface: "bg-muted", text: "text-muted-foreground", icon: "muted" },
 } as const;
 
 export function Pill({
   label,
   tone = "accent",
+  icon,
   testID,
 }: {
   label: string;
   tone?: keyof typeof PILL_TONES;
+  icon?: PhosphorIcon;
   testID?: string;
 }) {
-  const { surface, text } = PILL_TONES[tone];
+  const tones = PILL_TONES[tone];
   return (
-    <View testID={testID} className={cn("rounded-full px-2.5 py-1", surface)}>
-      <Text className={cn("text-[12px] font-semibold", text)}>{label}</Text>
+    <View
+      testID={testID}
+      className={cn("flex-row items-center gap-1 rounded-full px-2.5 py-1", tones.surface)}
+    >
+      {icon ? <Icon icon={icon} tone={tones.icon} size={12} weight="bold" /> : null}
+      <Text className={cn("text-[12px] font-semibold", tones.text)}>{label}</Text>
     </View>
   );
 }
@@ -76,6 +94,43 @@ export function RoleBadge({ role }: { role: GroupRole | null }) {
   const { t } = useTranslation();
   if (role === null) return null;
   return <Pill testID={`role-badge-${role}`} label={t.groups.roles[role]} />;
+}
+
+export type GroupIdentity = {
+  name: string;
+  organizationName: string | null;
+  badge: StandingBadge | null;
+  neutral: boolean;
+};
+
+export function GroupBadge({ badge }: { badge: StandingBadge | null }) {
+  const { t } = useTranslation();
+  if (badge !== "orgAdmin") return <RoleBadge role={badge} />;
+  return (
+    <Pill
+      testID="org-admin-badge"
+      label={badgeLabel(t, badge)}
+      tone="muted"
+      icon={ShieldCheckIcon}
+    />
+  );
+}
+
+export function OrgAdminNotice({ organization }: { organization: string }) {
+  const { t } = useTranslation();
+  return (
+    <View
+      testID="group-org-admin-notice"
+      className="flex-row gap-3 rounded-[16px] bg-warm-soft px-4 py-3"
+    >
+      <View className="pt-0.5">
+        <Icon icon={ShieldCheckIcon} tone="warm" size={18} weight="bold" />
+      </View>
+      <Text className="flex-1 text-[14px] leading-5 text-foreground">
+        {t.groups.orgAdminNotice(organization)}
+      </Text>
+    </View>
+  );
 }
 
 /** Monday to Sunday, read to VoiceOver as one phrase rather than seven letters. */

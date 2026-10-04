@@ -1,4 +1,10 @@
-import type { GroupAccess, GroupDetail, GroupMember, UserYearQuota } from "@/lib/query/groups";
+import type {
+  AdministeredGroup,
+  GroupAccess,
+  GroupDetail,
+  GroupMember,
+  UserYearQuota,
+} from "@/lib/query/groups";
 
 export const GROUP_ACCESS: GroupAccess = {
   canView: true,
@@ -55,6 +61,18 @@ export function userYearQuota(userId: string, patch: Partial<UserYearQuota> = {}
     homeOfficeDays: 10,
     sickDays: 5,
     carriedOverDays: 3,
+    ...patch,
+  };
+}
+
+/** Dev Support as `GET /api/group/administered` lists it to the org admin who is not a member. */
+export function administeredGroup(patch: Partial<AdministeredGroup> = {}): AdministeredGroup {
+  return {
+    id: "group-2",
+    groupName: "Dev Support",
+    organization: { name: "Olivia Owner", sickDayBenefitActive: false },
+    memberCount: 3,
+    viaOrgAdmin: true,
     ...patch,
   };
 }

@@ -196,7 +196,10 @@ throws `ApiError` with the server's message.
 
 - The cache lives in memory only and is never persisted. The signed-out wipe clears it.
 - Query keys are the web's (`qk` in `keys.ts`, copied from `flexi-day/lib/api/queries.ts`), so a
-  prefix invalidates the same reads on both clients.
+  prefix invalidates the same reads on both clients. The administered-groups read,
+  `["groups", "administered"]`, has no web counterpart, because the web reaches those groups
+  through its Organization page. It sits under the web's `groups` prefix so that invalidating
+  `groups` covers it too.
 - Nothing polls. Every foreground reads again however fresh the answer, through
   `refetchOnWindowFocus: "always"`, and so do screen focus and the phone's own writes. The one
   exception is `useVacationDetail`: while a file on the open screen is still `UPLOADING`, it reads
