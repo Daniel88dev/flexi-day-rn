@@ -105,7 +105,7 @@ async function renderMember(route: RootRoute = "signed-in") {
 }
 
 async function layOut(testID: string) {
-  await fireEvent(screen.getByTestId(testID), "layout", {
+  await fireEvent(await screen.findByTestId(testID), "layout", {
     nativeEvent: { layout: { width: 320, height: 150, x: 0, y: 0 } },
   });
 }
