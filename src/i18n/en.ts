@@ -951,6 +951,17 @@ export const en = {
       alreadyMember: (group: string) => `You're already in ${group}.`,
       openGroup: "Open the group",
       join: (group: string) => `Join ${group}`,
+      signInToJoin: "Sign in to join",
+      createAccount: "Create your account",
+      wrongAccount: (invited: string, current: string) =>
+        `This invite is for ${invited}. You're signed in as ${current}.`,
+      signOutAndContinue: "Sign out and continue",
+      confirmSignOut: {
+        title: "Sign out and continue?",
+        body: "Signing out clears what this phone has stored for your account. You'll sign in with the invited address next.",
+        cancel: "Cancel",
+        signOut: "Sign out",
+      },
     },
     errors: {
       brokenLink: "That link is missing its invite. Open it from your email again.",

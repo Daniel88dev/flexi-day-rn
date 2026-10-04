@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "@/i18n/use-translation";
 
 import { authClient } from "./auth-client";
+import { heldInvite } from "./held-invite";
 import { useSetRootRoute } from "./root-route-context";
 import { clearSignedOutNotice } from "./signed-out-notice";
 
@@ -41,7 +42,7 @@ function twoFactorHref(methods: string[]): Href {
 export function useSignIn(signIn: SignInWithEmail = signInThroughAuthClient) {
   const { t } = useTranslation();
   const setRootRoute = useSetRootRoute();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => heldInvite()?.invitedEmail ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

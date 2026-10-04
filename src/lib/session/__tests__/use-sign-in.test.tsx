@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
+import { clearHeldInvite, holdInvite, takeHeldInvite } from "@/lib/session/held-invite";
 import { useRootRoute, RootRouteProvider } from "@/lib/session/root-route-context";
 import { showSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
 import { useSignIn, type SignInAnswer, type SignInWithEmail } from "@/lib/session/use-sign-in";
@@ -57,6 +58,27 @@ describe("useSignIn", () => {
     expect(signIn).toHaveBeenCalledWith({ email: "owner@dev.local", password: "a-password" });
     expect(replace).toHaveBeenCalledWith("/dashboard");
     expect(result.current.route).toBe("signed-in");
+  });
+
+  it("starts with the held invite's address and leaves the invite for the shell", async () => {
+    const invite = {
+      token: "dev-alice-support-00000000000000000",
+      invitedEmail: "alice@dev.local",
+    };
+    holdInvite(invite);
+    const signIn: SignInWithEmail = jest.fn().mockResolvedValue({ data: { token: "a-token" } });
+    const { result } = await signInWith(signIn);
+
+    expect(result.current.form.email).toBe("alice@dev.local");
+    await act(async () => result.current.form.setPassword("a-password"));
+    await act(async () => {
+      await result.current.form.submit();
+    });
+
+    expect(signIn).toHaveBeenCalledWith({ email: "alice@dev.local", password: "a-password" });
+    expect(replace).toHaveBeenCalledWith("/dashboard");
+    expect(takeHeldInvite()).toEqual(invite);
+    clearHeldInvite();
   });
 
   it("pushes the two-factor route with the offered methods as a comma list", async () => {

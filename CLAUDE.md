@@ -127,6 +127,13 @@ Deleting the account (`useAccountDeletion`) runs the wipe directly, not `signOut
 204 already ended the server session; welcome then says the account was deleted.
 Never clear a piece of the session on its own.
 
+The held invite (`src/lib/session/held-invite.ts`) carries an invite link across sign-in: its
+token and the invited address, in memory only, never in the Keychain, the session cache, the query
+cache or a log line. "Sign in to join", the web sign-up hand-off and "Sign out and continue" on
+the Join screen hold it, the sign-in form starts with its address, and the signed-out wipe leaves
+it alone. Once its store is open the shell takes the dev sign-in landing first and, failing that,
+the held invite, and pushes the Join screen with its token. A killed app forgets it.
+
 `src/app/_layout.tsx` waits for the Device id, reads the expo plugin's session cache
 (`src/lib/session/session-cache.ts`) and hands both to `rootRoute()`, which decides the launch
 once: a cached session lands in `(app)`, none lands on `(auth)`'s welcome. The answer then lives

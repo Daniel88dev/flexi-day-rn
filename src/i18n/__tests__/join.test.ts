@@ -30,10 +30,12 @@ describe("join", () => {
     expect(keys(cs.join.errors)).toEqual(keys(en.join.errors));
     expect(keys(cs.join.screen)).toEqual(keys(en.join.screen));
     expect(keys(cs.join.screen.dead)).toEqual(keys(en.join.screen.dead));
+    expect(keys(cs.join.screen.confirmSignOut)).toEqual(keys(en.join.screen.confirmSignOut));
     for (const line of [
       ...Object.values(cs.join.sheet),
       ...Object.values(cs.join.errors),
       ...Object.values(cs.join.screen.dead),
+      ...Object.values(cs.join.screen.confirmSignOut),
     ]) {
       expect(line).not.toBe("");
     }
@@ -72,5 +74,16 @@ describe("join.screen.join", () => {
     expect(cs.join.screen.join("Dev Support")).toBe("Připojit se ke skupině Dev Support");
     expect(en.join.screen.alreadyMember("Dev Support")).toBe("You're already in Dev Support.");
     expect(cs.join.screen.alreadyMember("Dev Support")).toBe("Do skupiny Dev Support už patříte.");
+  });
+});
+
+describe("join.screen.wrongAccount", () => {
+  it("returns who the invite is for and who is signed in", () => {
+    expect(en.join.screen.wrongAccount("a…@dev.local", "bob@dev.local")).toBe(
+      "This invite is for a…@dev.local. You're signed in as bob@dev.local."
+    );
+    expect(cs.join.screen.wrongAccount("a…@dev.local", "bob@dev.local")).toBe(
+      "Tato pozvánka je pro a…@dev.local. Jste přihlášeni jako bob@dev.local."
+    );
   });
 });

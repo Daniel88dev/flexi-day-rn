@@ -21,6 +21,12 @@ describe("Notice", () => {
     expect(screen.getByText("You're signed out.")).toBeTruthy();
   });
 
+  it("renders a warning in the warm tone", async () => {
+    await render(<Notice tone="warm" message="This invite is for a…@dev.local." />);
+
+    expect(screen.getByText("This invite is for a…@dev.local.")).toBeTruthy();
+  });
+
   it("renders no action unless given one", async () => {
     await render(<Notice tone="error" message="Couldn't reach the server." />);
 

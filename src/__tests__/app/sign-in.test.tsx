@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import SignInScreen from "@/app/(auth)/sign-in";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
+import { clearHeldInvite, heldInvite, holdInvite } from "@/lib/session/held-invite";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { openWebPage } from "@/lib/web";
 import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
@@ -30,6 +31,7 @@ beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();
+  clearHeldInvite();
   openPage.mockResolvedValue(undefined);
 });
 
@@ -66,6 +68,34 @@ describe("SignInScreen", () => {
     await fireEvent.press(screen.getByText(en.auth.signIn.createTeam));
 
     expect(openPage).toHaveBeenCalledWith("/sign-up/");
+  });
+
+  it("starts with an empty address when no invite is held", async () => {
+    await renderSignIn();
+
+    expect(screen.getByTestId("sign-in-email")).toHaveDisplayValue("");
+  });
+
+  it("starts with the held invite's address filled in, and keeps holding the invite", async () => {
+    const invite = {
+      token: "dev-alice-support-00000000000000000",
+      invitedEmail: "alice@dev.local",
+    };
+    holdInvite(invite);
+
+    await renderSignIn();
+
+    expect(screen.getByTestId("sign-in-email")).toHaveDisplayValue("alice@dev.local");
+    expect(screen.getByTestId("sign-in-password")).toHaveDisplayValue("");
+    expect(heldInvite()).toEqual(invite);
+  });
+
+  it("starts with an empty address for a held invite sent to no address", async () => {
+    holdInvite({ token: "dev-anyone-00000000000000000000000000", invitedEmail: null });
+
+    await renderSignIn();
+
+    expect(screen.getByTestId("sign-in-email")).toHaveDisplayValue("");
   });
 
   it("goes back to welcome from the back button", async () => {

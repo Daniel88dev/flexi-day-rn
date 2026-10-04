@@ -1,7 +1,7 @@
-import { router } from "expo-router";
+import { router, useNavigation, type NativeStackNavigationProp } from "expo-router";
 import { LinkBreakIcon, XIcon } from "phosphor-react-native";
 import { useEffect, useState, type ReactNode } from "react";
-import { AccessibilityInfo, Pressable, ScrollView, View } from "react-native";
+import { AccessibilityInfo, Alert, Pressable, ScrollView, View } from "react-native";
 import { toast } from "sonner-native";
 
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,11 @@ import {
   inviteMissing,
   joinRefusal,
   joinScreenAction,
+  maskEmail,
   type ClosedInvite,
 } from "@/lib/groups/invites";
-import { useMyGroups } from "@/lib/local-store";
+import { useMyGroups, useStoreOpen, useSyncStatus } from "@/lib/local-store";
+import { useShellUnderneath } from "@/lib/navigation/use-shell-underneath";
 import {
   qk,
   useInvitePreview,
@@ -27,22 +29,74 @@ import {
   type InvitePreview,
   type JoinedGroup,
 } from "@/lib/query";
+import { clearHeldInvite, holdInvite } from "@/lib/session/held-invite";
+import { useSetRootRoute } from "@/lib/session/root-route-context";
+import { clearSignedOutNotice } from "@/lib/session/signed-out-notice";
+import { signOut } from "@/lib/session/sign-out";
+import { signedOutWipe } from "@/lib/session/signed-out-wipe";
 import { useViewer } from "@/lib/viewer/use-viewer";
+import { openWebPage, webJoinPath } from "@/lib/web";
 
 import { Monogram, RetryNotice } from "./parts";
 
-const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
+type RootStack = NativeStackNavigationProp<Record<string, object | undefined>>;
+
+const close = () => {
+  clearHeldInvite();
+  if (router.canGoBack()) router.back();
+  else router.replace("/");
+};
+
+const WELCOME = { name: "(auth)", state: { routes: [{ name: "welcome" }] } };
+
+/** Welcome under a fresh sign-in, so Back from sign-in goes to welcome. */
+function openSignIn(navigation: RootStack) {
+  navigation.reset({
+    index: 0,
+    routes: [
+      { name: "(auth)", state: { index: 1, routes: [{ name: "welcome" }, { name: "sign-in" }] } },
+    ],
+  });
+}
+
+type JoinViewer = {
+  email: string | null;
+  memberGroupIds: readonly string[];
+  /** Whether the store has finished a pull, so its memberships can be believed. */
+  membershipKnown: boolean;
+} | null;
 
 const openGroup = (groupId: string) =>
   router.replace({ pathname: "/groups/[groupId]", params: { groupId } });
 
-/** The Join screen an invite link opens: it shows the invite and joins only on Join. */
-export function JoinScreen({ token }: { token: string }) {
+/**
+ * The Join screen an invite link opens: it shows the invite and joins only on Join. Signed in, a
+ * cold link puts the shell under it first. Signed out it reads nothing from the Local store, which
+ * only a signed-in shell opens.
+ */
+export function JoinScreen({ token, signedIn }: { token: string; signedIn: boolean }) {
+  const orphaned = useShellUnderneath({ pathname: "/join", params: { token } });
+  const storeOpen = useStoreOpen();
+
+  if (!signedIn) return <InviteScreen token={token} viewer={null} />;
+  if (orphaned || !storeOpen) return null;
+  return <SignedInJoinScreen token={token} />;
+}
+
+function SignedInJoinScreen({ token }: { token: string }) {
+  const memberGroupIds = useMyGroups().map((group) => group.id);
+  const email = useViewer()?.email ?? null;
+  const sync = useSyncStatus();
+  const membershipKnown = sync.hasCursor || sync.lastError !== null;
+  return <InviteScreen token={token} viewer={{ email, memberGroupIds, membershipKnown }} />;
+}
+
+function InviteScreen({ token, viewer }: { token: string; viewer: JoinViewer }) {
   const { t } = useTranslation();
   const labels = t.join.screen;
+  const navigation = useNavigation<RootStack>();
+  const setRootRoute = useSetRootRoute();
   const preview = useInvitePreview(token);
-  const memberGroupIds = useMyGroups().map((group) => group.id);
-  const viewerEmail = useViewer()?.email ?? null;
   const online = useOnline();
   const join = useJoinGroup();
   const writeFailure = useWriteFailure();
@@ -53,6 +107,43 @@ export function JoinScreen({ token }: { token: string }) {
   useEffect(() => {
     if (error) AccessibilityInfo.announceForAccessibility(error);
   }, [error]);
+
+  const holdThisInvite = (invitedEmail: string | null) => holdInvite({ token, invitedEmail });
+
+  const signInToJoin = (invitedEmail: string | null) => {
+    holdThisInvite(invitedEmail);
+    openSignIn(navigation);
+  };
+
+  const createAccount = async (invitedEmail: string | null) => {
+    await openWebPage(webJoinPath(token));
+    signInToJoin(invitedEmail);
+  };
+
+  // Every screen goes, this one too: the shell unmounts before the wipe closes the store it reads,
+  // and iOS refuses a reset that pulls a modal out from under one still presented. The server is
+  // asked first, so that commit has landed long before the wipe starts.
+  const signOutAndContinue = (invitedEmail: string | null) => {
+    holdThisInvite(invitedEmail);
+    navigation.reset({ index: 0, routes: [WELCOME] });
+    void signOut(() =>
+      signedOutWipe({
+        setRootRoute,
+        showNotice: clearSignedOutNotice,
+        replace: () => router.push("/sign-in"),
+      })
+    );
+  };
+
+  const confirmSignOut = (invitedEmail: string | null) =>
+    Alert.alert(labels.confirmSignOut.title, labels.confirmSignOut.body, [
+      { text: labels.confirmSignOut.cancel, style: "cancel" },
+      {
+        text: labels.confirmSignOut.signOut,
+        style: "destructive",
+        onPress: () => signOutAndContinue(invitedEmail),
+      },
+    ]);
 
   const joined = ({ groupId, groupName, alreadyMember }: JoinedGroup) => {
     if (alreadyMember) toast.info(t.join.alreadyMember(groupName));
@@ -102,7 +193,15 @@ export function JoinScreen({ token }: { token: string }) {
   } else {
     const invite = preview.data;
     const status = closedOnJoin ?? invite.status;
-    if (status !== "open") {
+    const action = viewer
+      ? joinScreenAction(invite, viewer.memberGroupIds, viewer.email)
+      : "sign-in";
+    // A member is told so whatever became of the invite: sign-up with invite on the web uses it
+    // and joins in the same step, so that member comes back to a used invite. Right after sign-in
+    // the store is still empty, so a closed invite waits for the first pull before it is dead.
+    if (status !== "open" && action !== "already-member" && viewer && !viewer.membershipKnown) {
+      body = <PreviewSkeleton />;
+    } else if (status !== "open" && action !== "already-member") {
       body = (
         <DeadInvite
           title={labels.dead[status]}
@@ -111,9 +210,51 @@ export function JoinScreen({ token }: { token: string }) {
       );
       footer = done;
     } else {
-      body = <InviteDetails invite={invite} />;
-      const action = joinScreenAction(invite, memberGroupIds, viewerEmail);
-      if (action === "already-member") {
+      const masked = action === "sign-in" || action === "wrong-account";
+      body = <InviteDetails invite={invite} masked={masked} />;
+      if (action === "sign-in") {
+        footer = (
+          <View className="gap-1">
+            <Button
+              testID="join-sign-in"
+              label={labels.signInToJoin}
+              onPress={() => signInToJoin(invite.invitedEmail)}
+            />
+            <Pressable
+              testID="join-create-account"
+              onPress={() => void createAccount(invite.invitedEmail)}
+              accessibilityRole="link"
+              accessibilityLabel={`${t.auth.signIn.newToApp} ${labels.createAccount}`}
+              className="items-center py-3 active:opacity-70"
+            >
+              <Text className="text-[14.5px] text-muted-foreground">
+                {t.auth.signIn.newToApp}{" "}
+                <Text className="font-bold text-primary">{labels.createAccount}</Text>
+              </Text>
+            </Pressable>
+          </View>
+        );
+      } else if (action === "wrong-account") {
+        footer = (
+          <View className="gap-3">
+            <View testID="join-wrong-account">
+              <Notice
+                tone="warm"
+                message={labels.wrongAccount(
+                  maskEmail(invite.invitedEmail ?? ""),
+                  viewer?.email ?? ""
+                )}
+              />
+            </View>
+            <Button
+              testID="join-sign-out"
+              variant="outline"
+              label={labels.signOutAndContinue}
+              onPress={() => confirmSignOut(invite.invitedEmail)}
+            />
+          </View>
+        );
+      } else if (action === "already-member") {
         footer = (
           <View className="gap-3">
             <View testID="join-already-member">
@@ -176,7 +317,7 @@ export function JoinScreen({ token }: { token: string }) {
   );
 }
 
-function InviteDetails({ invite }: { invite: InvitePreview }) {
+function InviteDetails({ invite, masked }: { invite: InvitePreview; masked: boolean }) {
   const { t } = useTranslation();
   const labels = t.join.screen;
   return (
@@ -200,7 +341,13 @@ function InviteDetails({ invite }: { invite: InvitePreview }) {
         <DetailRow
           testID="join-invite-for"
           label={labels.inviteFor}
-          value={invite.invitedEmail ?? labels.anyoneWithLink}
+          value={
+            invite.invitedEmail === null
+              ? labels.anyoneWithLink
+              : masked
+                ? maskEmail(invite.invitedEmail)
+                : invite.invitedEmail
+          }
         />
         <View className="ml-4 h-px bg-border" />
         <DetailRow

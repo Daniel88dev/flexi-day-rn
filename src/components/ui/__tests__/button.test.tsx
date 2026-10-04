@@ -29,4 +29,12 @@ describe("Button", () => {
     await userEvent.press(screen.getByRole("button"));
     expect(onPress).not.toHaveBeenCalled();
   });
+
+  it("renders an outlined button that answers its press", async () => {
+    const onPress = jest.fn();
+    await render(<Button variant="outline" label="Sign out and continue" onPress={onPress} />);
+    expect(screen.getByText("Sign out and continue")).toBeTruthy();
+    await userEvent.press(screen.getByRole("button"));
+    expect(onPress).toHaveBeenCalled();
+  });
 });

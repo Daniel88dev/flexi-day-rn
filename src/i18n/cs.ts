@@ -973,6 +973,17 @@ export const cs: Dictionary = {
       alreadyMember: (group: string) => `Do skupiny ${group} už patříte.`,
       openGroup: "Otevřít skupinu",
       join: (group: string) => `Připojit se ke skupině ${group}`,
+      signInToJoin: "Přihlásit se a připojit",
+      createAccount: "Vytvořte si účet",
+      wrongAccount: (invited: string, current: string) =>
+        `Tato pozvánka je pro ${invited}. Jste přihlášeni jako ${current}.`,
+      signOutAndContinue: "Odhlásit se a pokračovat",
+      confirmSignOut: {
+        title: "Odhlásit se a pokračovat?",
+        body: "Odhlášením smažete, co má tento telefon uložené k vašemu účtu. Potom se přihlásíte pozvanou adresou.",
+        cancel: "Zrušit",
+        signOut: "Odhlásit se",
+      },
     },
     errors: {
       brokenLink: "V odkazu chybí pozvánka. Otevřete ho znovu z e-mailu.",

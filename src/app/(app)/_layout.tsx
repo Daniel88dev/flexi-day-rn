@@ -20,6 +20,7 @@ import {
 } from "@/lib/navigation/shell-links";
 import { QueryLayer } from "@/lib/query";
 import { takeDevSignInLanding } from "@/lib/session/dev-sign-in";
+import { takeHeldInvite } from "@/lib/session/held-invite";
 import { useSessionRevalidation } from "@/lib/session/revalidate-session";
 import { useRootRoute } from "@/lib/session/root-route-context";
 import { signOut } from "@/lib/session/sign-out";
@@ -67,7 +68,12 @@ export default function AppLayout() {
   useEffect(() => {
     if (!storeOpen) return;
     const landing = takeDevSignInLanding();
-    if (landing) router.push(landing as Href);
+    if (landing) {
+      router.push(landing as Href);
+      return;
+    }
+    const invite = takeHeldInvite();
+    if (invite) router.push({ pathname: "/join", params: { token: invite.token } });
   }, [storeOpen]);
 
   // A deep link into the shell without a session goes back to welcome. The root layout has read

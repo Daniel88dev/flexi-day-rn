@@ -1,21 +1,40 @@
 import { onlineManager } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
+import { Alert, type AlertButton } from "react-native";
 import { toast } from "sonner-native";
 
 import JoinScreenRoute from "@/app/join";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
-import { pull, useMyGroups, useStoreOpen, type MyGroup } from "@/lib/local-store";
+import {
+  destroyStore,
+  pull,
+  useMyGroups,
+  useStoreOpen,
+  useSyncStatus,
+  type MyGroup,
+  type SyncStatus,
+} from "@/lib/local-store";
 import { qk, queryClient, type InvitePreview } from "@/lib/query";
+import { clearHeldInvite, heldInvite, holdInvite } from "@/lib/session/held-invite";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
+import {
+  clearSignedOutNotice,
+  showSignedOutNotice,
+  signedOutNoticeShowing,
+} from "@/lib/session/signed-out-notice";
+import { openWebPage } from "@/lib/web";
 import { groupDetail, invitePreview, joinedMembership } from "@/test-support/groups";
 import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
 const mockRouterCanGoBack = jest.fn(() => true);
+const mockGetState = jest.fn();
+const mockReset = jest.fn();
+const mockServerSignOut = jest.fn();
 let mockParams: { token?: string } = {};
 let mockViewer: { id: string; name: string; email: string } | null = null;
 
@@ -35,18 +54,31 @@ jest.mock("expo-router", () => ({
     push: jest.fn(),
     canGoBack: () => mockRouterCanGoBack(),
   },
-  useNavigation: () => ({ canGoBack: mockCanGoBack }),
+  useNavigation: () => ({ canGoBack: mockCanGoBack, getState: mockGetState, reset: mockReset }),
   useLocalSearchParams: () => mockParams,
   Redirect: jest.requireActual("@/test-support/expo-router").RedirectShim,
 }));
 
-jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
+jest.mock("@/lib/session/auth-client", () => ({
+  SESSION_COOKIE_KEY: "flexi-day_cookie",
+  clearClientSession: jest.fn(),
+  sessionCookie: async () => "",
+  authClient: { signOut: () => mockServerSignOut() },
+}));
+jest.mock("expo-secure-store", () => ({ setItemAsync: jest.fn(), getItemAsync: jest.fn() }));
+jest.mock("@better-auth/expo/client", () => ({ storageAdapter: (storage: unknown) => storage }));
+jest.mock("@/lib/web", () => ({
+  ...jest.requireActual("@/lib/web"),
+  openWebPage: jest.fn(),
+}));
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
 jest.mock("@/lib/viewer/use-viewer", () => ({ useViewer: () => mockViewer }));
 jest.mock("@/lib/local-store", () => ({
+  destroyStore: jest.fn(),
   pull: jest.fn(),
   useMyGroups: jest.fn(),
   useStoreOpen: jest.fn(),
+  useSyncStatus: jest.fn(),
 }));
 jest.mock("sonner-native", () => ({
   toast: { error: jest.fn(), success: jest.fn(), info: jest.fn() },
@@ -56,7 +88,19 @@ jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" 
 const pullStore = pull as jest.MockedFunction<typeof pull>;
 const myGroups = useMyGroups as jest.MockedFunction<typeof useMyGroups>;
 const storeOpen = useStoreOpen as jest.MockedFunction<typeof useStoreOpen>;
+const syncStatus = useSyncStatus as jest.MockedFunction<typeof useSyncStatus>;
+
+const synced = (patch: Partial<SyncStatus> = {}): SyncStatus => ({
+  inFlight: false,
+  lastPulledAt: "2026-10-04T09:00:00.000Z",
+  lastError: null,
+  hasCursor: true,
+  generation: 1,
+  ...patch,
+});
 const toastError = toast.error as jest.Mock;
+const destroy = destroyStore as jest.MockedFunction<typeof destroyStore>;
+const openPage = openWebPage as jest.MockedFunction<typeof openWebPage>;
 
 const labels = en.join.screen;
 const TOKEN = "dev-alice-support-00000000000000000";
@@ -74,6 +118,20 @@ const refusal = (status: number, context?: Record<string, unknown>, message = "R
 const PREVIEW = /\/api\/auth\/invite\/preview$/;
 const JOIN = /\/api\/auth\/invite\/join$/;
 const DETAIL = /\/api\/group\/group-2$/;
+const HELD = { token: TOKEN, invitedEmail: "alice@dev.local" };
+
+const route = (name: string, params?: object) => ({ key: `${name}-key`, name, params });
+const JOIN_ROUTE = route("join", { token: TOKEN });
+const WELCOME_ALONE = {
+  index: 0,
+  routes: [{ name: "(auth)", state: { routes: [{ name: "welcome" }] } }],
+};
+const SIGN_IN = {
+  index: 0,
+  routes: [
+    { name: "(auth)", state: { index: 1, routes: [{ name: "welcome" }, { name: "sign-in" }] } },
+  ],
+};
 
 let previewReply: () => Answer | Promise<Answer>;
 let joinReply: () => Answer | Promise<Answer>;
@@ -107,8 +165,15 @@ beforeEach(() => {
   mockCanGoBack.mockReturnValue(true);
   mockRouterCanGoBack.mockReturnValue(true);
   storeOpen.mockReturnValue(true);
+  syncStatus.mockReturnValue(synced());
   myGroups.mockReturnValue([storeGroup("group-1")]);
   pullStore.mockResolvedValue({ ok: true });
+  destroy.mockResolvedValue(undefined);
+  openPage.mockResolvedValue(undefined);
+  mockServerSignOut.mockResolvedValue({ data: { success: true } });
+  mockGetState.mockReturnValue({ index: 0, routes: [JOIN_ROUTE] });
+  clearHeldInvite();
+  clearSignedOutNotice();
   onlineManager.setOnline(true);
   openWith();
   joinReply = () => answer(201, joinedMembership("group-2"));
@@ -124,6 +189,7 @@ beforeEach(() => {
 afterEach(() => {
   queryClient.clear();
   onlineManager.setOnline(true);
+  clearHeldInvite();
 });
 
 function tree(route: RootRoute) {
@@ -150,11 +216,26 @@ const press = async (testID: string) => {
 };
 
 describe("JoinScreenRoute", () => {
-  it("sends a deep link without a session to welcome", async () => {
+  it("renders a deep link without a session signed out, reading nothing from the Local store", async () => {
+    mockViewer = null;
+    storeOpen.mockReturnValue(false);
+
     await renderScreen("welcome");
 
-    expect(screen.getByText("/welcome")).toBeTruthy();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(await screen.findByTestId("join-preview")).toBeOnTheScreen();
+    expect(screen.queryByText("/welcome")).toBeNull();
+    expect(myGroups).not.toHaveBeenCalled();
+  });
+
+  it("renders a cold link signed out on its own, putting nothing under it", async () => {
+    mockViewer = null;
+    mockCanGoBack.mockReturnValue(false);
+
+    await renderScreen("welcome");
+
+    expect(await screen.findByTestId("join-preview")).toBeOnTheScreen();
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it("puts the shell under a cold link first, then comes back with the token", async () => {
@@ -295,15 +376,17 @@ describe("JoinScreen", () => {
     expect(requests(/\/api\/group/)).toHaveLength(0);
   });
 
-  it("shows the invite with no action for another address", async () => {
-    mockViewer = { id: "bob", name: "Bob Dvorak", email: "bob@dev.local" };
+  it("shows the already-member footer for a member whose invite is already used", async () => {
+    openWith({ status: "used" });
+    myGroups.mockReturnValue([storeGroup("group-1"), storeGroup("group-2")]);
 
     await renderInvite();
 
-    expect(screen.getByTestId("join-invite-for")).toHaveTextContent("alice@dev.local");
+    expect(screen.getByTestId("join-already-member")).toHaveTextContent(
+      "You're already in Dev Support."
+    );
+    expect(screen.queryByTestId("join-dead")).toBeNull();
     expect(screen.queryByTestId("join-submit")).toBeNull();
-    expect(screen.queryByTestId("join-open-group")).toBeNull();
-    expect(screen.queryByTestId("join-done")).toBeNull();
   });
 
   it("offers Retry when the preview got no answer, as offline, and shows the invite once it does", async () => {
@@ -376,6 +459,54 @@ describe("JoinScreen", () => {
 
     expect(router.back).toHaveBeenCalledTimes(1);
     expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("waits for the first sync pull before calling a closed invite dead, then finds the member", async () => {
+    openWith({ status: "used" });
+    syncStatus.mockReturnValue(synced({ hasCursor: false, lastPulledAt: null, inFlight: true }));
+    myGroups.mockReturnValue([]);
+    const view = await renderScreen();
+
+    expect(await screen.findByTestId("join-loading")).toBeOnTheScreen();
+    expect(screen.queryByTestId("join-dead")).toBeNull();
+
+    syncStatus.mockReturnValue(synced());
+    myGroups.mockReturnValue([storeGroup("group-2")]);
+    await view.rerender(tree("signed-in"));
+
+    expect(await screen.findByTestId("join-already-member")).toHaveTextContent(
+      "You're already in Dev Support."
+    );
+  });
+
+  it("calls a closed invite dead once the first sync pull has failed", async () => {
+    openWith({ status: "expired" });
+    syncStatus.mockReturnValue(synced({ hasCursor: false, lastError: "unreachable" }));
+    myGroups.mockReturnValue([]);
+
+    await renderScreen();
+
+    expect(await screen.findByTestId("join-dead")).toHaveTextContent(labels.dead.expired, {
+      exact: false,
+    });
+  });
+
+  it("offers Join on an open invite before the first sync pull lands", async () => {
+    syncStatus.mockReturnValue(synced({ hasCursor: false, inFlight: true }));
+    myGroups.mockReturnValue([]);
+
+    await renderInvite();
+
+    expect(screen.getByTestId("join-submit")).toHaveTextContent("Join Dev Support");
+  });
+
+  it("lets go of a held invite on close", async () => {
+    holdInvite(HELD);
+    await renderInvite();
+
+    await press("join-close");
+
+    expect(heldInvite()).toBeNull();
   });
 
   it("goes to the root on close when nothing is underneath", async () => {
@@ -508,5 +639,202 @@ describe("JoinScreen Join", () => {
       { token: TOKEN },
       { token: TOKEN },
     ]);
+  });
+});
+
+async function renderSignedOut() {
+  mockViewer = null;
+  storeOpen.mockReturnValue(false);
+  await renderScreen("welcome");
+  await screen.findByTestId("join-preview");
+}
+
+/** The whole stack becomes welcome under a fresh sign-in, so Back from sign-in goes to welcome. */
+const signInOpened = () => {
+  expect(mockReset).toHaveBeenLastCalledWith(SIGN_IN);
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(router.push).not.toHaveBeenCalled();
+};
+
+describe("JoinScreen signed out", () => {
+  it("masks the invited address and offers Sign in to join with Create your account", async () => {
+    await renderSignedOut();
+
+    expect(screen.getByText("Olivia Owner invited you to join")).toBeOnTheScreen();
+    expect(screen.getByTestId("join-invite-for")).toHaveTextContent("a…@dev.local");
+    expect(screen.queryByText("alice@dev.local")).toBeNull();
+    expect(screen.getByTestId("join-sign-in")).toHaveTextContent(labels.signInToJoin);
+    expect(screen.getByTestId("join-create-account")).toHaveTextContent(
+      `${en.auth.signIn.newToApp} ${labels.createAccount}`
+    );
+    expect(screen.queryByTestId("join-submit")).toBeNull();
+    expect(requests(JOIN)).toHaveLength(0);
+  });
+
+  it("shows Anyone with the link for an invite without an address", async () => {
+    openWith({ invitedEmail: null });
+
+    await renderSignedOut();
+
+    expect(screen.getByTestId("join-invite-for")).toHaveTextContent(labels.anyoneWithLink);
+    expect(screen.getByTestId("join-sign-in")).toBeOnTheScreen();
+  });
+
+  it("shows a dead invite with Done and no way to sign in", async () => {
+    openWith({ status: "expired" });
+
+    await renderScreen("welcome");
+
+    expect(await screen.findByTestId("join-dead")).toHaveTextContent(labels.dead.expired, {
+      exact: false,
+    });
+    expect(screen.getByTestId("join-done")).toBeOnTheScreen();
+    expect(screen.queryByTestId("join-sign-in")).toBeNull();
+  });
+
+  it("holds the invite on Sign in to join and puts welcome under a fresh sign-in", async () => {
+    mockGetState.mockReturnValue({ index: 1, routes: [route("(auth)"), JOIN_ROUTE] });
+    await renderSignedOut();
+
+    await press("join-sign-in");
+
+    expect(heldInvite()).toEqual(HELD);
+    expect(mockReset).toHaveBeenCalledTimes(1);
+    signInOpened();
+    expect(requests(JOIN)).toHaveLength(0);
+  });
+
+  it("opens sign-in the same way from a cold link with nothing under it", async () => {
+    await renderSignedOut();
+
+    await press("join-sign-in");
+
+    signInOpened();
+  });
+
+  it("opens the web's join page in the browser sheet, then holds the invite and opens sign-in once it closes", async () => {
+    let closeSheet: () => void = () => undefined;
+    openPage.mockReturnValue(new Promise((resolve) => (closeSheet = () => resolve(undefined))));
+    await renderSignedOut();
+
+    await press("join-create-account");
+
+    expect(openPage).toHaveBeenCalledWith(`/join/?token=${TOKEN}`);
+    expect(heldInvite()).toBeNull();
+    expect(mockReset).not.toHaveBeenCalled();
+
+    await act(async () => closeSheet());
+
+    expect(heldInvite()).toEqual(HELD);
+    signInOpened();
+    expect(mockFetch.mock.calls.filter(([url]) => /sign-up/.test(String(url)))).toHaveLength(0);
+  });
+});
+
+// The wipe empties the query client under the open screen; its answer lands on the next tick.
+const signedOut = async () => {
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/sign-in"));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+};
+
+describe("JoinScreen wrong account", () => {
+  let alert: jest.SpyInstance;
+  const alertButton = (style: AlertButton["style"]) =>
+    (alert.mock.calls[0][2] as AlertButton[]).find((button) => button.style === style);
+
+  beforeEach(() => {
+    mockViewer = { id: "bob", name: "Bob Dvorak", email: "bob@dev.local" };
+    alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => alert.mockRestore());
+
+  it("says who the invite is for, masked, and who is signed in, with Sign out and continue", async () => {
+    await renderInvite();
+
+    expect(screen.getByTestId("join-wrong-account")).toHaveTextContent(
+      "This invite is for a…@dev.local. You're signed in as bob@dev.local."
+    );
+    expect(screen.getByTestId("join-invite-for")).toHaveTextContent("a…@dev.local");
+    expect(screen.getByTestId("join-sign-out")).toHaveTextContent(labels.signOutAndContinue);
+    expect(screen.queryByTestId("join-submit")).toBeNull();
+    expect(screen.queryByTestId("join-sign-in")).toBeNull();
+  });
+
+  it("asks first, and Cancel leaves the session, the stack and the hold as they were", async () => {
+    await renderInvite();
+
+    await press("join-sign-out");
+
+    expect(alert).toHaveBeenCalledWith(
+      labels.confirmSignOut.title,
+      labels.confirmSignOut.body,
+      expect.any(Array)
+    );
+    expect(alertButton("cancel")?.text).toBe(labels.confirmSignOut.cancel);
+    expect(alertButton("destructive")?.text).toBe(labels.confirmSignOut.signOut);
+    await act(async () => alertButton("cancel")?.onPress?.());
+
+    expect(mockServerSignOut).not.toHaveBeenCalled();
+    expect(mockReset).not.toHaveBeenCalled();
+    expect(heldInvite()).toBeNull();
+    expect(destroy).not.toHaveBeenCalled();
+  });
+
+  it("on Sign out holds the invite, drops every screen for welcome, signs out server-first with a quiet wipe, then opens sign-in", async () => {
+    showSignedOutNotice();
+    mockGetState.mockReturnValue({
+      index: 2,
+      routes: [route("(app)"), route("groups"), JOIN_ROUTE],
+    });
+    await renderInvite();
+
+    await press("join-sign-out");
+    await act(async () => alertButton("destructive")?.onPress?.());
+
+    await signedOut();
+    expect(heldInvite()).toEqual(HELD);
+    expect(mockReset).toHaveBeenCalledTimes(1);
+    expect(mockReset).toHaveBeenCalledWith(WELCOME_ALONE);
+    const order = (mock: jest.Mock) => mock.mock.invocationCallOrder[0];
+    expect(order(mockReset)).toBeLessThan(order(mockServerSignOut));
+    expect(order(mockServerSignOut)).toBeLessThan(order(destroy as unknown as jest.Mock));
+    expect(order(destroy as unknown as jest.Mock)).toBeLessThan(order(router.push as jest.Mock));
+    expect(destroy).toHaveBeenCalledTimes(1);
+    expect(signedOutNoticeShowing()).toBe(false);
+    expect(router.push).toHaveBeenCalledTimes(1);
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("opens sign-in only once the server has answered and the wipe is done", async () => {
+    let answer: () => void = () => undefined;
+    mockServerSignOut.mockReturnValue(new Promise((resolve) => (answer = () => resolve({}))));
+    await renderInvite();
+
+    await press("join-sign-out");
+    await act(async () => alertButton("destructive")?.onPress?.());
+
+    expect(mockReset).toHaveBeenCalledWith(WELCOME_ALONE);
+    expect(destroy).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+
+    await act(async () => answer());
+
+    await signedOut();
+    expect(destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("still wipes and opens sign-in when the server never answers the sign-out", async () => {
+    const error = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    mockServerSignOut.mockRejectedValue(new TypeError("Network request failed"));
+    await renderInvite();
+
+    await press("join-sign-out");
+    await act(async () => alertButton("destructive")?.onPress?.());
+
+    await signedOut();
+    expect(destroy).toHaveBeenCalledTimes(1);
+    expect(heldInvite()).toEqual(HELD);
+    error.mockRestore();
   });
 });

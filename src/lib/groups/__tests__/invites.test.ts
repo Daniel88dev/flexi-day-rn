@@ -6,6 +6,7 @@ import {
   inviteMissing,
   joinRefusal,
   joinScreenAction,
+  maskEmail,
   parseInviteInput,
 } from "@/lib/groups/invites";
 import { ApiError } from "@/lib/query/failure";
@@ -237,5 +238,26 @@ describe("joinScreenAction", () => {
 
   it("returns join while the viewer's address is unknown, leaving the check to the backend", () => {
     expect(joinScreenAction(invite, [], null)).toBe("join");
+  });
+});
+
+describe("maskEmail", () => {
+  it("returns the first letter, an ellipsis and the domain", () => {
+    expect(maskEmail("dana@northwind.co")).toBe("d…@northwind.co");
+    expect(maskEmail("alice@dev.local")).toBe("a…@dev.local");
+  });
+
+  it("returns the letter case it was given", () => {
+    expect(maskEmail("Alice@Dev.Local")).toBe("A…@Dev.Local");
+  });
+
+  it("returns only the part after the last @ as the domain", () => {
+    expect(maskEmail('"a@b"@dev.local')).toBe('"…@dev.local');
+  });
+
+  it("returns an ellipsis alone for a value with no local part or no @", () => {
+    expect(maskEmail("@dev.local")).toBe("…");
+    expect(maskEmail("not-an-address")).toBe("…");
+    expect(maskEmail("")).toBe("…");
   });
 });

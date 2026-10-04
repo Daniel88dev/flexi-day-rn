@@ -136,7 +136,7 @@ export function inviteMissing(failure: unknown): boolean {
 export type JoinScreenAction = "already-member" | "join" | "wrong-account";
 
 /**
- * Which action an open invite offers the signed-in viewer. The membership is a display-only
+ * Which action an invite offers the signed-in viewer; a member is told so even on a closed one. The membership is a display-only
  * local check (ADR 0003): a stale row costs one sync pull, and the backend still answers
  * `ALREADY_MEMBER`.
  */
@@ -148,4 +148,11 @@ export function joinScreenAction(
   if (memberGroupIds.includes(invite.groupId)) return "already-member";
   if (invite.invitedEmail === null || viewerEmail === null) return "join";
   return invite.invitedEmail.toLowerCase() === viewerEmail.toLowerCase() ? "join" : "wrong-account";
+}
+
+/** `dana@northwind.co` → `d…@northwind.co`, as the web shows it: enough to pick the right account. */
+export function maskEmail(email: string): string {
+  const at = email.lastIndexOf("@");
+  if (at <= 0) return "…";
+  return `${email[0]}…${email.slice(at)}`;
 }
