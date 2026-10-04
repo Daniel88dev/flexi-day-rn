@@ -3,6 +3,7 @@ import type {
   GroupAccess,
   GroupDetail,
   GroupMember,
+  InvitePreview,
   UserYearQuota,
 } from "@/lib/query/groups";
 
@@ -87,5 +88,18 @@ export function joinedMembership(groupId = "group-1") {
     adminAccess: false,
     approverAccess: false,
     controlledUser: true,
+  };
+}
+
+/** alice's open invite to Dev Support, as `POST /api/auth/invite/preview` answers it. */
+export function invitePreview(patch: Partial<InvitePreview> = {}): InvitePreview {
+  return {
+    groupId: "group-2",
+    groupName: "Dev Support",
+    inviterName: "Olivia Owner",
+    invitedEmail: "alice@dev.local",
+    status: "open",
+    expiresAt: "2026-10-17T09:30:00.000Z",
+    ...patch,
   };
 }

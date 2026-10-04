@@ -200,6 +200,9 @@ throws `ApiError` with the server's message.
   `["groups", "administered"]`, has no web counterpart, because the web reaches those groups
   through its Organization page. It sits under the web's `groups` prefix so that invalidating
   `groups` covers it too.
+  The invite preview, `["invite-preview", token]`, keeps the web's prefix but not its hash of
+  the token: this cache is memory only, the phone ships no error reporter, and the read drops
+  out of the cache when the Join screen closes (`gcTime` 0).
 - Nothing polls. Every foreground reads again however fresh the answer, through
   `refetchOnWindowFocus: "always"`, and so do screen focus and the phone's own writes. The one
   exception is `useVacationDetail`: while a file on the open screen is still `UPLOADING`, it reads
@@ -212,10 +215,10 @@ throws `ApiError` with the server's message.
   402, 403 or 409, shows the server's message, reloads the screen's queries and starts a sync
   pull. Any other 4xx shows the server's message. Neither offers Retry, because the same tap
   fails the same way; a 5xx or no answer at all does. It takes a Local store `WriteOutcome` as
-  well as a thrown error. Five sheets are exceptions, because the failure belongs where the
-  person is looking. The Clock sheet sorts its writes' failures with `classifyFailure` into
-  notices inside the sheet (`src/lib/attendance/notice.ts`); attendance has no sync pull to
-  start. The new-request form shows its failure inline above the entry it kept
+  well as a thrown error. Six sheets and the Join screen are exceptions, because the failure
+  belongs where the person is looking. The Clock sheet sorts its writes' failures with
+  `classifyFailure` into notices inside the sheet (`src/lib/attendance/notice.ts`); attendance
+  has no sync pull to start. The new-request form shows its failure inline above the entry it kept
   (`submitFailureMessage` in `src/lib/requests/new-request.ts`) and toasts nothing, while a
   refusal still reads the group again and starts a sync pull (`useCreateRequest`). The entry
   sheet words a refusal by its `context.reason` inline (`src/lib/attendance/refusals.ts`), turns
@@ -226,7 +229,9 @@ throws `ApiError` with the server's message.
   the Request is read again either way. The Delete account sheet words its failures inline
   (`src/lib/session/account-deletion.ts`): a wrong password on the field, a 409 reads the check
   again and lists the blockers, and Delete turns into Retry when no answer came
-  (`useAccountDeletion`).
+  (`useAccountDeletion`). The Join sheet words an invite refusal under its field (`joinRefusal` in
+  `src/lib/groups/invites.ts`) and hands everything else to the handler. The Join screen words
+  one above its footer, and a 410 turns the screen into that invite's dead state (`closedInvite`).
 
 ## Testing
 

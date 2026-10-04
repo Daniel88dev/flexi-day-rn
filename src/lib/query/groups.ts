@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
-import { alreadyMemberGroup, type JoinInput } from "@/lib/groups/invites";
+import { alreadyMemberGroup, type ClosedInvite, type JoinInput } from "@/lib/groups/invites";
 import { pull } from "@/lib/local-store";
 
 import { qk } from "./keys";
@@ -120,6 +120,36 @@ export function useQuotas(groupId: string | null, year: number) {
         signal,
       }),
     enabled: groupId !== null,
+  });
+}
+
+/** `POST /api/auth/invite/preview`: what an invite link's holder sees before joining. */
+export type InvitePreview = {
+  groupId: string;
+  groupName: string;
+  inviterName: string | null;
+  /** Null only on invites older than email invites, which anyone with the link may use. */
+  invitedEmail: string | null;
+  status: "open" | ClosedInvite;
+  expiresAt: string;
+};
+
+/**
+ * Never retried, and dropped from the cache once the join screen lets go of it, so the secret
+ * leaves memory with the screen. Reading it uses nothing up.
+ */
+export function useInvitePreview(token: string) {
+  return useQuery({
+    queryKey: qk.invitePreview(token),
+    queryFn: ({ signal }) =>
+      apiRequest<InvitePreview>("/api/auth/invite/preview", {
+        method: "POST",
+        body: { token },
+        signal,
+      }),
+    retry: false,
+    gcTime: 0,
+    networkMode: "always",
   });
 }
 

@@ -28,8 +28,49 @@ describe("join", () => {
     expect(keys(cs.join)).toEqual(keys(en.join));
     expect(keys(cs.join.sheet)).toEqual(keys(en.join.sheet));
     expect(keys(cs.join.errors)).toEqual(keys(en.join.errors));
-    for (const line of [...Object.values(cs.join.sheet), ...Object.values(cs.join.errors)]) {
+    expect(keys(cs.join.screen)).toEqual(keys(en.join.screen));
+    expect(keys(cs.join.screen.dead)).toEqual(keys(en.join.screen.dead));
+    for (const line of [
+      ...Object.values(cs.join.sheet),
+      ...Object.values(cs.join.errors),
+      ...Object.values(cs.join.screen.dead),
+    ]) {
       expect(line).not.toBe("");
     }
+  });
+});
+
+describe("join.screen.invitedBy", () => {
+  it("returns the inviter's line, or the plain invitation without one", () => {
+    expect(en.join.screen.invitedBy("Olivia Owner")).toBe("Olivia Owner invited you to join");
+    expect(en.join.screen.invitedBy(null)).toBe("You're invited to join");
+    expect(cs.join.screen.invitedBy("Olivia Owner")).toBe("Olivia Owner vás zve do skupiny");
+    expect(cs.join.screen.invitedBy(null)).toBe("Máte pozvánku do skupiny");
+  });
+});
+
+describe("join.screen.askForNew", () => {
+  it("returns who to ask for a new invite to the group", () => {
+    expect(en.join.screen.askForNew("Olivia Owner", "Dev Team")).toBe(
+      "Ask Olivia Owner to send you a new one for Dev Team."
+    );
+    expect(en.join.screen.askForNew(null, "Dev Team")).toBe(
+      "Ask the group's manager to send you a new one for Dev Team."
+    );
+    expect(cs.join.screen.askForNew("Olivia Owner", "Dev Team")).toBe(
+      "Novou pozvánku do skupiny Dev Team vám může poslat Olivia Owner."
+    );
+    expect(cs.join.screen.askForNew(null, "Dev Team")).toBe(
+      "Novou pozvánku do skupiny Dev Team vám může poslat manažer skupiny."
+    );
+  });
+});
+
+describe("join.screen.join", () => {
+  it("returns the Join button and the already-member line with the group's name", () => {
+    expect(en.join.screen.join("Dev Support")).toBe("Join Dev Support");
+    expect(cs.join.screen.join("Dev Support")).toBe("Připojit se ke skupině Dev Support");
+    expect(en.join.screen.alreadyMember("Dev Support")).toBe("You're already in Dev Support.");
+    expect(cs.join.screen.alreadyMember("Dev Support")).toBe("Do skupiny Dev Support už patříte.");
   });
 });

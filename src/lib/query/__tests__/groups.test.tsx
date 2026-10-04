@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, onlineManager } from "@tanstack/react-query";
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Text } from "react-native";
@@ -9,6 +9,7 @@ import {
   useGroupDetail,
   useGroupMembers,
   useHolidayCountries,
+  useInvitePreview,
   useJoinGroup,
   useQuotas,
 } from "@/lib/query/groups";
@@ -19,6 +20,7 @@ import {
   administeredGroup,
   groupDetail,
   groupMember,
+  invitePreview,
   joinedMembership,
   userYearQuota,
 } from "@/test-support/groups";
@@ -266,6 +268,67 @@ describe("useAdministeredGroups", () => {
     const { result } = await renderHook(() => useAdministeredGroups(), { wrapper });
 
     await waitFor(() => expect(result.current.data).toEqual([]));
+  });
+});
+
+describe("useInvitePreview", () => {
+  const TOKEN = "dev-alice-support-00000000000000000";
+
+  it("posts the token in the body to the preview path and returns the invite", async () => {
+    mockFetch.mockResolvedValue(answer(200, invitePreview()));
+
+    const { result } = await renderHook(() => useInvitePreview(TOKEN), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toEqual(invitePreview()));
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(requestedPath()).toMatch(/\/api\/auth\/invite\/preview$/);
+    const init = mockFetch.mock.calls[0][1];
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ token: TOKEN });
+  });
+
+  it("returns the answer under the token itself", async () => {
+    mockFetch.mockResolvedValue(answer(200, invitePreview()));
+
+    await renderHook(() => useInvitePreview(TOKEN), { wrapper });
+
+    await waitFor(() =>
+      expect(queryClient.getQueryData(["invite-preview", TOKEN])).toEqual(invitePreview())
+    );
+  });
+
+  it("asks once, never again after a failure", async () => {
+    mockFetch.mockResolvedValue(answer(503, { message: "Down" }));
+
+    const { result } = await renderHook(() => useInvitePreview(TOKEN), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks even while the online manager says offline, so it fails at once", async () => {
+    onlineManager.setOnline(false);
+    mockFetch.mockRejectedValue(new TypeError("Network request failed"));
+
+    const { result } = await renderHook(() => useInvitePreview(TOKEN), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.fetchStatus).toBe("idle");
+    onlineManager.setOnline(true);
+  });
+
+  it("drops the secret from the cache as soon as the screen lets go of it", async () => {
+    mockFetch.mockResolvedValue(answer(200, invitePreview()));
+
+    const { result, unmount } = await renderHook(() => useInvitePreview(TOKEN), { wrapper });
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    await act(async () => unmount());
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryCache().find({ queryKey: ["invite-preview", TOKEN] })
+      ).toBeUndefined()
+    );
   });
 });
 

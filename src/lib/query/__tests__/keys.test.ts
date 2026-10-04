@@ -31,6 +31,10 @@ describe("qk", () => {
     expect(qk.bankHolidayCountries()).toEqual(["bank-holiday-countries"]);
   });
 
+  it("returns the invite preview under the token itself, which only ever sits in memory", () => {
+    expect(qk.invitePreview("dev-secret")).toEqual(["invite-preview", "dev-secret"]);
+  });
+
   it("returns the administered groups under the web's groups prefix", () => {
     expect(qk.administeredGroups()).toEqual(["groups", "administered"]);
   });

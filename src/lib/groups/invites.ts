@@ -68,6 +68,20 @@ export function alreadyMemberGroup(failure: unknown): string | null {
   return contextString(failure, "groupId");
 }
 
+export type ClosedInvite = "used" | "expired" | "revoked";
+
+const CLOSED_CODES = new Map<string | null, ClosedInvite>([
+  ["INVITE_USED", "used"],
+  ["INVITE_EXPIRED", "expired"],
+  ["INVITE_REVOKED", "revoked"],
+]);
+
+/** The state a 410 names: the invite exists but can no longer be redeemed. */
+export function closedInvite(failure: unknown): ClosedInvite | null {
+  if (!(failure instanceof ApiError) || failure.status !== 410) return null;
+  return CLOSED_CODES.get(contextString(failure, "code")) ?? null;
+}
+
 /**
  * The line a refused join shows under the field. Anything unmapped belongs to the shared
  * write-failure handler.
@@ -109,5 +123,29 @@ export function joinRefusal(failure: unknown, via: JoinInput["kind"], t: Diction
   if (onCode && failure.status === 404) return inline(errors.notFound);
   if (onCode && failure.status === 403) return inline(errors.emailMismatch);
   if (onCode && failure.status === 400) return inline(errors.malformedCode);
+  // The token failed the server's length check, so the link was cut short on its way here.
+  if (!onCode && failure.status === 422) return inline(errors.brokenLink);
   return { kind: "unmapped" };
+}
+
+/** A preview the server has no invite for: unknown, or a token too short to look one up. */
+export function inviteMissing(failure: unknown): boolean {
+  return failure instanceof ApiError && (failure.status === 404 || failure.status === 422);
+}
+
+export type JoinScreenAction = "already-member" | "join" | "wrong-account";
+
+/**
+ * Which action an open invite offers the signed-in viewer. The membership is a display-only
+ * local check (ADR 0003): a stale row costs one sync pull, and the backend still answers
+ * `ALREADY_MEMBER`.
+ */
+export function joinScreenAction(
+  invite: { groupId: string; invitedEmail: string | null },
+  memberGroupIds: readonly string[],
+  viewerEmail: string | null
+): JoinScreenAction {
+  if (memberGroupIds.includes(invite.groupId)) return "already-member";
+  if (invite.invitedEmail === null || viewerEmail === null) return "join";
+  return invite.invitedEmail.toLowerCase() === viewerEmail.toLowerCase() ? "join" : "wrong-account";
 }

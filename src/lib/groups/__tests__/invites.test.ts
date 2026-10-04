@@ -1,6 +1,13 @@
 import { cs } from "@/i18n/cs";
 import { en } from "@/i18n/en";
-import { alreadyMemberGroup, joinRefusal, parseInviteInput } from "@/lib/groups/invites";
+import {
+  alreadyMemberGroup,
+  closedInvite,
+  inviteMissing,
+  joinRefusal,
+  joinScreenAction,
+  parseInviteInput,
+} from "@/lib/groups/invites";
 import { ApiError } from "@/lib/query/failure";
 
 describe("parseInviteInput", () => {
@@ -111,6 +118,14 @@ describe("joinRefusal", () => {
     });
   });
 
+  it("returns the broken-link line for a 422 on a link, whose token the server would not read", () => {
+    expect(joinRefusal(refused(422), "link", en)).toEqual({
+      kind: "inline",
+      message: errors.brokenLink,
+    });
+    expect(joinRefusal(refused(422), "code", en)).toEqual({ kind: "unmapped" });
+  });
+
   it("leaves a bare 400, 403 or 404 on a link unmapped", () => {
     expect(joinRefusal(refused(400), "link", en)).toEqual({ kind: "unmapped" });
     expect(joinRefusal(refused(403), "link", en)).toEqual({ kind: "unmapped" });
@@ -166,5 +181,61 @@ describe("alreadyMemberGroup", () => {
     expect(alreadyMemberGroup(refused(409, { code: "ALREADY_MEMBER" }))).toBeNull();
     expect(alreadyMemberGroup(refused(403, { code: "ALREADY_MEMBER", groupId: "g" }))).toBeNull();
     expect(alreadyMemberGroup(new Error("boom"))).toBeNull();
+  });
+});
+
+describe("closedInvite", () => {
+  it("returns the status a 410 names", () => {
+    expect(closedInvite(refused(410, { code: "INVITE_USED" }))).toBe("used");
+    expect(closedInvite(refused(410, { code: "INVITE_EXPIRED" }))).toBe("expired");
+    expect(closedInvite(refused(410, { code: "INVITE_REVOKED" }))).toBe("revoked");
+  });
+
+  it("returns null for anything else", () => {
+    expect(closedInvite(refused(410))).toBeNull();
+    expect(closedInvite(refused(410, { code: "SOMETHING_NEW" }))).toBeNull();
+    expect(closedInvite(refused(404, { code: "INVITE_USED" }))).toBeNull();
+    expect(closedInvite(new Error("boom"))).toBeNull();
+  });
+});
+
+describe("inviteMissing", () => {
+  it("returns true for a 404, and for a 422 on a token cut short", () => {
+    expect(inviteMissing(refused(404, { code: "INVITE_NOT_FOUND" }))).toBe(true);
+    expect(inviteMissing(refused(422))).toBe(true);
+  });
+
+  it("returns false for no answer and for any other failure", () => {
+    expect(inviteMissing(new TypeError("Network request failed"))).toBe(false);
+    expect(inviteMissing(refused(429))).toBe(false);
+    expect(inviteMissing(refused(503))).toBe(false);
+  });
+});
+
+describe("joinScreenAction", () => {
+  const invite = { groupId: "group-2", invitedEmail: "alice@dev.local" };
+
+  it("returns already-member when the store holds the viewer's membership in the group", () => {
+    expect(joinScreenAction(invite, ["group-1", "group-2"], "alice@dev.local")).toBe(
+      "already-member"
+    );
+    expect(joinScreenAction(invite, ["group-2"], "bob@dev.local")).toBe("already-member");
+  });
+
+  it("returns join for the invited address, compared without letter case", () => {
+    expect(joinScreenAction(invite, ["group-1"], "alice@dev.local")).toBe("join");
+    expect(joinScreenAction(invite, [], "Alice@Dev.Local")).toBe("join");
+  });
+
+  it("returns wrong-account for another address", () => {
+    expect(joinScreenAction(invite, ["group-1"], "bob@dev.local")).toBe("wrong-account");
+  });
+
+  it("returns join for an invite without an address, whoever is signed in", () => {
+    expect(joinScreenAction({ ...invite, invitedEmail: null }, [], "bob@dev.local")).toBe("join");
+  });
+
+  it("returns join while the viewer's address is unknown, leaving the check to the backend", () => {
+    expect(joinScreenAction(invite, [], null)).toBe("join");
   });
 });

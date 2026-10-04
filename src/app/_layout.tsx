@@ -49,6 +49,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="clock" options={FORM_SHEET} />
             <Stack.Screen name="groups/join" options={FORM_SHEET} />
+            <Stack.Screen name="join" options={{ presentation: "modal" }} />
             <Stack.Screen name="requests/new" options={{ presentation: "modal" }} />
             <Stack.Screen name="settings/two-factor" options={{ presentation: "modal" }} />
             <Stack.Screen name="settings/delete-account" options={{ presentation: "modal" }} />

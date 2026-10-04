@@ -218,6 +218,7 @@ describe("JoinSheet", () => {
       errors.unverified,
     ],
     ["a 400 on a code", "code", () => refusal(400), errors.malformedCode],
+    ["a 422 on a link cut short", "link", () => refusal(422), errors.brokenLink],
     [
       "a 402 READ_ONLY",
       "code",

@@ -927,6 +927,30 @@ export const en = {
       join: "Join",
       joining: "Joining…",
     },
+    screen: {
+      close: "Close",
+      invitedBy: (inviter: string | null) =>
+        inviter ? `${inviter} invited you to join` : "You're invited to join",
+      inviteFor: "Invite for",
+      anyoneWithLink: "Anyone with the link",
+      expires: "Expires",
+      loadFailed: "This invite couldn't load. Check your connection, then tap Retry.",
+      dead: {
+        notFound: "This invite doesn't exist",
+        used: "This invite has already been used",
+        expired: "This invite has expired",
+        revoked: "This invite was withdrawn",
+      },
+      notFoundBody: "Check the link in your email, or ask for a new invite.",
+      askForNew: (inviter: string | null, group: string) =>
+        inviter
+          ? `Ask ${inviter} to send you a new one for ${group}.`
+          : `Ask the group's manager to send you a new one for ${group}.`,
+      done: "Done",
+      alreadyMember: (group: string) => `You're already in ${group}.`,
+      openGroup: "Open the group",
+      join: (group: string) => `Join ${group}`,
+    },
     errors: {
       brokenLink: "That link is missing its invite. Open it from your email again.",
       notFound: "That invite doesn't exist. Check the code, or ask for a new invite.",

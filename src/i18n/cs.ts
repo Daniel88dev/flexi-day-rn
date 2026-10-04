@@ -927,6 +927,29 @@ export const cs: Dictionary = {
       join: "Připojit se",
       joining: "Připojování…",
     },
+    screen: {
+      close: "Zavřít",
+      invitedBy: (inviter: string | null) =>
+        inviter ? `${inviter} vás zve do skupiny` : "Máte pozvánku do skupiny",
+      inviteFor: "Pozvánka pro",
+      anyoneWithLink: "Kdokoli s odkazem",
+      expires: "Platí do",
+      loadFailed:
+        "Pozvánku se nepodařilo načíst. Zkontrolujte připojení a klepněte na Zkusit znovu.",
+      dead: {
+        notFound: "Taková pozvánka neexistuje",
+        used: "Pozvánka už byla použita",
+        expired: "Platnost pozvánky vypršela",
+        revoked: "Pozvánka byla zrušena",
+      },
+      notFoundBody: "Zkontrolujte odkaz v e-mailu, nebo požádejte o novou pozvánku.",
+      askForNew: (inviter: string | null, group: string) =>
+        `Novou pozvánku do skupiny ${group} vám může poslat ${inviter ?? "manažer skupiny"}.`,
+      done: "Hotovo",
+      alreadyMember: (group: string) => `Do skupiny ${group} už patříte.`,
+      openGroup: "Otevřít skupinu",
+      join: (group: string) => `Připojit se ke skupině ${group}`,
+    },
     errors: {
       brokenLink: "V odkazu chybí pozvánka. Otevřete ho znovu z e-mailu.",
       notFound: "Taková pozvánka neexistuje. Zkontrolujte kód, nebo požádejte o novou pozvánku.",
