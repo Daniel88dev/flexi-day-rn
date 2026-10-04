@@ -847,8 +847,29 @@ export const en = {
     empty: "You're all caught up.",
     emptyBody: "Updates on your requests and approvals show up here.",
   },
+  report: {
+    periodRolling: "Last 12 months",
+    leaveTypes: "Leave type",
+    peopleMeta: (count: number, year: number) =>
+      `${count} ${count === 1 ? "person" : "people"}, ${year}`,
+    used: (days: string) => `${days} used`,
+    planned: (days: string) => `${days} planned`,
+    pending: (days: string) => `${days} pending`,
+    of: (days: string) => `of ${days}`,
+    rowLabel: (name: string, left: number, leftText: string, ofText: string) =>
+      `${name}, ${leftText} ${left === 1 ? "day" : "days"} left of ${ofText}`,
+    loading: "Loading the report",
+    empty: "Nothing to report yet",
+    emptyBody:
+      "The report covers the groups you belong to or administer. Join a group and your leave shows up here.",
+    offline: "Can't reach the server",
+    offlineBody:
+      "The report is read from Flexi Day each time and isn't kept on this phone. Connect and try again.",
+    retry: "Retry",
+  },
   common: {
     locale: "en-GB",
+    decimalSeparator: ".",
     comingSoon: (screen: string) => `${screen} lands here.`,
     halfDay: "Half day",
     fullDay: "Full day",

@@ -29,6 +29,7 @@ export {
   type NotificationBusy,
 } from "./notifications";
 export { QueryLayer } from "./query-layer";
+export { useReportOverview, useReportScope, useRereadReportOnFocus } from "./report";
 export type { ApiRequest, ApiRequestOptions } from "./request";
 export {
   putMySettings,

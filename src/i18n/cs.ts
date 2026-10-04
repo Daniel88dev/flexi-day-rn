@@ -840,8 +840,32 @@ export const cs: Dictionary = {
     empty: "Máte přečteno.",
     emptyBody: "Novinky o vašich žádostech a schvalování se zobrazí tady.",
   },
+  report: {
+    periodRolling: "Posledních 12 měsíců",
+    leaveTypes: "Druh volna",
+    peopleMeta: (count: number, year: number) =>
+      `${count} ${count === 1 ? "člověk" : count >= 2 && count <= 4 ? "lidé" : "lidí"}, ${year}`,
+    used: (days: string) => `${days} vybráno`,
+    planned: (days: string) => `${days} naplánováno`,
+    pending: (days: string) => `${days} ke schválení`,
+    of: (days: string) => `z ${days}`,
+    rowLabel: (name: string, left: number, leftText: string, ofText: string) => {
+      const few = Number.isInteger(left) && left >= 2 && left <= 4;
+      const word = !Number.isInteger(left) ? "dne" : left === 1 ? "den" : few ? "dny" : "dní";
+      return `${name}, ${few ? "zbývají" : "zbývá"} ${leftText} ${word} z ${ofText}`;
+    },
+    loading: "Načítám report",
+    empty: "Zatím není co zobrazit",
+    emptyBody:
+      "Report zahrnuje skupiny, ve kterých jste nebo které spravujete. Přidejte se do skupiny a vaše volno se tu objeví.",
+    offline: "Nepodařilo se spojit se serverem",
+    offlineBody:
+      "Report se pokaždé načítá z Flexi Day a v telefonu se neukládá. Připojte se a zkuste to znovu.",
+    retry: "Zkusit znovu",
+  },
   common: {
     locale: "cs-CZ",
+    decimalSeparator: ",",
     comingSoon: (screen: string) => `Tady bude: ${screen}.`,
     halfDay: "Půlden",
     fullDay: "Celý den",
