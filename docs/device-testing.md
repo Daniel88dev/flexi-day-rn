@@ -232,7 +232,16 @@ A dev build talks to the local backend. A real invite link tapped on a phone run
 join screen and then gets a 404, because the token only exists in production. That is expected.
 Test the `https` link end to end on a TestFlight build.
 
-## Google sign-in needs a rebuild
+## Google, Microsoft and Apple sign-in
+
+`@react-native-google-signin/google-signin` and `expo-apple-authentication` ship native code and a
+config plugin each, so they reach the dev client only through `npm run prebuild` and a rebuild with
+`npm run ios` or `npm run ios:device`. Microsoft needs neither; Metro alone picks it up. Google
+and Microsoft open their sheets on the simulator. Apple needs a real phone, because the simulator
+has no Apple Account signed in. The portal side and the first interactive `eas build` are in
+[`native-sign-in-setup.md`](native-sign-in-setup.md).
+
+### Google needs a rebuild
 
 `@react-native-google-signin/google-signin` ships native code, so the rule in
 [`CLAUDE.md`](../CLAUDE.md) for such packages applies: `npm run prebuild`, then a dev-client
@@ -242,7 +251,7 @@ a URL scheme. That is not a capability, so no provisioning profile changes.
 The sheet opens on the iOS 27 simulator: the Google button raises the system prompt for
 `accounts.google.com`, and Cancel there comes back as "Sign-in was cancelled."
 
-## Microsoft sign-in needs no rebuild
+### Microsoft needs no rebuild
 
 `expo-auth-session` is JavaScript only, and the native modules it relies on (`expo-web-browser`,
 `expo-crypto`, `expo-application`, `expo-linking`) were already in the dev client. Metro alone
@@ -252,7 +261,7 @@ The sheet opens on the iOS 27 simulator: the Microsoft button raises the system 
 `login.microsoftonline.com`, Continue opens Microsoft's sign-in page in the auth session browser,
 and closing it comes back as "Sign-in was cancelled."
 
-## Apple sign-in needs prebuild and a rebuild
+### Apple needs a rebuild and a real phone
 
 `expo-apple-authentication` ships native code, and `ios.usesAppleSignIn` in `app.json` adds the
 `com.apple.developer.applesignin` entitlement. Both reach the dev client only through
@@ -260,7 +269,8 @@ and closing it comes back as "Sign-in was cancelled."
 profile goes stale when it is added: `npm run ios:device` refreshes it, as it does for Associated
 Domains. The App ID already carries the capability, and the App Store profile is EAS's to refresh
 on the first interactive `eas build` (section 5.2 of
-[`native-sign-in-setup.md`](native-sign-in-setup.md)). The simulator needs no profile.
+[`native-sign-in-setup.md`](native-sign-in-setup.md#52-the-first-eas-build-once)). The simulator
+needs no profile.
 
 The simulator cannot finish a sign-in without an Apple Account signed in under Settings. On the
 iOS 27 simulator without one, the Apple button raises "Sign in to your Apple Account" from the

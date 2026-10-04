@@ -589,7 +589,7 @@ export const en = {
       retry: "Retry",
       failed: "The account could not be deleted.",
       webHint:
-        "This account signs in with Google or Microsoft, so it is deleted on the web. Sign in there, then delete it.",
+        "This account signs in with Google, Microsoft or Apple, so it is deleted on the web. Sign in there, then delete it.",
       openWeb: "Delete on the web",
     },
   },

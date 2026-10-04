@@ -88,6 +88,13 @@ unzip -q <build>.ipa -d /tmp/ipa
 codesign -d --entitlements - --xml /tmp/ipa/Payload/FlexiDay.app
 ```
 
+## Sign in with Apple
+
+Sign in with Apple is a second capability on the App ID. It invalidates the App Store profile the
+same way and needs the same interactive build once. That step, with the Push Notifications caveat
+and the order it runs in after the portal work, is section 5.2 of the sign-in runbook,
+[The first `eas build`, once](native-sign-in-setup.md#52-the-first-eas-build-once).
+
 ## When Apple rejects an upload
 
 `eas submit` reports success as soon as the upload lands; Apple's processing comes after. A
