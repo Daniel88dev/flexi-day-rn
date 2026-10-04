@@ -5,7 +5,13 @@ import type { ReactNode } from "react";
 import { useReportWindow, type ReportSource } from "@/lib/query/report-window";
 import { queryClient } from "@/lib/query/runtime";
 import type { ReportPeriod, ReportScope } from "@/lib/report";
-import { CROSS_YEAR_TODAY, crossOverview, crossScope } from "@/test-support/report";
+import {
+  CROSS_YEAR_TODAY,
+  crossMember2025,
+  crossMember2026,
+  crossOverview,
+  crossScope,
+} from "@/test-support/report";
 
 const mockFetch = jest.fn();
 
@@ -30,10 +36,13 @@ type Reply = { status: number; body?: unknown } | "offline" | "hold";
 const reply = (status: number, body: unknown) => ({ status, json: async () => body });
 const held: (() => void)[] = [];
 
+const crossMember = (year: number) => (year === 2025 ? crossMember2025 : crossMember2026);
+
 function answer({
   scope = { status: 200, body: crossScope },
   years = {},
-}: { scope?: Reply; years?: Record<number, Reply> } = {}) {
+  members = {},
+}: { scope?: Reply; years?: Record<number, Reply>; members?: Record<number, Reply> } = {}) {
   mockFetch.mockImplementation(async (url: string) => {
     const route = (pick: Reply, body: () => unknown) => {
       if (pick === "offline") throw new TypeError("Network request failed");
@@ -47,6 +56,10 @@ function answer({
       const year = Number(new URL(url).searchParams.get("year"));
       return route(years[year] ?? { status: 200 }, () => crossOverview(year));
     }
+    if (url.includes("/api/reports/members/u-bob")) {
+      const year = Number(new URL(url).searchParams.get("year"));
+      return route(members[year] ?? { status: 200 }, () => crossMember(year));
+    }
     return reply(404, {});
   });
 }
@@ -55,6 +68,8 @@ const overviewUrls = (year: number) =>
   mockFetch.mock.calls
     .map(([url]) => String(url))
     .filter((url) => url.includes("/api/reports/overview") && url.includes(`year=${year}`));
+const memberUrls = () =>
+  mockFetch.mock.calls.map(([url]) => String(url)).filter((url) => url.includes("/members/"));
 const scopeUrls = () =>
   mockFetch.mock.calls.map(([url]) => String(url)).filter((url) => url.includes("/scope"));
 
@@ -294,5 +309,57 @@ describe("useReportWindow", () => {
     expect(overviewUrls(2025)).toHaveLength(before.prior + 1);
     expect(overviewUrls(2026)).toHaveLength(before.current + 1);
     expect(yearsIn(result.current.usage)).toEqual([2025, 2026]);
+  });
+});
+
+const BOB: ReportSource = { kind: "member", userId: "u-bob" };
+
+describe("useReportWindow for a member", () => {
+  it("returns the person's report and reads both of their years, and no overview", async () => {
+    const { result } = await renderWindow("rolling", BOB);
+
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    expect(result.current.data).toEqual(crossMember2026);
+    expect(yearsIn(result.current.usage)).toEqual([2025, 2026]);
+    expect(memberUrls()).toEqual([
+      expect.stringMatching(/\/api\/reports\/members\/u-bob\?year=2026$/),
+      expect.stringMatching(/\/api\/reports\/members\/u-bob\?year=2025$/),
+    ]);
+    expect(overviewUrls(2026)).toEqual([]);
+  });
+
+  it("returns pending while the person's prior year is outstanding", async () => {
+    answer({ members: { 2025: "hold" } });
+
+    const { result } = await renderWindow("rolling", BOB);
+
+    await waitFor(() => expect(result.current.data?.year).toBe(2026));
+    expect(result.current.state).toBe("pending");
+    await releaseAll();
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+  });
+
+  it("returns pending on the previous year's answer after a period change, then ready", async () => {
+    const { result, rerender } = await renderWindow(2026, BOB);
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    answer({ members: { 2025: "hold" } });
+
+    await rerender({ period: 2025, source: BOB });
+
+    expect(result.current.data?.year).toBe(2026);
+    expect(result.current.state).toBe("pending");
+    await releaseAll();
+    await waitFor(() => expect(result.current.data?.year).toBe(2025));
+    expect(result.current.state).toBe("ready");
+  });
+
+  it.each([403, 404])("returns forbidden on a %i answer for the person", async (status) => {
+    answer({ members: { 2026: { status, body: { message: "Not yours" } } } });
+
+    const { result } = await renderWindow("rolling", BOB);
+
+    await waitFor(() => expect(result.current.forbidden).toBe(true));
+    expect(result.current.coldOffline).toBe(false);
+    expect(result.current.data).toBeUndefined();
   });
 });

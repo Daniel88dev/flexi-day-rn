@@ -1,13 +1,16 @@
 # Report window
 
 The report window is what `useReportWindow(period, source)` in `src/lib/query/report-window.ts`
-works out for the overview, and later for the member screen and the self view.
+works out for the overview and the member screen, and later for the self view. The source picks
+the read: the overview with its groups and people, or one person's member report. Both are read
+per year in the same way.
 
 ## Month slots
 
 - "Last 12 months" is the twelve months ending with today's month. It moves at midnight, through
   `useToday()`.
 - A year period is January to December of that year.
+- The member screen starts on the period of the row that opened it and keeps its own from there.
 
 ## Years read
 

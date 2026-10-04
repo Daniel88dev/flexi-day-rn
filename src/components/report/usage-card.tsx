@@ -1,4 +1,4 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { TABULAR, Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -12,33 +12,10 @@ import {
   type ReportScopeMember,
 } from "@/lib/report";
 
+import { IncompleteNote } from "./report-states";
 import { UsageChart } from "./usage-chart";
 
 type UsageWindow = Pick<ReportWindow<unknown>, "slots" | "usage" | "state" | "priorYear" | "retry">;
-
-function IncompleteNote({ year, onRetry }: { year: number; onRetry: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <View
-      testID="report-incomplete"
-      className="mt-3 flex-row items-center gap-3 rounded-[16px] bg-warm-soft px-3.5 py-3"
-    >
-      <Text className="flex-1 text-[13.5px] leading-[19px] text-warm">
-        {t.report.incomplete(year)}
-      </Text>
-      <Pressable
-        testID="report-incomplete-retry"
-        onPress={onRetry}
-        accessibilityRole="button"
-        accessibilityLabel={t.report.retry}
-        hitSlop={8}
-        className="active:opacity-60"
-      >
-        <Text className="text-[14px] font-semibold text-warm">{t.report.retry}</Text>
-      </Pressable>
-    </View>
-  );
-}
 
 export function UsageCard({
   window,
@@ -81,7 +58,9 @@ export function UsageCard({
         )}
       </View>
       {window.state === "incomplete" ? (
-        <IncompleteNote year={window.priorYear} onRetry={window.retry} />
+        <View className="mt-3">
+          <IncompleteNote year={window.priorYear} onRetry={window.retry} />
+        </View>
       ) : null}
       <View className="mt-4">
         {pending ? (

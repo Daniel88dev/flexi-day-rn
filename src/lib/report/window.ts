@@ -22,6 +22,12 @@ export function periodSlots(period: ReportPeriod, today: Date): MonthSlot[] {
   return period === "rolling" ? trailingMonths(today) : calendarMonths(period);
 }
 
+/** A route param back to a period: a year as the row pushed it, anything else the rolling window. */
+export function parsePeriod(param: string | string[] | undefined): ReportPeriod {
+  const value = Array.isArray(param) ? param[0] : param;
+  return value && /^\d{4}$/.test(value) ? Number(value) : "rolling";
+}
+
 export function periodYear(period: ReportPeriod, today: Date): number {
   return period === "rolling" ? today.getFullYear() : period;
 }

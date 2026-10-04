@@ -4,6 +4,7 @@ import { en } from "@/i18n/en";
 import {
   axisLabel,
   calendarMonths,
+  parsePeriod,
   periodSlots,
   periodYear,
   priorYearRead,
@@ -43,6 +44,17 @@ describe("periodSlots", () => {
     const today = new Date(2026, 9, 4);
     expect(periodSlots("rolling", today)).toEqual(trailingMonths(today));
     expect(periodSlots(2025, today)).toEqual(calendarMonths(2025));
+  });
+});
+
+describe("parsePeriod", () => {
+  it("returns a year for a four-digit year and the rolling window otherwise", () => {
+    expect(parsePeriod("2025")).toBe(2025);
+    expect(parsePeriod("rolling")).toBe("rolling");
+    expect(parsePeriod(undefined)).toBe("rolling");
+    expect(parsePeriod("")).toBe("rolling");
+    expect(parsePeriod("20x5")).toBe("rolling");
+    expect(parsePeriod(["2024", "2025"])).toBe(2024);
   });
 });
 

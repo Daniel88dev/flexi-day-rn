@@ -44,17 +44,22 @@ const columns: Segment[][] = [
   [{ key: "b", value: 4, color: "#222222" }],
 ];
 
-async function renderColumns(selected: number | null, onSelect = jest.fn()) {
+async function renderColumns(
+  selected: number | null,
+  onSelect = jest.fn(),
+  extra: { columns?: Segment[][]; guide?: { value: number; color: string } } = {}
+) {
   await render(
     <TranslationProvider>
       <StackedColumns
         testID="chart"
         slots={slots}
-        columns={columns}
+        columns={extra.columns ?? columns}
         selected={selected}
         onSelect={onSelect}
         label={(index) => `column ${index}`}
         callout={(index) => <Text>callout {index}</Text>}
+        guide={extra.guide}
       />
     </TranslationProvider>
   );
@@ -96,6 +101,44 @@ describe("StackedColumns", () => {
     await renderColumns(1, onSelect);
     await fireEvent.press(screen.getByTestId("chart-col-1"));
     expect(onSelect).toHaveBeenLastCalledWith(null);
+  });
+
+  it("renders a segment's own opacity, dimmed with its column", async () => {
+    const light: Segment[][] = [
+      [
+        { key: "a", value: 2, color: "#111111" },
+        { key: "b", value: 1, color: "#111111", opacity: 0.4 },
+      ],
+      [{ key: "a", value: 1, color: "#111111", opacity: 0.4 }],
+      [],
+    ];
+
+    await renderColumns(null, jest.fn(), { columns: light });
+    let bars = shapes(screen.toJSON()).filter((shape) => shape.fill === "#111111");
+    expect(bars.map((bar) => bar.opacity)).toEqual([1, 0.4, 0.4]);
+
+    await renderColumns(0, jest.fn(), { columns: light });
+    bars = shapes(screen.toJSON()).filter((shape) => shape.fill === "#111111");
+    expect(bars.map((bar) => bar.opacity)).toEqual([1, 0.4, 0.4 * 0.35]);
+  });
+
+  it("renders a dashed guide line and scales the axis to reach it", async () => {
+    await renderColumns(null, jest.fn(), { guide: { value: 9, color: "#333333" } });
+
+    const guide = screen.getByTestId("chart-guide");
+    expect(guide).toHaveProp("strokeDasharray", ["5", "4"]);
+    expect(hex(guide.props.stroke)).toBe("#333333");
+    // 9 on a 0 to 10 axis over a 138 px plot with 8 px of headroom.
+    expect(guide).toHaveProp("y1", 21);
+    expect(screen.getByText("10")).toBeOnTheScreen();
+  });
+
+  it("renders no guide line for a guide of zero or none", async () => {
+    await renderColumns(null, jest.fn(), { guide: { value: 0, color: "#333333" } });
+    expect(screen.queryByTestId("chart-guide")).toBeNull();
+
+    await renderColumns(null);
+    expect(screen.queryByTestId("chart-guide")).toBeNull();
   });
 
   it("renders its pressable columns before it knows its width", async () => {

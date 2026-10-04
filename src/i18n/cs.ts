@@ -8,6 +8,8 @@ const czechDays = (count: number) => {
   return count >= 2 && count <= 4 ? "dny" : "dní";
 };
 
+const czechFew = (count: number) => Number.isInteger(count) && count >= 2 && count <= 4;
+
 const czechPlural = (count: number, one: string, few: string, many: string) =>
   count === 1 ? one : count >= 2 && count <= 4 ? few : many;
 
@@ -913,6 +915,23 @@ export const cs: Dictionary = {
       people.length === 0
         ? `${month}, ${totalText} ${czechDays(total)}. Nikdo neměl volno`
         : `${month}, ${totalText} ${czechDays(total)}: ${people.join(", ")}`,
+    member: {
+      daysLeftOf: (left: number, of: string) =>
+        `${czechDays(left)} ${czechFew(left) ? "zbývají" : "zbývá"} z ${of}`,
+      daysOverOf: (over: number, of: string) =>
+        `${czechDays(over)} ${over === 1 ? "přečerpán" : czechFew(over) ? "přečerpány" : "přečerpáno"} z ${of}`,
+      used: "Vybráno",
+      planned: "Naplánováno",
+      pending: "Ke schválení",
+      carriedIn: "Převedeno",
+      showMonths: "Zobrazit měsíce",
+      showMonthsLabel: (type: string) => `Zobrazit měsíce, ${type}`,
+      noneInWindow: "V těchto měsících není nic vybráno ani zarezervováno.",
+      approved: "Schváleno",
+      evenPace: "Rovnoměrné tempo",
+      columnLabel: (month: string, used: string, pending: string) =>
+        `${month}: ${cs.report.used(used)}, ${cs.report.pending(pending)}`,
+    },
   },
   common: {
     locale: "cs-CZ",

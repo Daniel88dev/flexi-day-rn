@@ -1,6 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
-import { ReportEmpty, ReportOffline, ReportSkeleton } from "@/components/report/report-states";
+import {
+  IncompleteNote,
+  ReportEmpty,
+  ReportOffline,
+  ReportSkeleton,
+} from "@/components/report/report-states";
 import { TranslationProvider } from "@/i18n/use-translation";
 
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
@@ -44,6 +49,24 @@ describe("ReportOffline", () => {
 
     expect(screen.getByText("Can't reach the server")).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId("report-retry"));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("IncompleteNote", () => {
+  it("renders the year that failed with a Retry that calls back", async () => {
+    const onRetry = jest.fn();
+    await render(
+      <TranslationProvider>
+        <IncompleteNote year={2025} onRetry={onRetry} />
+      </TranslationProvider>
+    );
+
+    expect(screen.getByTestId("report-incomplete")).toHaveTextContent(
+      "2025 didn't load, so its months show no leave yet.Retry"
+    );
+    await fireEvent.press(screen.getByTestId("report-incomplete-retry"));
 
     expect(onRetry).toHaveBeenCalledTimes(1);
   });

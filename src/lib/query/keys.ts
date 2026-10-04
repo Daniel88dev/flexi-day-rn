@@ -35,4 +35,7 @@ export const qk = {
     ["report-overview", reportFiltersToQuery(filters)] as const,
   /** Every overview: the prefix the web invalidates after a quota change. */
   reportOverviews: () => ["report-overview"] as const,
+  memberReport: (userId: string, year: number) => ["member-report", userId, year] as const,
+  /** Every member report: the prefix the web invalidates after a quota change. */
+  memberReports: () => ["member-report"] as const,
 };

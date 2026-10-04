@@ -35,5 +35,7 @@ describe("qk", () => {
       "year=2026&groupIds=g-1&userIds=u-1%2Cu-2",
     ]);
     expect(qk.reportOverviews()).toEqual(["report-overview"]);
+    expect(qk.memberReport("u-erin", 2025)).toEqual(["member-report", "u-erin", 2025]);
+    expect(qk.memberReports()).toEqual(["member-report"]);
   });
 });

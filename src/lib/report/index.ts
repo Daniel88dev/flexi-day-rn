@@ -32,7 +32,15 @@ export {
   type MemberRemaining,
   type UsagePart,
 } from "./remaining";
-export { buildTeamMonthlySeries, seriesTotal, type TeamMonthRow } from "./series";
+export {
+  buildTeamMonthlySeries,
+  monthlySeriesFor,
+  monthlyTargetFor,
+  seriesTotal,
+  totalQuotaFor,
+  type MonthPoint,
+  type TeamMonthRow,
+} from "./series";
 export type {
   MemberChange,
   MemberReport,
@@ -52,6 +60,7 @@ export type {
 export {
   axisLabel,
   calendarMonths,
+  parsePeriod,
   periodSlots,
   periodYear,
   priorYearRead,

@@ -893,6 +893,21 @@ export const en = {
       people.length === 0
         ? `${month}, ${totalText} ${en.report.days(total)}. Nobody took leave`
         : `${month}, ${totalText} ${en.report.days(total)}: ${people.join(", ")}`,
+    member: {
+      daysLeftOf: (left: number, of: string) => `${left === 1 ? "day" : "days"} left of ${of}`,
+      daysOverOf: (over: number, of: string) => `${over === 1 ? "day" : "days"} over of ${of}`,
+      used: "Used",
+      planned: "Planned",
+      pending: "Pending",
+      carriedIn: "Carried in",
+      showMonths: "Show months",
+      showMonthsLabel: (type: string) => `Show months, ${type}`,
+      noneInWindow: "None taken or booked in these months.",
+      approved: "Approved",
+      evenPace: "Even pace",
+      columnLabel: (month: string, used: string, pending: string) =>
+        `${month}: ${en.report.used(used)}, ${en.report.pending(pending)}`,
+    },
   },
   common: {
     locale: "en-GB",

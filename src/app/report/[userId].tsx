@@ -1,9 +1,10 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Redirect, useLocalSearchParams } from "expo-router";
 
-import { MemberPlaceholder } from "@/components/report/member-placeholder";
+import { MemberReportScreen } from "@/components/report/member-report-screen";
 import { useShellUnderneath } from "@/lib/navigation/use-shell-underneath";
 import { queryClient } from "@/lib/query";
+import { parsePeriod } from "@/lib/report";
 import { useRootRoute } from "@/lib/session/root-route-context";
 
 /** One person's report, pushed from a people-list row. */
@@ -20,7 +21,7 @@ export default function MemberReportRoute() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MemberPlaceholder userId={userId} period={period} />
+      <MemberReportScreen userId={userId} period={parsePeriod(period)} />
     </QueryClientProvider>
   );
 }

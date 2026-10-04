@@ -123,3 +123,28 @@ export function ReportOffline({ onRetry }: { onRetry: () => void }) {
     </StateScreen>
   );
 }
+
+/** The prior year's half of a window failed, so its months read as empty when they may not be. */
+export function IncompleteNote({ year, onRetry }: { year: number; onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <View
+      testID="report-incomplete"
+      className="flex-row items-center gap-3 rounded-[16px] bg-warm-soft px-3.5 py-3"
+    >
+      <Text className="flex-1 text-[13.5px] leading-[19px] text-warm">
+        {t.report.incomplete(year)}
+      </Text>
+      <Pressable
+        testID="report-incomplete-retry"
+        onPress={onRetry}
+        accessibilityRole="button"
+        accessibilityLabel={t.report.retry}
+        hitSlop={8}
+        className="active:opacity-60"
+      >
+        <Text className="text-[14px] font-semibold text-warm">{t.report.retry}</Text>
+      </Pressable>
+    </View>
+  );
+}

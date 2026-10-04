@@ -155,6 +155,26 @@ export const ownerOverview: ReportOverview = {
   ],
 };
 
+/** Erin's year as the owner opens it from Dev Support, with nothing booked unless given. */
+export function memberReport(overrides: Partial<MemberReport> = {}): MemberReport {
+  return {
+    year: 2026,
+    member: {
+      id: ERIN.id,
+      name: ERIN.name,
+      initials: ERIN.initials,
+      avatarColor: ERIN.avatarColor,
+    },
+    groups: [SUPPORT],
+    quotas: [],
+    summary: [summaryRow({ userId: ERIN.id, groupId: SUPPORT.groupId, yearQuota: 20 })],
+    monthly: [],
+    bookings: [],
+    changes: [],
+    ...overrides,
+  };
+}
+
 /** Today for the cross-year fixtures: "Last 12 months" runs from Mar 2025 to Feb 2026. */
 export const CROSS_YEAR_TODAY = new Date(2026, 1, 16, 10);
 

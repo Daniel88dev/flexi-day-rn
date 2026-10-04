@@ -16,15 +16,18 @@ import {
   type MonthSlot,
 } from "@/lib/report";
 
-export type Segment = { key: string; value: number; color: string };
+export type Segment = { key: string; value: number; color: string; opacity?: number };
+
+export type Guide = { value: number; color: string };
 
 const AXIS = 24;
 const LABELS = 30;
 const CALLOUT = { ideal: 184, min: 140, gap: 4 };
 
 /**
- * Monthly columns of stacked segments. Transparent pressables over the drawing carry each
- * column's testID, label and selected state; a tap opens the callout beside the column.
+ * Monthly columns of stacked segments, with an optional guide line. Transparent pressables over
+ * the drawing carry each column's testID, label and selected state; a tap opens the callout beside
+ * the column.
  */
 export function StackedColumns({
   testID,
@@ -34,6 +37,7 @@ export function StackedColumns({
   onSelect,
   label,
   callout,
+  guide,
   height = 168,
 }: {
   testID: string;
@@ -43,6 +47,7 @@ export function StackedColumns({
   onSelect: (index: number | null) => void;
   label: (index: number) => string;
   callout: (index: number) => ReactNode;
+  guide?: Guide;
   height?: number;
 }) {
   const { t } = useTranslation();
@@ -53,7 +58,7 @@ export function StackedColumns({
   const plotWidth = Math.max(0, width - AXIS);
   const plotHeight = height - LABELS;
   const totals = columns.map((segments) => segments.reduce((sum, s) => sum + s.value, 0));
-  const { top, ticks } = niceScale(Math.max(0, ...totals));
+  const { top, ticks } = niceScale(Math.max(0, guide?.value ?? 0, ...totals));
   const y = (value: number) => plotHeight - (value / top) * (plotHeight - 8);
   const cols = bands(columns.length, plotWidth, 0.38);
   const picked = selected === null ? undefined : cols[selected];
@@ -114,7 +119,7 @@ export function StackedColumns({
             {columns.map((segments, index) => {
               const col = cols[index];
               const drawn = segments.filter((segment) => segment.value > 0);
-              const opacity = selected !== null && selected !== index ? 0.35 : 1;
+              const dim = selected !== null && selected !== index ? 0.35 : 1;
               let base = 0;
               return drawn.map((segment, layer) => {
                 const bottom = y(base);
@@ -122,6 +127,7 @@ export function StackedColumns({
                 const topEdge = y(base);
                 const last = layer === drawn.length - 1;
                 const h = Math.max(0, bottom - topEdge - (last ? 0 : 1));
+                const opacity = (segment.opacity ?? 1) * dim;
                 return last ? (
                   <Path
                     key={segment.key}
@@ -142,6 +148,18 @@ export function StackedColumns({
                 );
               });
             })}
+            {guide && guide.value > 0 ? (
+              <Line
+                testID={`${testID}-guide`}
+                x1={0}
+                x2={plotWidth}
+                y1={y(guide.value)}
+                y2={y(guide.value)}
+                stroke={guide.color}
+                strokeWidth={1.5}
+                strokeDasharray="5 4"
+              />
+            ) : null}
           </Svg>
           {cols.map((col, index) => {
             const axis = axisLabel(slots, index, t.calendar.monthsShort);

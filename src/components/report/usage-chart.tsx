@@ -1,49 +1,12 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
-import { TABULAR, Text } from "@/components/ui/text";
+import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
-import { cn } from "@/lib/cn";
 import { formatDays, type ReportScopeMember, type TeamMonthRow } from "@/lib/report";
 
+import { CalloutRow, Dot } from "./callout-row";
 import { StackedColumns } from "./stacked-columns";
-
-function Dot({ color }: { color: string }) {
-  return <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />;
-}
-
-function CalloutRow({
-  color,
-  label,
-  value,
-  strong,
-}: {
-  color?: string;
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <View className="flex-row items-center gap-2 py-[2px]">
-      {color ? <Dot color={color} /> : null}
-      <Text
-        numberOfLines={1}
-        className={cn(
-          "flex-1 text-[12.5px]",
-          strong ? "font-semibold text-foreground" : "text-muted-foreground"
-        )}
-      >
-        {label}
-      </Text>
-      <Text
-        style={TABULAR}
-        className={cn("text-[12.5px] text-foreground", strong && "font-semibold")}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
 
 /**
  * The team's monthly columns stacked by person. Legend chips hide people from this chart only;

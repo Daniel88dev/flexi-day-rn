@@ -1,4 +1,4 @@
-import type { UseQueryResult } from "@tanstack/react-query";
+import { useQuery, type UseQueryOptions, type UseQueryResult } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import {
@@ -7,6 +7,7 @@ import {
   priorYearRead,
   withYear,
   type DatedUsage,
+  type MemberReport,
   type MonthlyUsage,
   type MonthSlot,
   type ReportOverview,
@@ -16,7 +17,7 @@ import {
 import { useToday } from "@/lib/use-today";
 
 import { ApiError } from "./failure";
-import { useReportOverview, useReportScope } from "./report";
+import { memberReportQuery, reportOverviewQuery, useReportScope } from "./report";
 
 export type WindowState = "pending" | "incomplete" | "ready";
 
@@ -33,9 +34,26 @@ export type ReportWindow<T> = {
   retry: () => void;
 };
 
-export type ReportSource = { kind: "overview"; groupIds?: string[]; userIds?: string[] };
+export type OverviewSource = { kind: "overview"; groupIds?: string[]; userIds?: string[] };
+export type MemberSource = { kind: "member"; userId: string };
+export type ReportSource = OverviewSource | MemberSource;
 
 type YearAnswer = { year: number; monthly: MonthlyUsage[] };
+type YearRead = UseQueryOptions<
+  ReportOverview | MemberReport,
+  Error,
+  ReportOverview | MemberReport,
+  readonly unknown[]
+>;
+
+/** The one read a source makes per year: its key, its request and its kept previous answer. */
+function yearRead(source: ReportSource, year: number, enabled: boolean): YearRead {
+  const read =
+    source.kind === "member"
+      ? memberReportQuery(source.userId, year)
+      : reportOverviewQuery({ groupIds: source.groupIds, userIds: source.userIds, year });
+  return { ...(read as YearRead), enabled };
+}
 
 const isForbidden = (error: unknown) =>
   error instanceof ApiError && (error.status === 403 || error.status === 404);
@@ -87,15 +105,26 @@ function windowOf<T extends YearAnswer>(
 
 export function useReportWindow(
   period: ReportPeriod,
+  source: OverviewSource
+): ReportWindow<ReportOverview>;
+export function useReportWindow(
+  period: ReportPeriod,
+  source: MemberSource
+): ReportWindow<MemberReport>;
+export function useReportWindow(
+  period: ReportPeriod,
   source: ReportSource
-): ReportWindow<ReportOverview> {
+): ReportWindow<ReportOverview | MemberReport>;
+export function useReportWindow(
+  period: ReportPeriod,
+  source: ReportSource
+): ReportWindow<ReportOverview | MemberReport> {
   const today = useToday();
   const slots = useMemo(() => periodSlots(period, today), [period, today]);
   const year = periodYear(period, today);
   const scope = useReportScope();
   const read = priorYearRead(slots, year, scope.data?.years);
-  const people = { groupIds: source.groupIds, userIds: source.userIds };
-  const current = useReportOverview({ ...people, year });
-  const prior = useReportOverview({ ...people, year: read.priorYear }, read.needsPrior);
+  const current = useQuery(yearRead(source, year, true));
+  const prior = useQuery(yearRead(source, read.priorYear, read.needsPrior));
   return windowOf(scope, current, prior, slots, year, read);
 }

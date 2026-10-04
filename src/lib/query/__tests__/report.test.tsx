@@ -3,9 +3,14 @@ import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import type { ReportFilters } from "@/lib/report";
-import { useReportOverview, useReportScope, useRereadReportOnFocus } from "@/lib/query/report";
+import {
+  useMemberReport,
+  useReportOverview,
+  useReportScope,
+  useRereadReportOnFocus,
+} from "@/lib/query/report";
 import { queryClient } from "@/lib/query/runtime";
-import { reportOverview, reportScope } from "@/test-support/report";
+import { memberReport, reportOverview, reportScope } from "@/test-support/report";
 
 const mockFetch = jest.fn();
 
@@ -37,6 +42,10 @@ function answer() {
     if (url.includes("/api/reports/overview")) {
       const year = Number(new URL(url).searchParams.get("year"));
       return reply(200, reportOverview({ year }));
+    }
+    if (url.includes("/api/reports/members/")) {
+      const year = Number(new URL(url).searchParams.get("year"));
+      return reply(200, memberReport({ year }));
     }
     return reply(404, {});
   });
@@ -132,22 +141,72 @@ describe("useReportOverview", () => {
   });
 });
 
+describe("useMemberReport", () => {
+  it("returns one person's year from /api/reports/members under the web's key", async () => {
+    const { result } = await renderHook(() => useMemberReport("u-erin", 2026), { wrapper });
+
+    await waitFor(() => expect(result.current.data?.year).toBe(2026));
+    expect(urlsOf("/api/reports/members")).toEqual([
+      expect.stringMatching(/\/api\/reports\/members\/u-erin\?year=2026$/),
+    ]);
+    expect(queryClient.getQueryData(["member-report", "u-erin", 2026])).toEqual(
+      memberReport({ year: 2026 })
+    );
+  });
+
+  it("returns nothing and reads nothing while disabled", async () => {
+    const { result } = await renderHook(() => useMemberReport("u-erin", 2025, false), {
+      wrapper,
+    });
+
+    expect(result.current.data).toBeUndefined();
+    expect(urlsOf("/api/reports/members")).toEqual([]);
+  });
+
+  it("returns the previous year as placeholder data while another year loads", async () => {
+    let release: () => void = () => undefined;
+    const { result, rerender } = await renderHook(
+      ({ year }: { year: number }) => useMemberReport("u-erin", year),
+      { wrapper, initialProps: { year: 2026 } }
+    );
+    await waitFor(() => expect(result.current.data?.year).toBe(2026));
+
+    mockFetch.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve(reply(200, memberReport({ year: 2025 })));
+        })
+    );
+    await rerender({ year: 2025 });
+
+    expect(result.current.data?.year).toBe(2026);
+    expect(result.current.isPlaceholderData).toBe(true);
+
+    await act(async () => release());
+    await waitFor(() => expect(result.current.data?.year).toBe(2025));
+    expect(result.current.isPlaceholderData).toBe(false);
+  });
+});
+
 describe("useRereadReportOnFocus", () => {
-  it("returns to the screen reading the scope and the overview again", async () => {
+  it("returns to the screen reading the scope, the overview and the member report again", async () => {
     await renderHook(
       () => {
         useReportScope();
         useReportOverview({ year: 2026 });
+        useMemberReport("u-erin", 2026);
         useRereadReportOnFocus();
       },
       { wrapper }
     );
     await waitFor(() => expect(urlsOf("/api/reports/overview")).toHaveLength(1));
+    await waitFor(() => expect(urlsOf("/api/reports/members")).toHaveLength(1));
     await act(async () => mockFocus());
 
     await act(async () => mockFocus());
 
     await waitFor(() => expect(urlsOf("/api/reports/overview")).toHaveLength(2));
     expect(urlsOf("/api/reports/scope")).toHaveLength(2);
+    await waitFor(() => expect(urlsOf("/api/reports/members")).toHaveLength(2));
   });
 });
