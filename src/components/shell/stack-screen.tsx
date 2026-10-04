@@ -13,10 +13,14 @@ import { useTranslation } from "@/i18n/use-translation";
  */
 export function StackScreen({
   title,
+  hideTitle,
+  trailing,
   children,
   testID,
 }: {
   title: string;
+  hideTitle?: boolean;
+  trailing?: ReactNode;
   children?: ReactNode;
   testID?: string;
 }) {
@@ -34,7 +38,15 @@ export function StackScreen({
         >
           <Icon icon={CaretLeftIcon} tone="foreground" size={22} weight="bold" />
         </Pressable>
-        <Text className="font-display text-[19px] font-semibold text-foreground">{title}</Text>
+        {hideTitle ? null : (
+          <Text
+            className="font-display flex-1 text-[19px] font-semibold text-foreground"
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+        )}
+        {trailing ? <View className="ml-auto">{trailing}</View> : null}
       </View>
       {children ?? (
         <View className="flex-1 items-center justify-center px-8">

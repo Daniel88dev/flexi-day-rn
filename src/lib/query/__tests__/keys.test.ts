@@ -26,4 +26,8 @@ describe("qk", () => {
     expect(qk.allNotifications()).toEqual(["notifications"]);
     expect(qk.authAccounts()).toEqual(["auth", "accounts"]);
   });
+
+  it("returns the web's key for the holiday countries", () => {
+    expect(qk.bankHolidayCountries()).toEqual(["bank-holiday-countries"]);
+  });
 });

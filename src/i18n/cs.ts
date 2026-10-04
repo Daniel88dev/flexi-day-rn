@@ -1,6 +1,10 @@
 import type { AttendanceEventType } from "@/lib/attendance/types";
+import type { WeekdayRun } from "@/lib/groups/facts";
 
 import type { DayMonth, Dictionary } from "./en";
+
+const daysWord = (count: number) =>
+  count === 1 ? "den" : count >= 2 && count <= 4 ? "dny" : "dní";
 
 export const cs: Dictionary = {
   nav: {
@@ -839,6 +843,38 @@ export const cs: Dictionary = {
     deleteLabel: (title: string) => `Smazat oznámení: ${title}`,
     empty: "Máte přečteno.",
     emptyBody: "Novinky o vašich žádostech a schvalování se zobrazí tady.",
+  },
+  groups: {
+    yourGroups: "Vaše skupiny",
+    roles: { manager: "Manažer", admin: "Správce", approver: "Schvalovatel" },
+    defaultsLine: (vacation: number, homeOffice: number) =>
+      `${vacation} ${daysWord(vacation)} dovolené · ${homeOffice} home office`,
+    empty: {
+      title: "Zatím nejste v žádné skupině",
+      body: "Připojte se pomocí kódu nebo odkazu z pozvánky od svého manažera. O volno můžete žádat, jakmile budete ve skupině.",
+      createOnWeb: "Vytvořit skupinu na webu",
+    },
+    notFound: "Tato skupina už neexistuje.",
+    facts: {
+      workingDays: "Pracovní dny",
+      holidayCountry: "Státní svátky",
+      defaultAllowance: "Výchozí nárok",
+      none: "Žádné",
+      allowance: (vacation: number, homeOffice: number) =>
+        `${vacation} ${daysWord(vacation)} dovolené, ${homeOffice} home office`,
+      weekdayInitials: ["P", "Ú", "S", "Č", "P", "S", "N"],
+      workingDaysPhrase: (runs: readonly WeekdayRun[]) =>
+        runs.length === 0
+          ? cs.groups.facts.none
+          : runs
+              .map(({ from, to }) => {
+                const days = cs.calendar.weekdaysShort;
+                if (from === to) return days[from];
+                if (to === from + 1) return `${days[from]}, ${days[to]}`;
+                return `${days[from]} až ${days[to]}`;
+              })
+              .join(", "),
+    },
   },
   common: {
     locale: "cs-CZ",

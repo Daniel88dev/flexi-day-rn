@@ -31,6 +31,7 @@ export type { BalanceBucket } from "./balance";
 export type { CalendarBankHoliday, CalendarQuery } from "./calendar";
 export type { SyncTableName } from "./envelope";
 export type { StoreChannel } from "./events";
+export type { GroupRole, MyGroup } from "./my-groups";
 export type { PendingChange, PendingKind, VacationDraft, VacationUpdateDraft } from "./pending";
 export type { PullOutcome, PullReason } from "./pull";
 export type { DayRange, VacationStatus } from "./queries";
@@ -56,6 +57,7 @@ export type {
 export { useBalanceBuckets } from "./use-balance";
 export { useCalendarBankHolidays, useCalendarVacations } from "./use-calendar";
 export { useGroupStanding } from "./use-group-standing";
+export { useMyGroups } from "./use-my-groups";
 export { usePendingChanges } from "./use-pending-changes";
 export {
   useMemberGroups,

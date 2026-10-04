@@ -8,6 +8,7 @@ export const qk = {
   vacationDetails: () => ["vacation"] as const,
   group: (groupId: string) => ["group", groupId] as const,
   groupUsers: (groupId: string) => ["group-users", groupId] as const,
+  bankHolidayCountries: () => ["bank-holiday-countries"] as const,
   myApprovals: () => ["my-approvals"] as const,
   dashboardSummary: () => ["dashboard-summary"] as const,
   notifications: (unreadOnly: boolean) => ["notifications", unreadOnly] as const,

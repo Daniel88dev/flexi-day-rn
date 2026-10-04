@@ -1,4 +1,5 @@
 import type { AttendanceEventType } from "@/lib/attendance/types";
+import type { WeekdayRun } from "@/lib/groups/facts";
 
 /** A calendar day without its year, `month` 1-based. */
 export type DayMonth = { day: number; month: number };
@@ -846,6 +847,38 @@ export const en = {
     deleteLabel: (title: string) => `Delete notification: ${title}`,
     empty: "You're all caught up.",
     emptyBody: "Updates on your requests and approvals show up here.",
+  },
+  groups: {
+    yourGroups: "Your groups",
+    roles: { manager: "Manager", admin: "Admin", approver: "Approver" },
+    defaultsLine: (vacation: number, homeOffice: number) =>
+      `${vacation} vacation ${vacation === 1 ? "day" : "days"} · ${homeOffice} home office`,
+    empty: {
+      title: "You're not in a group yet",
+      body: "Join with the invite code or link your manager sent you. Booking leave starts once you're in a group.",
+      createOnWeb: "Create a group on the web",
+    },
+    notFound: "This group no longer exists.",
+    facts: {
+      workingDays: "Working days",
+      holidayCountry: "Holiday country",
+      defaultAllowance: "Default allowance",
+      none: "None",
+      allowance: (vacation: number, homeOffice: number) =>
+        `${vacation} vacation, ${homeOffice} home office`,
+      weekdayInitials: ["M", "T", "W", "T", "F", "S", "S"],
+      workingDaysPhrase: (runs: readonly WeekdayRun[]) =>
+        runs.length === 0
+          ? en.groups.facts.none
+          : runs
+              .map(({ from, to }) => {
+                const days = en.calendar.weekdaysShort;
+                if (from === to) return days[from];
+                if (to === from + 1) return `${days[from]}, ${days[to]}`;
+                return `${days[from]} to ${days[to]}`;
+              })
+              .join(", "),
+    },
   },
   common: {
     locale: "en-GB",
