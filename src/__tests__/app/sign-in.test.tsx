@@ -19,7 +19,7 @@ jest.mock("@/lib/web", () => ({
 }));
 
 jest.mock("@/lib/session/auth-client", () => ({
-  authClient: { signIn: { email: jest.fn() } },
+  authClient: { signIn: { email: jest.fn(), social: jest.fn() } },
 }));
 
 jest.mock("expo-localization", () => ({ getLocales: jest.fn(() => [{ languageCode: "en" }]) }));
@@ -35,6 +35,10 @@ beforeEach(() => {
   openPage.mockResolvedValue(undefined);
 });
 
+async function unfold() {
+  await fireEvent.press(screen.getByTestId("sign-in-email-instead"));
+}
+
 function renderSignIn() {
   return render(
     <RootRouteProvider route="welcome">
@@ -48,16 +52,9 @@ function renderSignIn() {
 describe("SignInScreen", () => {
   it("opens the web password reset from the password label row", async () => {
     await renderSignIn();
+    await unfold();
 
     await fireEvent.press(screen.getByText(en.auth.signIn.forgot));
-
-    expect(openPage).toHaveBeenCalledWith("/forgot-password/");
-  });
-
-  it("opens the web password reset from the Google and Microsoft hint", async () => {
-    await renderSignIn();
-
-    await fireEvent.press(screen.getByText(en.auth.signIn.socialHintLink));
 
     expect(openPage).toHaveBeenCalledWith("/forgot-password/");
   });
@@ -70,13 +67,16 @@ describe("SignInScreen", () => {
     expect(openPage).toHaveBeenCalledWith("/sign-up/");
   });
 
-  it("starts with an empty address when no invite is held", async () => {
+  it("starts folded with no invite held, and unfolds to an empty address", async () => {
     await renderSignIn();
+
+    expect(screen.queryByTestId("sign-in-email")).toBeNull();
+    await unfold();
 
     expect(screen.getByTestId("sign-in-email")).toHaveDisplayValue("");
   });
 
-  it("starts with the held invite's address filled in, and keeps holding the invite", async () => {
+  it("starts unfolded with the held invite's address filled in, and keeps holding the invite", async () => {
     const invite = {
       token: "dev-alice-support-00000000000000000",
       invitedEmail: "alice@dev.local",
@@ -85,15 +85,19 @@ describe("SignInScreen", () => {
 
     await renderSignIn();
 
+    expect(screen.queryByTestId("sign-in-email-instead")).toBeNull();
     expect(screen.getByTestId("sign-in-email")).toHaveDisplayValue("alice@dev.local");
     expect(screen.getByTestId("sign-in-password")).toHaveDisplayValue("");
     expect(heldInvite()).toEqual(invite);
   });
 
-  it("starts with an empty address for a held invite sent to no address", async () => {
+  it("starts folded for a held invite sent to no address, and unfolds to an empty address", async () => {
     holdInvite({ token: "dev-anyone-00000000000000000000000000", invitedEmail: null });
 
     await renderSignIn();
+
+    expect(screen.queryByTestId("sign-in-email")).toBeNull();
+    await unfold();
 
     expect(screen.getByTestId("sign-in-email")).toHaveDisplayValue("");
   });

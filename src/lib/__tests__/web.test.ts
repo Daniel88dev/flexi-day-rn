@@ -1,6 +1,6 @@
 import * as WebBrowser from "expo-web-browser";
 
-import { openWebPage, webJoinPath } from "@/lib/web";
+import { openWebPage, WEB_PATHS, webJoinPath } from "@/lib/web";
 
 jest.mock("@/lib/api", () => ({ WEB_URL: "https://web.test" }));
 
@@ -30,6 +30,12 @@ describe("openWebPage", () => {
     openBrowserAsync.mockRejectedValue(new Error("Another browser is already open."));
 
     await expect(openWebPage("/sign-up/")).resolves.toBeUndefined();
+  });
+});
+
+describe("WEB_PATHS", () => {
+  it("returns the web's Settings page, where a provider is connected", () => {
+    expect(WEB_PATHS.settings).toBe("/settings/");
   });
 });
 
