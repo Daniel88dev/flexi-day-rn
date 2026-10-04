@@ -78,6 +78,12 @@
           "microphonePermission": false
         }
       ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.456983325414-tt5nktncl12ece3qjrtb043jlc4lia37"
+        }
+      ],
       "./plugins/without-push-entitlement"
     ],
     "experiments": {

@@ -232,6 +232,16 @@ A dev build talks to the local backend. A real invite link tapped on a phone run
 join screen and then gets a 404, because the token only exists in production. That is expected.
 Test the `https` link end to end on a TestFlight build.
 
+## Google sign-in needs a rebuild
+
+`@react-native-google-signin/google-signin` ships native code, so the rule in
+[`CLAUDE.md`](../CLAUDE.md) for such packages applies: `npm run prebuild`, then a dev-client
+rebuild. Its config plugin registers the reversed iOS client id from `app.json` (`iosUrlScheme`) as
+a URL scheme. That is not a capability, so no provisioning profile changes.
+
+The sheet opens on the iOS 27 simulator: the Google button raises the system prompt for
+`accounts.google.com`, and Cancel there comes back as "Sign-in was cancelled."
+
 ## Known state (2026-10-03)
 
 - Mac: Xcode 27.0, CocoaPods 1.17.0 from Homebrew, Node 24.
