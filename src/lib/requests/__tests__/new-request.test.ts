@@ -2,6 +2,7 @@ import { cs } from "@/i18n/cs";
 import { en } from "@/i18n/en";
 import type { WriteFailure } from "@/lib/local-store";
 import type { GroupMember } from "@/lib/query";
+import { groupMember } from "@/test-support/groups";
 
 import {
   bookableMembers,
@@ -303,13 +304,8 @@ describe("submitFailureMessage", () => {
 });
 
 describe("bookableMembers", () => {
-  const member = (patch: Partial<GroupMember>): GroupMember => ({
-    userId: "user-2",
-    controlledUser: true,
-    deletedAt: null,
-    user: { id: "user-2", name: "Eva Horáková", initials: "EH", avatarColor: "hsl(0 0% 50%)" },
-    ...patch,
-  });
+  const member = (patch: Partial<GroupMember>): GroupMember =>
+    groupMember("user-2", "Eva Horáková", patch);
 
   it("returns the live members the admin controls, never the admin", () => {
     const eva = member({});

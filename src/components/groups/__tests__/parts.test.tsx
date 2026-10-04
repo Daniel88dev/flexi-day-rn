@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 
-import { Monogram, RoleBadge, WeekdayPills } from "@/components/groups/parts";
+import { Monogram, Pill, RetryNotice, RoleBadge, WeekdayPills } from "@/components/groups/parts";
 import { TranslationProvider } from "@/i18n/use-translation";
 
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
@@ -15,6 +15,27 @@ describe("Monogram", () => {
 
     expect(screen.getByText("DT", { includeHiddenElements: true })).toBeOnTheScreen();
     expect(screen.queryByText("DT")).toBeNull();
+  });
+});
+
+describe("Pill", () => {
+  it("renders its label", async () => {
+    await render(<Pill testID="pill" label="Not tracked" tone="muted" />);
+
+    expect(screen.getByTestId("pill")).toHaveTextContent("Not tracked");
+  });
+});
+
+describe("RetryNotice", () => {
+  it("renders the message and retries on press", async () => {
+    const onRetry = jest.fn();
+    await render(
+      withTranslation(<RetryNotice testID="thing" message="Didn't load." onRetry={onRetry} />)
+    );
+
+    expect(screen.getByTestId("thing-failed")).toHaveTextContent(/Didn't load\./);
+    await fireEvent.press(screen.getByTestId("thing-retry"));
+    expect(onRetry).toHaveBeenCalled();
   });
 });
 

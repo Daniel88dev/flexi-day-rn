@@ -859,6 +859,29 @@ export const en = {
       createOnWeb: "Create a group on the web",
     },
     notFound: "This group no longer exists.",
+    noAccess: "You don't have access to this group any more.",
+    detailFailed: "This group couldn't load. Check your connection, then tap Retry.",
+    noViewAccess:
+      "Members and quotas show to people with view access in this group. Ask the group's manager if you need them.",
+    tabsFailed: "Members and quotas couldn't load. Check your connection, then tap Retry.",
+    offlineUpdated: (time: string) => `Offline, updated ${time}`,
+    retry: "Retry",
+    members: {
+      tab: "Members",
+      heading: (count: number) => `${count} ${count === 1 ? "person" : "people"}`,
+      notTracked: "Not tracked",
+    },
+    quotas: {
+      tab: "Quotas",
+      heading: (year: number) => `Allowance ${year}`,
+      perYear: "days per year",
+      figures: {
+        vacation: "Vacation",
+        homeOffice: "Home office",
+        sickDays: "Sick days",
+        carriedOver: "Carried over",
+      },
+    },
     facts: {
       workingDays: "Working days",
       holidayCountry: "Holiday country",

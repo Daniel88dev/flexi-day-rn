@@ -855,6 +855,32 @@ export const cs: Dictionary = {
       createOnWeb: "Vytvořit skupinu na webu",
     },
     notFound: "Tato skupina už neexistuje.",
+    noAccess: "K této skupině už nemáte přístup.",
+    detailFailed:
+      "Skupinu se nepodařilo načíst. Zkontrolujte připojení a klepněte na Zkusit znovu.",
+    noViewAccess:
+      "Členy a nároky vidí lidé, kteří mají v této skupině přístup k náhledu. Pokud je potřebujete, požádejte manažera skupiny.",
+    tabsFailed:
+      "Členy a nároky se nepodařilo načíst. Zkontrolujte připojení a klepněte na Zkusit znovu.",
+    offlineUpdated: (time: string) => `Offline, aktualizováno ${time}`,
+    retry: "Zkusit znovu",
+    members: {
+      tab: "Členové",
+      heading: (count: number) =>
+        `${count} ${count === 1 ? "člověk" : count >= 2 && count <= 4 ? "lidé" : "lidí"}`,
+      notTracked: "Mimo evidenci",
+    },
+    quotas: {
+      tab: "Nároky",
+      heading: (year: number) => `Nárok ${year}`,
+      perYear: "dní za rok",
+      figures: {
+        vacation: "Dovolená",
+        homeOffice: "Home office",
+        sickDays: "Zdravotní volno",
+        carriedOver: "Převedeno",
+      },
+    },
     facts: {
       workingDays: "Pracovní dny",
       holidayCountry: "Státní svátky",

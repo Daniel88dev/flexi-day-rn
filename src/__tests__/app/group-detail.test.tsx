@@ -1,13 +1,14 @@
-import { render, screen, waitFor, within } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { router } from "expo-router";
 
 import GroupDetailRoute from "@/app/groups/[groupId]";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { useMyGroups, useStoreOpen, type MyGroup } from "@/lib/local-store";
-import { queryClient } from "@/lib/query";
+import { queryClient, type GroupDetail } from "@/lib/query";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
+import { GROUP_ACCESS, groupDetail, groupMember, userYearQuota } from "@/test-support/groups";
 import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
@@ -42,6 +43,8 @@ jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" 
 const myGroups = useMyGroups as jest.MockedFunction<typeof useMyGroups>;
 const storeOpen = useStoreOpen as jest.MockedFunction<typeof useStoreOpen>;
 
+const NOW = new Date(2026, 9, 4, 9, 41);
+
 const COUNTRIES = [
   { code: "CZ", name: "Czechia" },
   { code: "SK", name: "Slovakia" },
@@ -62,23 +65,99 @@ function group(patch: Partial<MyGroup> = {}): MyGroup {
   };
 }
 
+// The backend orders by name; the phone puts the manager first.
+const MEMBERS = [
+  groupMember("alice", "Alice Novak", { approverAccess: true }),
+  groupMember("bob", "Bob Dvorak"),
+  groupMember("dave", "Dave Horak", { controlledUser: false }),
+  groupMember("olivia", "Olivia Owner", { adminAccess: true, approverAccess: true }),
+];
+
+const ACCESS = { ...GROUP_ACCESS, canAdmin: true };
+const serverGroup = (patch: Partial<GroupDetail> = {}) => groupDetail({ access: ACCESS, ...patch });
+
+// Bob has no quota row this year.
+const QUOTAS = [
+  userYearQuota("olivia"),
+  userYearQuota("alice", { carriedOverDays: 0 }),
+  userYearQuota("dave"),
+];
+
 function answer(status: number, body: unknown) {
   return { status, json: async () => body, text: async () => JSON.stringify(body) };
 }
 
-const offline = () => mockFetch.mockRejectedValue(new TypeError("Network request failed"));
+type Answer = ReturnType<typeof answer>;
+type Route = "countries" | "group" | "members" | "quotas";
+
+const ROUTES: Record<Route, RegExp> = {
+  countries: /\/api\/bank-holidays\/countries$/,
+  group: /\/api\/group\/group-1$/,
+  members: /\/api\/group-user\/group-1$/,
+  quotas: /\/api\/quotas\/group-1\?year=2026$/,
+};
+
+let replies: Record<Route, () => Answer | Promise<Answer>>;
+
+const unreachable = () => Promise.reject(new TypeError("Network request failed"));
+const never = () => new Promise<Answer>(() => undefined);
+const refusal = (status: number) => () => answer(status, { errors: [{ message: "No access" }] });
+
+const requests = (route: Route) =>
+  mockFetch.mock.calls.filter(([url]) => ROUTES[route].test(String(url))).length;
+
+function serve() {
+  mockFetch.mockImplementation(async (url: string) => {
+    const route = (Object.keys(ROUTES) as Route[]).find((key) => ROUTES[key].test(String(url)));
+    if (!route) throw new Error(`Unexpected request ${String(url)}`);
+    return replies[route]();
+  });
+}
 
 beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
+beforeAll(() => {
+  // A read that got no answer is tried once more; without the wait, so failures settle at once.
+  queryClient.setDefaultOptions({
+    ...queryClient.getDefaultOptions(),
+    queries: { ...queryClient.getDefaultOptions().queries, retryDelay: 0 },
+  });
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
+  // Only the date is fixed: the query layer's timers stay real.
+  jest.useFakeTimers({
+    now: NOW,
+    doNotFake: [
+      "setTimeout",
+      "clearTimeout",
+      "setInterval",
+      "clearInterval",
+      "setImmediate",
+      "clearImmediate",
+      "nextTick",
+      "queueMicrotask",
+      "requestAnimationFrame",
+      "cancelAnimationFrame",
+    ],
+  });
   mockCanGoBack.mockReturnValue(true);
   storeOpen.mockReturnValue(true);
   myGroups.mockReturnValue([group()]);
-  mockFetch.mockResolvedValue(answer(200, COUNTRIES));
+  replies = {
+    countries: () => answer(200, COUNTRIES),
+    group: () => answer(200, serverGroup()),
+    members: () => answer(200, MEMBERS),
+    quotas: () => answer(200, QUOTAS),
+  };
+  serve();
 });
 
-afterEach(() => queryClient.clear());
+afterEach(() => {
+  queryClient.clear();
+  jest.useRealTimers();
+});
 
 async function renderDetail(route: RootRoute = "signed-in") {
   await render(
@@ -91,6 +170,20 @@ async function renderDetail(route: RootRoute = "signed-in") {
 }
 
 const holidayCountry = () => screen.getByTestId("group-facts-holiday-country");
+const header = () => within(screen.getByTestId("group-header"));
+const membersShown = () => screen.findByTestId("group-members");
+
+async function pullToRefresh() {
+  await act(async () => {
+    await screen.getByTestId("group-detail-scroll").props.refreshControl.props.onRefresh();
+  });
+}
+
+async function openQuotas() {
+  await membersShown();
+  await fireEvent.press(screen.getByTestId("group-tab-quotas"));
+  return screen.findByTestId("group-quotas");
+}
 
 describe("GroupDetail route", () => {
   it("sends a signed-out visitor to welcome", async () => {
@@ -123,10 +216,9 @@ describe("GroupDetail route", () => {
   it("shows the header from the store with the role badge, the name kept off the bar", async () => {
     await renderDetail();
 
-    const header = within(screen.getByTestId("group-header"));
-    expect(header.getByText("Dev Team")).toBeOnTheScreen();
-    expect(header.getByText("Olivia Owner")).toBeOnTheScreen();
-    expect(header.getByText("Manager")).toBeOnTheScreen();
+    expect(header().getByText("Dev Team")).toBeOnTheScreen();
+    expect(header().getByText("Olivia Owner")).toBeOnTheScreen();
+    expect(header().getByText("Manager")).toBeOnTheScreen();
     expect(screen.getAllByText("Dev Team")).toHaveLength(1);
     expect(screen.getByTestId("stack-back")).toHaveAccessibleName("Dev Team");
   });
@@ -136,7 +228,7 @@ describe("GroupDetail route", () => {
 
     await renderDetail();
 
-    expect(within(screen.getByTestId("group-header")).queryByText("Manager")).toBeNull();
+    expect(header().queryByText("Manager")).toBeNull();
     expect(screen.queryByTestId(/^role-badge-/)).toBeNull();
   });
 
@@ -160,11 +252,11 @@ describe("GroupDetail route", () => {
     await renderDetail();
 
     await waitFor(() => expect(holidayCountry()).toHaveTextContent(/Czechia/));
-    expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/api\/bank-holidays\/countries$/);
+    expect(requests("countries")).toBe(1);
   });
 
   it("shows the country's code until the countries read answers", async () => {
-    mockFetch.mockReturnValue(new Promise(() => undefined));
+    replies.countries = never;
     myGroups.mockReturnValue([group({ holidayCountry: "CZ" })]);
 
     await renderDetail();
@@ -176,7 +268,8 @@ describe("GroupDetail route", () => {
     await renderDetail();
 
     expect(holidayCountry()).toHaveTextContent(new RegExp(en.groups.facts.none));
-    expect(mockFetch).not.toHaveBeenCalled();
+    await membersShown();
+    expect(requests("countries")).toBe(0);
   });
 
   it("shows the default allowance", async () => {
@@ -190,37 +283,365 @@ describe("GroupDetail route", () => {
   });
 
   it("shows the header and facts offline, the country by its code", async () => {
-    offline();
+    replies.group = unreachable;
+    replies.countries = unreachable;
     myGroups.mockReturnValue([group({ holidayCountry: "CZ" })]);
 
     await renderDetail();
 
-    // A request that got no answer is tried once more before the read fails.
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2), { timeout: 3000 });
-    expect(within(screen.getByTestId("group-header")).getByText("Dev Team")).toBeOnTheScreen();
+    expect(await screen.findByTestId("group-tabs-failed")).toBeOnTheScreen();
+    expect(header().getByText("Dev Team")).toBeOnTheScreen();
     expect(screen.getByTestId("weekday-pills")).toHaveAccessibleName("Mon to Fri");
     expect(holidayCountry()).toHaveTextContent(/CZ/);
     expect(screen.getByTestId("group-facts-allowance")).toHaveTextContent(
       /20 vacation, 0 home office/
     );
   });
+});
 
-  it("says the group no longer exists when the store does not hold it", async () => {
-    myGroups.mockReturnValue([group({ id: "another-group" })]);
+describe("GroupDetail access", () => {
+  it("shows Members and Quotas once the group detail says canView, and asks for both", async () => {
+    await renderDetail();
+
+    expect(await membersShown()).toBeOnTheScreen();
+    expect(screen.getByTestId("group-tab-members")).toBeSelected();
+    expect(screen.getByTestId("group-tab-quotas")).toBeOnTheScreen();
+    await waitFor(() => expect(requests("quotas")).toBe(1));
+    expect(requests("group")).toBe(1);
+    expect(requests("members")).toBe(1);
+  });
+
+  it("asks for no members or quotas while the group detail has not answered, whatever the store row says", async () => {
+    replies.group = never;
+    myGroups.mockReturnValue([group({ role: "admin" })]);
 
     await renderDetail();
 
-    expect(screen.getByTestId("group-not-found")).toHaveTextContent(en.groups.notFound);
-    expect(screen.queryByTestId("group-facts")).toBeNull();
+    expect(screen.getByTestId("group-tabs-loading")).toBeOnTheScreen();
+    expect(screen.queryByTestId("group-tab-members")).toBeNull();
+    expect(requests("members")).toBe(0);
+    expect(requests("quotas")).toBe(0);
+  });
+
+  it("asks for no members or quotas when the group detail says canView false, though the store row has view and admin access", async () => {
+    // The store row's adminAccess (and viewAccess) is what makes the role "admin".
+    myGroups.mockReturnValue([group({ role: "admin" })]);
+    replies.group = () =>
+      answer(200, serverGroup({ access: { ...ACCESS, canView: false, canAdmin: false } }));
+
+    await renderDetail();
+
+    expect(await screen.findByTestId("group-no-view-access")).toHaveTextContent(
+      en.groups.noViewAccess
+    );
+    expect(screen.queryByTestId("group-tabs")).toBeNull();
+    expect(requests("group")).toBe(1);
+    expect(requests("members")).toBe(0);
+    expect(requests("quotas")).toBe(0);
+  });
+
+  it("shows only the no-access line on a 403 for your own group, keeping the store header and facts", async () => {
+    myGroups.mockReturnValue([group({ role: null })]);
+    replies.group = refusal(403);
+
+    await renderDetail();
+
+    expect(await screen.findByTestId("group-no-view-access")).toHaveTextContent(
+      en.groups.noViewAccess
+    );
+    expect(header().getByText("Dev Team")).toBeOnTheScreen();
+    expect(screen.getByTestId("group-facts")).toBeOnTheScreen();
+    expect(screen.queryByTestId("group-tabs")).toBeNull();
+    expect(screen.queryByTestId("group-tabs-failed")).toBeNull();
+    expect(screen.queryByTestId("group-no-access")).toBeNull();
+    expect(requests("group")).toBe(1);
+    expect(requests("members")).toBe(0);
+  });
+
+  it("takes the header and facts from the server for a group the store does not hold", async () => {
+    myGroups.mockReturnValue([]);
+    replies.group = () =>
+      answer(
+        200,
+        serverGroup({
+          groupName: "Dev Support",
+          defaultVacationDays: 22,
+          defaultHomeOfficeDays: 4,
+          workingDays: [1, 2, 3, 4],
+        })
+      );
+
+    await renderDetail();
+
+    expect(screen.getByTestId("group-detail-loading")).toBeOnTheScreen();
+    expect(await screen.findByTestId("group-header")).toBeOnTheScreen();
+    expect(header().getByText("Dev Support")).toBeOnTheScreen();
+    expect(header().getByText("Olivia Owner")).toBeOnTheScreen();
+    expect(screen.getByTestId("stack-back")).toHaveAccessibleName("Dev Support");
+    expect(screen.getByTestId("weekday-pills")).toHaveAccessibleName("Mon to Thu");
+    expect(screen.getByTestId("group-facts-allowance")).toHaveTextContent(
+      /22 vacation, 4 home office/
+    );
+    expect(await membersShown()).toBeOnTheScreen();
+  });
+
+  it("says you don't have access any more on a 403 for a group the store does not hold", async () => {
+    myGroups.mockReturnValue([]);
+    replies.group = refusal(403);
+
+    await renderDetail();
+
+    expect(await screen.findByTestId("group-no-access")).toHaveTextContent(en.groups.noAccess);
+    expect(screen.queryByTestId("group-header")).toBeNull();
     expect(screen.getByTestId("stack-back")).toHaveAccessibleName(en.nav.groups);
   });
 
-  it("asks the server for nothing but the countries, whatever the viewer's role", async () => {
-    myGroups.mockReturnValue([group({ role: "admin", holidayCountry: "CZ" })]);
+  it("says the group no longer exists on a 404, for a group the store does not hold", async () => {
+    myGroups.mockReturnValue([]);
+    replies.group = refusal(404);
 
     await renderDetail();
 
-    await waitFor(() => expect(holidayCountry()).toHaveTextContent(/Czechia/));
-    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(await screen.findByTestId("group-not-found")).toHaveTextContent(en.groups.notFound);
+    expect(screen.queryByTestId("group-header")).toBeNull();
+  });
+
+  it("says the group no longer exists on a 404 for your own group too", async () => {
+    replies.group = refusal(404);
+
+    await renderDetail();
+
+    expect(await screen.findByTestId("group-not-found")).toHaveTextContent(en.groups.notFound);
+    expect(screen.queryByTestId("group-facts")).toBeNull();
+    expect(requests("members")).toBe(0);
+  });
+
+  it("offers Retry over the whole screen when a group the store does not hold never loaded", async () => {
+    myGroups.mockReturnValue([]);
+    replies.group = unreachable;
+
+    await renderDetail();
+
+    expect(await screen.findByTestId("group-detail-failed")).toHaveTextContent(
+      new RegExp(en.groups.detailFailed)
+    );
+    replies.group = () => answer(200, serverGroup());
+    await fireEvent.press(screen.getByTestId("group-detail-retry"));
+
+    expect(await screen.findByTestId("group-header")).toBeOnTheScreen();
+    expect(await membersShown()).toBeOnTheScreen();
+  });
+});
+
+describe("GroupDetail members", () => {
+  it("lists the people with the manager first, then by name", async () => {
+    await renderDetail();
+    const list = within(await membersShown());
+
+    expect(list.getByText("4 people")).toBeOnTheScreen();
+    const order = screen
+      .getAllByTestId(/^group-member-/)
+      .map((row) => String(row.props.testID).replace("group-member-", ""));
+    expect(order).toEqual(["olivia", "alice", "bob", "dave"]);
+    expect(
+      within(screen.getByTestId("group-member-bob")).getByText("bob@dev.local")
+    ).toBeOnTheScreen();
+  });
+
+  it("badges Manager, Admin and Approver, and nothing for view access or being tracked", async () => {
+    await renderDetail();
+    await membersShown();
+
+    const olivia = within(screen.getByTestId("group-member-olivia"));
+    expect(olivia.getByTestId("member-badge-manager")).toHaveTextContent("Manager");
+    expect(olivia.getByTestId("member-badge-admin")).toHaveTextContent("Admin");
+    expect(olivia.getByTestId("member-badge-approver")).toHaveTextContent("Approver");
+    expect(olivia.queryByTestId("member-badge-not-tracked")).toBeNull();
+    const alice = within(screen.getByTestId("group-member-alice"));
+    expect(alice.getByTestId("member-badge-approver")).toBeOnTheScreen();
+    expect(alice.queryByTestId("member-badge-manager")).toBeNull();
+    expect(
+      within(screen.getByTestId("group-member-bob")).queryByTestId(/^member-badge-/)
+    ).toBeNull();
+  });
+
+  it("marks a member who is not a controlled user Not tracked", async () => {
+    await renderDetail();
+    await membersShown();
+
+    expect(
+      within(screen.getByTestId("group-member-dave")).getByTestId("member-badge-not-tracked")
+    ).toHaveTextContent(en.groups.members.notTracked);
+    expect(screen.getAllByTestId("member-badge-not-tracked")).toHaveLength(1);
+  });
+
+  it("makes no member row tappable", async () => {
+    await renderDetail();
+    const list = within(await membersShown());
+
+    expect(list.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getByTestId("group-member-alice").props.onPress).toBeUndefined();
+  });
+
+  it("shows skeleton rows while the members read has not answered", async () => {
+    replies.members = never;
+
+    await renderDetail();
+
+    await waitFor(() => expect(requests("members")).toBe(1));
+    expect(screen.getByTestId("group-tab-members")).toBeOnTheScreen();
+    expect(screen.getByTestId("group-tabs-loading")).toBeOnTheScreen();
+    expect(screen.queryByTestId("group-members")).toBeNull();
+  });
+
+  it("offers Retry where the tabs would be when the members never loaded", async () => {
+    replies.members = unreachable;
+
+    await renderDetail();
+
+    expect(await screen.findByTestId("group-tabs-failed")).toHaveTextContent(
+      new RegExp(en.groups.tabsFailed)
+    );
+    expect(screen.queryByTestId("group-members")).toBeNull();
+    replies.members = () => answer(200, MEMBERS);
+    await fireEvent.press(screen.getByTestId("group-tabs-retry"));
+
+    expect(await membersShown()).toBeOnTheScreen();
+  });
+
+  it("keeps the members after a failed refresh, saying when they were read", async () => {
+    await renderDetail();
+    await membersShown();
+    replies.group = unreachable;
+    replies.members = unreachable;
+    replies.quotas = unreachable;
+
+    await pullToRefresh();
+
+    expect(screen.getByTestId("group-tabs-stale")).toHaveTextContent("Offline, updated 09:41");
+    expect(screen.getByTestId("group-member-olivia")).toBeOnTheScreen();
+    expect(screen.queryByTestId("group-tabs-failed")).toBeNull();
+  });
+});
+
+describe("GroupDetail quotas", () => {
+  it("shows this year's allowance per person, with what was carried over", async () => {
+    await renderDetail();
+    const quotas = within(await openQuotas());
+
+    expect(screen.getByTestId("group-tab-quotas")).toBeSelected();
+    expect(quotas.getByText("Allowance 2026")).toBeOnTheScreen();
+    expect(screen.getByTestId("group-tabs-meta")).toHaveTextContent(en.groups.quotas.perYear);
+    expect(screen.queryByTestId("group-tabs-stale")).toBeNull();
+    const olivia = within(screen.getByTestId("group-quota-olivia"));
+    expect(olivia.getByTestId("quota-figure-vacation")).toHaveTextContent(/25.*Vacation/);
+    expect(olivia.getByTestId("quota-figure-homeOffice")).toHaveTextContent(/10.*Home office/);
+    expect(olivia.getByTestId("quota-figure-carriedOver")).toHaveTextContent(/\+3.*Carried over/);
+    expect(
+      within(screen.getByTestId("group-quota-alice")).getByTestId("quota-figure-carriedOver")
+    ).toHaveTextContent(/^0/);
+  });
+
+  it("shows the group's defaults for a person without a quota row", async () => {
+    myGroups.mockReturnValue([group({ defaultVacationDays: 20, defaultHomeOfficeDays: 2 })]);
+
+    await renderDetail();
+    await openQuotas();
+
+    const bob = within(screen.getByTestId("group-quota-bob"));
+    expect(bob.getByTestId("quota-figure-vacation")).toHaveTextContent(/^20/);
+    expect(bob.getByTestId("quota-figure-homeOffice")).toHaveTextContent(/^2/);
+    expect(bob.getByTestId("quota-figure-carriedOver")).toHaveTextContent(/^0/);
+  });
+
+  it("leaves the Sick days tile out while the organization does not offer the benefit", async () => {
+    await renderDetail();
+    await openQuotas();
+
+    expect(screen.queryByTestId("quota-figure-sickDays")).toBeNull();
+  });
+
+  it("shows the Sick days tile while the organization badge says the benefit is active", async () => {
+    myGroups.mockReturnValue([group({ defaultSickDays: 4 })]);
+    replies.group = () =>
+      answer(
+        200,
+        serverGroup({
+          organization: { name: "Olivia Owner", sickDayBenefitActive: true },
+        })
+      );
+
+    await renderDetail();
+    await openQuotas();
+
+    expect(
+      within(screen.getByTestId("group-quota-olivia")).getByTestId("quota-figure-sickDays")
+    ).toHaveTextContent(/5.*Sick days/);
+    expect(
+      within(screen.getByTestId("group-quota-bob")).getByTestId("quota-figure-sickDays")
+    ).toHaveTextContent(/^4/);
+  });
+
+  it("shows skeleton rows while the quotas read has not answered", async () => {
+    replies.quotas = never;
+
+    await renderDetail();
+    await membersShown();
+    await fireEvent.press(screen.getByTestId("group-tab-quotas"));
+
+    expect(screen.getByTestId("group-tabs-loading")).toBeOnTheScreen();
+  });
+
+  it("offers Retry when the quotas never loaded", async () => {
+    replies.quotas = unreachable;
+
+    await renderDetail();
+    await membersShown();
+    await fireEvent.press(screen.getByTestId("group-tab-quotas"));
+
+    expect(await screen.findByTestId("group-tabs-failed")).toBeOnTheScreen();
+    replies.quotas = () => answer(200, QUOTAS);
+    await fireEvent.press(screen.getByTestId("group-tabs-retry"));
+
+    expect(await screen.findByTestId("group-quotas")).toBeOnTheScreen();
+  });
+
+  it("keeps the quotas after a failed refresh, saying when they were read beside days per year", async () => {
+    await renderDetail();
+    await openQuotas();
+    replies.quotas = unreachable;
+
+    await pullToRefresh();
+
+    expect(screen.getByTestId("group-tabs-meta")).toHaveTextContent(en.groups.quotas.perYear);
+    expect(screen.getByTestId("group-tabs-stale")).toHaveTextContent("Offline, updated 09:41");
+    expect(screen.getByTestId("group-quota-olivia")).toBeOnTheScreen();
+  });
+});
+
+describe("GroupDetail pull-to-refresh", () => {
+  it("reads the group detail, the members and the quotas again", async () => {
+    await renderDetail();
+    await membersShown();
+    await waitFor(() => expect(requests("quotas")).toBe(1));
+
+    await pullToRefresh();
+
+    expect(requests("group")).toBe(2);
+    expect(requests("members")).toBe(2);
+    expect(requests("quotas")).toBe(2);
+  });
+
+  it("reads only the group detail again while it does not grant canView", async () => {
+    replies.group = refusal(403);
+
+    await renderDetail();
+    await screen.findByTestId("group-no-view-access");
+
+    await pullToRefresh();
+
+    expect(requests("group")).toBe(2);
+    expect(requests("members")).toBe(0);
+    expect(requests("quotas")).toBe(0);
   });
 });

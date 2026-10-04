@@ -42,3 +42,33 @@ describe("groups.facts.weekdayInitials", () => {
     expect(cs.groups.facts.weekdayInitials).toEqual(["P", "Ú", "S", "Č", "P", "S", "N"]);
   });
 });
+
+describe("groups.members.heading", () => {
+  it("returns one person in the singular", () => {
+    expect(en.groups.members.heading(1)).toBe("1 person");
+    expect(en.groups.members.heading(4)).toBe("4 people");
+    expect(en.groups.members.heading(0)).toBe("0 people");
+  });
+
+  it("returns the three Czech plural forms", () => {
+    expect(cs.groups.members.heading(1)).toBe("1 člověk");
+    expect(cs.groups.members.heading(2)).toBe("2 lidé");
+    expect(cs.groups.members.heading(4)).toBe("4 lidé");
+    expect(cs.groups.members.heading(5)).toBe("5 lidí");
+    expect(cs.groups.members.heading(0)).toBe("0 lidí");
+  });
+});
+
+describe("groups.quotas.heading", () => {
+  it("returns the year's allowance in both languages", () => {
+    expect(en.groups.quotas.heading(2026)).toBe("Allowance 2026");
+    expect(cs.groups.quotas.heading(2026)).toBe("Nárok 2026");
+  });
+});
+
+describe("groups.offlineUpdated", () => {
+  it("returns when the kept data was read", () => {
+    expect(en.groups.offlineUpdated("09:41")).toBe("Offline, updated 09:41");
+    expect(cs.groups.offlineUpdated("09:41")).toBe("Offline, aktualizováno 09:41");
+  });
+});

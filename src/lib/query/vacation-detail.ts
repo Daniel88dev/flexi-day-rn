@@ -75,21 +75,6 @@ export type VacationDetail = {
   canDeleteAnyAttachment?: boolean;
 };
 
-/** A row of `GET /api/group-user/:groupId`, as much of it as booking on behalf reads. */
-export type GroupMember = {
-  userId: string;
-  controlledUser: boolean;
-  deletedAt: string | null;
-  user: UserSummary;
-};
-
-export type GroupDetail = {
-  id: string;
-  organization: { sickDayBenefitActive?: boolean } | null;
-  access?: { canAdmin: boolean };
-  uploadsAvailable?: boolean;
-};
-
 const vacationPath = (vacationId: string) => `/api/vacation/${encodeURIComponent(vacationId)}`;
 
 /**
@@ -113,15 +98,6 @@ export function useVacationDetail(
       poll && query.state.status !== "error"
         ? processingPollInterval(query.state.data?.attachments, [], Date.now())
         : false,
-  });
-}
-
-export function useGroupDetail(groupId: string | null) {
-  return useQuery({
-    queryKey: qk.group(groupId ?? ""),
-    queryFn: ({ signal }) =>
-      apiRequest<GroupDetail>(`/api/group/${encodeURIComponent(groupId ?? "")}`, { signal }),
-    enabled: groupId !== null,
   });
 }
 
