@@ -1,6 +1,11 @@
 import appJson from "../../../../app.json";
 
-import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from "@/lib/auth/provider-config";
+import {
+  GOOGLE_IOS_CLIENT_ID,
+  GOOGLE_WEB_CLIENT_ID,
+  MICROSOFT_CLIENT_ID,
+  MICROSOFT_REDIRECT_URI,
+} from "@/lib/auth/provider-config";
 
 const GOOGLE_PLUGIN = "@react-native-google-signin/google-signin";
 
@@ -24,5 +29,19 @@ describe("GOOGLE_WEB_CLIENT_ID", () => {
   it("returns a Google OAuth client id distinct from the iOS one", () => {
     expect(GOOGLE_WEB_CLIENT_ID).toMatch(/^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/);
     expect(GOOGLE_WEB_CLIENT_ID).not.toBe(GOOGLE_IOS_CLIENT_ID);
+  });
+});
+
+describe("MICROSOFT_CLIENT_ID", () => {
+  it("returns an Entra application id", () => {
+    expect(MICROSOFT_CLIENT_ID).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    );
+  });
+});
+
+describe("MICROSOFT_REDIRECT_URI", () => {
+  it("returns the auth path on the URL scheme app.json declares", () => {
+    expect(MICROSOFT_REDIRECT_URI).toBe(`${appJson.expo.scheme}://auth`);
   });
 });

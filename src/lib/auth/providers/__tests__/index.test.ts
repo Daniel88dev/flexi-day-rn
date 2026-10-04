@@ -1,5 +1,6 @@
 import { PROVIDER_ADAPTERS, PROVIDER_NAMES, SOCIAL_PROVIDERS } from "@/lib/auth/providers";
 import { googleAdapter } from "@/lib/auth/providers/google";
+import { microsoftAdapter } from "@/lib/auth/providers/microsoft";
 
 describe("SOCIAL_PROVIDERS", () => {
   it("returns Apple first, then Google, then Microsoft", () => {
@@ -25,12 +26,13 @@ describe("PROVIDER_ADAPTERS", () => {
     expect(PROVIDER_ADAPTERS.google).toBe(googleAdapter);
   });
 
-  it.each(["apple", "microsoft"] as const)(
-    "returns a %s placeholder that resolves failed until its SDK lands",
-    async (provider) => {
-      const outcome = await PROVIDER_ADAPTERS[provider].signIn();
+  it("returns the expo-auth-session adapter for microsoft", () => {
+    expect(PROVIDER_ADAPTERS.microsoft).toBe(microsoftAdapter);
+  });
 
-      expect(outcome.kind).toBe("failed");
-    }
-  );
+  it("returns an apple placeholder that resolves failed until its SDK lands", async () => {
+    const outcome = await PROVIDER_ADAPTERS.apple.signIn();
+
+    expect(outcome.kind).toBe("failed");
+  });
 });
