@@ -7,6 +7,7 @@ import {
   crossOverview2025,
   crossOverview2026,
   crossScope,
+  narrowOverview,
 } from "../report";
 
 describe("cross-year report fixtures", () => {
@@ -43,5 +44,21 @@ describe("cross-year report fixtures", () => {
     expect(byPerson.actor?.name).toBe("Olivia Owner");
     expect(byDeleted).toMatchObject({ actor: null, actorDeleted: true });
     expect(rollover).toMatchObject({ actor: null, actorDeleted: false });
+  });
+});
+
+describe("narrowOverview", () => {
+  it("returns every group but only the picked groups' people, months and lines", () => {
+    const narrowed = narrowOverview(crossOverview2025, { groupIds: ["g-support"] });
+    expect(narrowed.groups).toHaveLength(3);
+    expect(narrowed.members.map((member) => member.id)).toEqual(["u-frank", "u-erin"]);
+    expect(new Set(narrowed.monthly.map((row) => row.groupId))).toEqual(new Set(["g-support"]));
+    expect(new Set(narrowed.summary.map((row) => row.groupId))).toEqual(new Set(["g-support"]));
+  });
+
+  it("returns only the picked people when people are picked", () => {
+    const narrowed = narrowOverview(crossOverview2026, { userIds: ["u-bob"] });
+    expect(narrowed.members.map((member) => member.id)).toEqual(["u-bob"]);
+    expect(narrowed.summary.every((row) => row.userId === "u-bob")).toBe(true);
   });
 });

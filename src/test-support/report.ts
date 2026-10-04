@@ -269,6 +269,25 @@ export function crossOverview(year: number): ReportOverview {
   return { ...crossOverview2026, year, monthly: [], summary: [] };
 }
 
+/**
+ * The backend's narrowing of an overview by `groupIds` and `userIds`: every scope group stays,
+ * and only the picked people's members, months and summary lines remain.
+ */
+export function narrowOverview(
+  overview: ReportOverview,
+  { groupIds, userIds }: { groupIds?: string[]; userIds?: string[] }
+): ReportOverview {
+  const kept = (row: { groupId: string }, userId: string) =>
+    (!groupIds?.length || groupIds.includes(row.groupId)) &&
+    (!userIds?.length || userIds.includes(userId));
+  return {
+    ...overview,
+    members: overview.members.filter((member) => kept(member, member.id)),
+    monthly: overview.monthly.filter((row) => kept(row, row.userId)),
+    summary: overview.summary.filter((row) => kept(row, row.userId)),
+  };
+}
+
 function booking(overrides: Partial<ReportBooking>): ReportBooking {
   return {
     userId: "u-bob",

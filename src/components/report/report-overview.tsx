@@ -10,40 +10,55 @@ import {
   daysLeftScale,
   peopleSections,
   uniqueMembers,
+  type OverviewFilters,
   type ReportOverview as Overview,
-  type ReportPeriod,
   type ReportScope,
 } from "@/lib/report";
 
 import { LeaveTypeTabs } from "./leave-type-tabs";
 import { PeopleList } from "./people-list";
+import { ReportFilterBar } from "./report-filters";
 import { UsageCard } from "./usage-card";
 
 export function ReportOverview({
   scope,
   window,
-  period,
+  filters,
+  onFiltersChange,
 }: {
   scope: ReportScope;
   window: ReportWindow<Overview> & { data: Overview };
-  period: ReportPeriod;
+  filters: OverviewFilters;
+  onFiltersChange: (filters: OverviewFilters) => void;
 }) {
   const overview = window.data;
   const [picked, setPicked] = useState<CalendarRecordType | null>(null);
   // From the whole scope, never the filtered answer, so a person keeps their colour.
   const colors = useMemo(() => assignMemberColors(scope.members), [scope.members]);
   const types = useMemo(() => activeRecordTypes(overview.summary), [overview.summary]);
-  const type = picked && types.includes(picked) ? picked : types[0];
+  if (picked && !types.includes(picked)) setPicked(null);
+  const type = picked ?? types[0];
   const members = useMemo(() => uniqueMembers(overview.members), [overview.members]);
   const sections = useMemo(() => peopleSections(overview, type), [overview, type]);
   const scale = daysLeftScale(sections.flatMap((section) => section.rows));
 
   const open = (userId: string) =>
-    router.push({ pathname: "/report/[userId]", params: { userId, period: String(period) } });
+    router.push({
+      pathname: "/report/[userId]",
+      params: { userId, period: String(filters.period) },
+    });
 
   return (
     <ScrollView testID="report-overview" contentContainerStyle={{ paddingBottom: 48 }}>
-      <View className="px-4 pt-1 pb-2">
+      <View className="pt-1 pb-3">
+        <ReportFilterBar
+          scope={scope}
+          colors={colors}
+          filters={filters}
+          onChange={onFiltersChange}
+        />
+      </View>
+      <View className="px-4 pb-2">
         <LeaveTypeTabs types={types} value={type} onChange={setPicked} />
       </View>
       <View className="gap-3.5 px-4">

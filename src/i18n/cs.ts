@@ -8,6 +8,9 @@ const czechDays = (count: number) => {
   return count >= 2 && count <= 4 ? "dny" : "dní";
 };
 
+const czechPlural = (count: number, one: string, few: string, many: string) =>
+  count === 1 ? one : count >= 2 && count <= 4 ? few : many;
+
 export const cs: Dictionary = {
   nav: {
     menu: "Menu",
@@ -862,6 +865,21 @@ export const cs: Dictionary = {
   },
   report: {
     periodRolling: "Posledních 12 měsíců",
+    filters: {
+      period: "Období",
+      groups: "Skupiny",
+      people: "Lidé",
+      allGroups: "Všechny skupiny",
+      everyone: "Všichni",
+      groupCount: (count: number) =>
+        `${count} ${czechPlural(count, "skupina", "skupiny", "skupin")}`,
+      peopleCount: (count: number) => `${count} ${czechPlural(count, "člověk", "lidé", "lidí")}`,
+      yearHint: "Leden až prosinec",
+      thisYearHint: "Leden až prosinec, letos",
+      chipLabel: (name: string, choice: string) => `${name}, ${choice}`,
+      done: "Hotovo",
+      close: "Zavřít",
+    },
     leaveTypes: "Druh volna",
     peopleMeta: (count: number, year: number) =>
       `${count} ${count === 1 ? "člověk" : count >= 2 && count <= 4 ? "lidé" : "lidí"}, ${year}`,

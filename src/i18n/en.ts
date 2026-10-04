@@ -850,6 +850,20 @@ export const en = {
   },
   report: {
     periodRolling: "Last 12 months",
+    filters: {
+      period: "Period",
+      groups: "Groups",
+      people: "People",
+      allGroups: "All groups",
+      everyone: "Everyone",
+      groupCount: (count: number) => `${count} ${count === 1 ? "group" : "groups"}`,
+      peopleCount: (count: number) => `${count} ${count === 1 ? "person" : "people"}`,
+      yearHint: "January to December",
+      thisYearHint: "January to December, this year",
+      chipLabel: (name: string, choice: string) => `${name}, ${choice}`,
+      done: "Done",
+      close: "Close",
+    },
     leaveTypes: "Leave type",
     peopleMeta: (count: number, year: number) =>
       `${count} ${count === 1 ? "person" : "people"}, ${year}`,

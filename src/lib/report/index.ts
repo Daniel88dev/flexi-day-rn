@@ -2,6 +2,16 @@ export { reportBranch, type ReportBranch } from "./branch";
 export { CHART_FALLBACK_COLORS, assignMemberColors } from "./colors";
 export { formatDays } from "./format";
 export {
+  DEFAULT_OVERVIEW_FILTERS,
+  periodChoices,
+  pickLabel,
+  pickWithGroups,
+  togglePick,
+  visiblePeople,
+  type OverviewFilters,
+  type VisiblePerson,
+} from "./filters";
+export {
   bands,
   calloutSpan,
   niceScale,

@@ -4,13 +4,14 @@ import { router } from "expo-router";
 import ReportRoute from "@/app/report";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { queryClient } from "@/lib/query";
-import type { ReportScope } from "@/lib/report";
+import type { ReportOverview, ReportScope } from "@/lib/report";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import {
   CROSS_YEAR_TODAY,
   crossOverview,
   crossScope,
+  narrowOverview,
   ownerOverview,
   ownerScope,
   reportOverview,
@@ -53,6 +54,19 @@ type Reply = { status: number; body?: unknown } | "offline" | "hold";
 
 const reply = (status: number, body: unknown) => ({ status, json: async () => body });
 const held: (() => void)[] = [];
+/** Set to hold every overview answer, as a slow connection would, until a test releases it. */
+let holdOverviews = false;
+
+const listParam = (url: URL, name: string) => url.searchParams.get(name)?.split(",");
+
+/** An overview answer narrowed the way the backend narrows it by the request's filters. */
+function narrowed(url: string, body: unknown): unknown {
+  const params = new URL(url);
+  return narrowOverview(body as ReportOverview, {
+    groupIds: listParam(params, "groupIds"),
+    userIds: listParam(params, "userIds"),
+  });
+}
 
 function answer({
   scope = { status: 200, body: ownerScope },
@@ -67,10 +81,17 @@ function answer({
         ? (years[year] ?? overview)
         : { status: 404, body: {} };
     if (pick === "offline") throw new TypeError("Network request failed");
+    const overviewRead = url.includes("/api/reports/overview");
     if (pick === "hold") {
-      return new Promise((resolve) => held.push(() => resolve(reply(200, crossOverview(year)))));
+      return new Promise((resolve) =>
+        held.push(() => resolve(reply(200, narrowed(url, crossOverview(year)))))
+      );
     }
-    return reply(pick.status, pick.body);
+    const body = overviewRead && pick.status === 200 ? narrowed(url, pick.body) : pick.body;
+    if (overviewRead && holdOverviews) {
+      return new Promise((resolve) => held.push(() => resolve(reply(pick.status, body))));
+    }
+    return reply(pick.status, body);
   });
 }
 
@@ -109,6 +130,7 @@ beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 beforeEach(() => {
   jest.clearAllMocks();
   held.length = 0;
+  holdOverviews = false;
   mockCanGoBack.mockReturnValue(true);
   // Only the date is fixed: the query layer's timers stay real.
   jest.useFakeTimers({
@@ -455,5 +477,270 @@ describe("Report usage card across two years", () => {
 
     await waitFor(() => expect(screen.queryByTestId("report-incomplete")).toBeNull());
     expect(within(screen.getByTestId("usage-card")).getByText("26.5")).toBeOnTheScreen();
+  });
+});
+
+describe("Report filters", () => {
+  const classesOf = (testID: string) => String(screen.getByTestId(testID).props.className);
+  const lastOverviewUrl = () => new URL(urlsOf("/api/reports/overview").at(-1) ?? "");
+
+  async function openSheet(chip: string, sheet: string) {
+    await fireEvent.press(await screen.findByTestId(chip));
+    return screen.getByTestId(sheet);
+  }
+
+  it("renders the Period, Groups and People chips on their defaults, labelled with their choice", async () => {
+    await renderReport();
+
+    const period = await screen.findByTestId("report-period");
+    expect(within(period).getByText("Last 12 months")).toBeOnTheScreen();
+    expect(period).toHaveProp("accessibilityLabel", "Period, Last 12 months");
+    expect(screen.getByTestId("report-groups")).toHaveProp(
+      "accessibilityLabel",
+      "Groups, All groups"
+    );
+    expect(screen.getByTestId("report-members")).toHaveProp(
+      "accessibilityLabel",
+      "People, Everyone"
+    );
+    for (const chip of ["report-period", "report-groups", "report-members"]) {
+      expect(classesOf(chip)).not.toContain("bg-accent");
+    }
+  });
+
+  it("hides the Groups chip when the scope has one group", async () => {
+    answer({
+      scope: { status: 200, body: reportScope() },
+      overview: { status: 200, body: reportOverview() },
+    });
+
+    await renderReport();
+
+    expect(await screen.findByTestId("report-members")).toBeOnTheScreen();
+    expect(screen.getByTestId("report-period")).toBeOnTheScreen();
+    expect(screen.queryByTestId("report-groups")).toBeNull();
+  });
+
+  it("offers the last 12 months and each year in scope newest first, and reads the year picked", async () => {
+    answer({
+      scope: { status: 200, body: { ...ownerScope, years: [2024, 2026] } },
+      years: { 2024: { status: 200, body: { ...ownerOverview, year: 2024 } } },
+    });
+    await renderReport();
+
+    const sheet = await openSheet("report-period", "period-sheet");
+    const rows = within(sheet)
+      .getAllByTestId(/^period-sheet-(rolling|\d{4})$/)
+      .map((row) => row.props.testID);
+    expect(rows).toEqual(["period-sheet-rolling", "period-sheet-2026", "period-sheet-2024"]);
+    expect(screen.getByTestId("period-sheet-rolling")).toHaveProp("accessibilityState", {
+      checked: true,
+    });
+    expect(within(sheet).getByText("Nov 2025 to Oct 2026")).toBeOnTheScreen();
+    expect(within(sheet).getByText("January to December, this year")).toBeOnTheScreen();
+    expect(within(sheet).getByText("January to December")).toBeOnTheScreen();
+    expect(urlsOf("year=2024")).toEqual([]);
+
+    await fireEvent.press(screen.getByTestId("period-sheet-2024"));
+
+    await waitFor(() => expect(lastOverviewUrl().searchParams.get("year")).toBe("2024"));
+    expect(screen.queryByTestId("period-sheet")).toBeNull();
+    const period = screen.getByTestId("report-period");
+    expect(period).toHaveProp("accessibilityLabel", "Period, 2024");
+    expect(classesOf("report-period")).toContain("bg-accent");
+    await waitFor(() =>
+      expect(within(screen.getByTestId("usage-card")).getByText("2024")).toBeOnTheScreen()
+    );
+    expect(
+      within(screen.getByTestId("people-g-team")).getByText("2 people, 2024")
+    ).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId("member-row-u-erin"));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/report/[userId]",
+      params: { userId: "u-erin", period: "2024" },
+    });
+  });
+
+  it("switches the window and the people lists to January to December of the year picked", async () => {
+    jest.setSystemTime(CROSS_YEAR_TODAY);
+    answerCrossYear();
+    await renderReport();
+    await waitFor(() => expect(screen.getByText("26.5")).toBeOnTheScreen());
+
+    await openSheet("report-period", "period-sheet");
+    await fireEvent.press(screen.getByTestId("period-sheet-2025"));
+
+    const card = screen.getByTestId("usage-card");
+    await waitFor(() => expect(within(card).getByText("22.5")).toBeOnTheScreen());
+    expect(within(card).getByText("2025")).toBeOnTheScreen();
+    expect(screen.getByTestId("usage-chart-col-0").props.accessibilityLabel).toMatch(
+      /^January 2025, 2 days/
+    );
+    expect(screen.getByTestId("usage-chart-col-11").props.accessibilityLabel).toMatch(
+      /^December 2025/
+    );
+    const frank = screen.getByTestId("member-row-u-frank");
+    expect(within(frank).getByText("3")).toBeOnTheScreen();
+    expect(within(frank).getByText("of 28")).toBeOnTheScreen();
+    expect(urlsOf("year=2024")).toEqual([]);
+  });
+
+  it("narrows the sections to the groups picked and labels the chip by name, then by count", async () => {
+    jest.setSystemTime(CROSS_YEAR_TODAY);
+    answerCrossYear();
+    await renderReport();
+
+    const sheet = await openSheet("report-groups", "groups-sheet");
+    expect(screen.getByTestId("groups-sheet-all")).toHaveProp("accessibilityState", {
+      checked: true,
+    });
+    expect(within(screen.getByTestId("groups-sheet-g-support")).getByText("2 people")).toBeTruthy();
+    expect(within(sheet).getByText("Design Guild")).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId("groups-sheet-g-team"));
+
+    await waitFor(() => expect(screen.queryByTestId("people-g-support")).toBeNull());
+    expect(screen.getByTestId("people-g-team")).toBeOnTheScreen();
+    expect(screen.queryByTestId("people-g-design")).toBeNull();
+    expect(lastOverviewUrl().searchParams.get("groupIds")).toBe("g-team");
+    expect(screen.getByTestId("report-groups")).toHaveProp(
+      "accessibilityLabel",
+      "Groups, Dev Team"
+    );
+    expect(classesOf("report-groups")).toContain("bg-accent");
+    expect(screen.getByTestId("groups-sheet-all")).toHaveProp("accessibilityState", {
+      checked: false,
+    });
+
+    await fireEvent.press(screen.getByTestId("groups-sheet-g-design"));
+
+    await waitFor(() => expect(screen.getByTestId("people-g-design")).toBeOnTheScreen());
+    expect(within(screen.getByTestId("report-groups")).getByText("2 groups")).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId("groups-sheet-all"));
+
+    await waitFor(() => expect(screen.getByTestId("people-g-support")).toBeOnTheScreen());
+    expect(within(screen.getByTestId("report-groups")).getByText("All groups")).toBeOnTheScreen();
+    expect(classesOf("report-groups")).not.toContain("bg-accent");
+
+    await fireEvent.press(screen.getByTestId("groups-sheet-done"));
+    expect(screen.queryByTestId("groups-sheet")).toBeNull();
+  });
+
+  it("offers the people of the picked groups and narrows the rows to the people picked", async () => {
+    await renderReport();
+
+    const sheet = await openSheet("report-members", "members-sheet");
+    const offered = within(sheet)
+      .getAllByTestId(/^members-sheet-u-/)
+      .map((row) => row.props.testID);
+    expect(offered).toEqual([
+      "members-sheet-u-alice",
+      "members-sheet-u-bob",
+      "members-sheet-u-erin",
+      "members-sheet-u-frank",
+    ]);
+    expect(within(screen.getByTestId("members-sheet-u-erin")).getByText("EK")).toBeTruthy();
+    expect(
+      within(screen.getByTestId("members-sheet-u-erin")).getByText("Dev Support")
+    ).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId("members-sheet-u-erin"));
+
+    await waitFor(() => expect(screen.queryByTestId("member-row-u-frank")).toBeNull());
+    expect(screen.getByTestId("member-row-u-erin")).toBeOnTheScreen();
+    expect(screen.queryByTestId("people-g-team")).toBeNull();
+    expect(lastOverviewUrl().searchParams.get("userIds")).toBe("u-erin");
+    expect(screen.getByTestId("report-members")).toHaveProp(
+      "accessibilityLabel",
+      "People, Erin Kral"
+    );
+    expect(classesOf("report-members")).toContain("bg-accent");
+
+    await fireEvent.press(screen.getByTestId("members-sheet-u-alice"));
+
+    await waitFor(() => expect(screen.getByTestId("member-row-u-alice")).toBeOnTheScreen());
+    expect(within(screen.getByTestId("report-members")).getByText("2 people")).toBeOnTheScreen();
+  });
+
+  it("drops picked people outside the groups picked, so People never hides everyone", async () => {
+    await renderReport();
+
+    await openSheet("report-members", "members-sheet");
+    await fireEvent.press(screen.getByTestId("members-sheet-u-frank"));
+    await fireEvent.press(screen.getByTestId("members-sheet-u-alice"));
+    await fireEvent.press(screen.getByTestId("members-sheet-done"));
+    expect(within(screen.getByTestId("report-members")).getByText("2 people")).toBeOnTheScreen();
+
+    await openSheet("report-groups", "groups-sheet");
+    await fireEvent.press(screen.getByTestId("groups-sheet-g-team"));
+
+    expect(within(screen.getByTestId("report-members")).getByText("Alice Novak")).toBeOnTheScreen();
+    await waitFor(() => expect(screen.queryByTestId("people-g-support")).toBeNull());
+    expect(lastOverviewUrl().searchParams.get("userIds")).toBe("u-alice");
+    expect(lastOverviewUrl().searchParams.get("groupIds")).toBe("g-team");
+
+    await fireEvent.press(screen.getByTestId("groups-sheet-done"));
+    const sheet = await openSheet("report-members", "members-sheet");
+    expect(
+      within(sheet)
+        .getAllByTestId(/^members-sheet-u-/)
+        .map((row) => row.props.testID)
+    ).toEqual(["members-sheet-u-alice", "members-sheet-u-bob"]);
+  });
+
+  it("keeps the screen and the open sheet while a filter change reads again, saying Loading the months", async () => {
+    await renderReport();
+    await openSheet("report-groups", "groups-sheet");
+
+    holdOverviews = true;
+    await fireEvent.press(screen.getByTestId("groups-sheet-g-team"));
+    await waitFor(() => expect(held).toHaveLength(1));
+
+    expect(screen.getByTestId("groups-sheet")).toBeOnTheScreen();
+    expect(
+      within(screen.getByTestId("usage-card")).getByText("Loading the months")
+    ).toBeOnTheScreen();
+    expect(screen.getByTestId("people-g-support")).toBeOnTheScreen();
+    expect(screen.queryByTestId("report-loading")).toBeNull();
+
+    holdOverviews = false;
+    await act(async () => held.shift()?.());
+
+    await waitFor(() => expect(screen.queryByTestId("people-g-support")).toBeNull());
+    expect(screen.queryByText("Loading the months")).toBeNull();
+    expect(screen.getByTestId("groups-sheet")).toBeOnTheScreen();
+  });
+
+  it("falls back to the first leave type when the picked one leaves the answer, and stays there", async () => {
+    await renderReport();
+    await fireEvent.press(await screen.findByTestId("report-type-HOME_OFFICE"));
+
+    await openSheet("report-groups", "groups-sheet");
+    await fireEvent.press(screen.getByTestId("groups-sheet-g-support"));
+
+    await waitFor(() => expect(screen.queryByTestId("report-type-HOME_OFFICE")).toBeNull());
+    expect(within(screen.getByTestId("member-row-u-frank")).getByText("27.5")).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId("groups-sheet-all"));
+
+    await waitFor(() => expect(screen.getByTestId("people-g-team")).toBeOnTheScreen());
+    expect(screen.getByTestId("report-type-VACATION")).toHaveProp("accessibilityState", {
+      selected: true,
+    });
+  });
+
+  it("starts from the defaults on the next visit", async () => {
+    await renderReport();
+    await openSheet("report-groups", "groups-sheet");
+    await fireEvent.press(screen.getByTestId("groups-sheet-g-team"));
+    await waitFor(() => expect(screen.queryByTestId("people-g-support")).toBeNull());
+
+    await act(async () => screen.unmount());
+    await renderReport();
+
+    expect(await screen.findByTestId("people-g-support")).toBeOnTheScreen();
+    expect(within(screen.getByTestId("report-groups")).getByText("All groups")).toBeOnTheScreen();
   });
 });
