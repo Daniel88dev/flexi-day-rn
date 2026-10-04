@@ -1,7 +1,6 @@
-import { onlineManager } from "@tanstack/react-query";
 import { Stack, router, useIsFocused } from "expo-router";
 import { CaretUpDownIcon } from "phosphor-react-native";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { toast } from "sonner-native";
 
@@ -28,6 +27,7 @@ import {
   useCreateRequest,
   useGroupDetail,
   useGroupMembers,
+  useOnline,
   useVacationDetail,
 } from "@/lib/query";
 import { MAX_ATTACHMENTS_PER_REQUEST, formUploadsVerdict } from "@/lib/requests/attachments";
@@ -48,9 +48,6 @@ import { useAttachmentUploads } from "@/lib/requests/use-attachment-uploads";
 import { useNow } from "@/lib/use-now";
 import { useToday } from "@/lib/use-today";
 import { useViewer } from "@/lib/viewer/use-viewer";
-
-const isOnline = () => onlineManager.isOnline();
-const subscribeOnline = (listener: () => void) => onlineManager.subscribe(listener);
 
 function PickerRow({
   label,
@@ -92,7 +89,7 @@ export function NewRequestForm({ date, end }: { date?: string; end?: string }) {
   const labels = t.newRequest;
   const primary = useTone("primary");
   const viewerId = useViewer()?.id ?? null;
-  const online = useSyncExternalStore(subscribeOnline, isOnline);
+  const online = useOnline();
   const scrollRef = useRef<ScrollView>(null);
 
   const today = useToday();

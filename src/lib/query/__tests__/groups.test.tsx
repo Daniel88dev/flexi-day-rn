@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, renderHook, screen, waitFor } from "@testing-library/react-native";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Text } from "react-native";
 
@@ -9,11 +9,19 @@ import {
   useGroupDetail,
   useGroupMembers,
   useHolidayCountries,
+  useJoinGroup,
   useQuotas,
 } from "@/lib/query/groups";
 import { qk } from "@/lib/query/keys";
 import { queryClient } from "@/lib/query/runtime";
-import { administeredGroup, groupDetail, groupMember, userYearQuota } from "@/test-support/groups";
+import { pull } from "@/lib/local-store";
+import {
+  administeredGroup,
+  groupDetail,
+  groupMember,
+  joinedMembership,
+  userYearQuota,
+} from "@/test-support/groups";
 
 const mockFetch = jest.fn();
 
@@ -28,6 +36,9 @@ jest.mock("@/lib/api", () => {
 
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
+jest.mock("@/lib/local-store", () => ({ pull: jest.fn() }));
+
+const pullStore = pull as jest.MockedFunction<typeof pull>;
 
 const COUNTRIES = [
   { code: "CZ", name: "Czechia" },
@@ -255,5 +266,169 @@ describe("useAdministeredGroups", () => {
     const { result } = await renderHook(() => useAdministeredGroups(), { wrapper });
 
     await waitFor(() => expect(result.current.data).toEqual([]));
+  });
+});
+
+describe("useJoinGroup", () => {
+  const WRITE = /\/api\/(auth\/invite\/join|group-user\/code\/.+)$/;
+  const DETAIL = /\/api\/group\/group-1$/;
+  let steps: string[];
+  let writeReply: () => ReturnType<typeof answer>;
+  let detailReply: () => ReturnType<typeof answer>;
+
+  beforeEach(() => {
+    steps = [];
+    writeReply = () => answer(201, joinedMembership());
+    detailReply = () => answer(200, groupDetail({ groupName: "Dev Team" }));
+    mockFetch.mockImplementation(async (url: string) => {
+      if (WRITE.test(url)) {
+        steps.push("write");
+        return writeReply();
+      }
+      if (DETAIL.test(url)) {
+        steps.push("name");
+        return detailReply();
+      }
+      throw new Error(`Unexpected request ${url}`);
+    });
+    pullStore.mockReset();
+    pullStore.mockImplementation(async () => {
+      steps.push("pull");
+      return { ok: true };
+    });
+  });
+
+  async function join(input: Parameters<ReturnType<typeof useJoinGroup>["mutateAsync"]>[0]) {
+    const hook = await renderHook(() => useJoinGroup(), { wrapper });
+    let outcome: Awaited<ReturnType<typeof hook.result.current.mutateAsync>> | undefined;
+    await act(async () => {
+      outcome = await hook.result.current.mutateAsync(input);
+    });
+    return outcome;
+  }
+
+  it("posts a link's token to the invite join path", async () => {
+    await join({ kind: "link", token: "dev-new-hire" });
+
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toMatch(/\/api\/auth\/invite\/join$/);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ token: "dev-new-hire" });
+  });
+
+  it("posts a code URL-encoded to the code path, with no body", async () => {
+    await join({ kind: "code", code: "6tbx r4mj/9cpg" });
+
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toMatch(/\/api\/group-user\/code\/6tbx%20r4mj%2F9cpg$/);
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeUndefined();
+  });
+
+  it("writes, then waits for the after-write pull, then reads the group's name", async () => {
+    const outcome = await join({ kind: "code", code: "6TBX-R4MJ-9CPG" });
+
+    expect(steps).toEqual(["write", "pull", "name"]);
+    expect(pullStore).toHaveBeenCalledWith("after-write");
+    expect(outcome).toEqual({ groupId: "group-1", groupName: "Dev Team", alreadyMember: false });
+    expect(queryClient.getQueryData(qk.group("group-1"))).toMatchObject({ groupName: "Dev Team" });
+  });
+
+  it("stays pending until the pull settles", async () => {
+    let settlePull: () => void = () => undefined;
+    pullStore.mockReturnValue(new Promise((resolve) => (settlePull = () => resolve({ ok: true }))));
+    const hook = await renderHook(() => useJoinGroup(), { wrapper });
+
+    let settled = false;
+    await act(async () => {
+      void hook.result.current
+        .mutateAsync({ kind: "code", code: "6TBX-R4MJ-9CPG" })
+        .then(() => (settled = true));
+    });
+    await waitFor(() => expect(pullStore).toHaveBeenCalled());
+    await waitFor(() => expect(hook.result.current.isPending).toBe(true));
+
+    expect(settled).toBe(false);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    await act(async () => settlePull());
+
+    await waitFor(() => expect(settled).toBe(true));
+    await waitFor(() => expect(hook.result.current.isPending).toBe(false));
+  });
+
+  it("still resolves joined when the pull fails or throws", async () => {
+    pullStore.mockResolvedValueOnce({ ok: false, message: null });
+    expect(await join({ kind: "code", code: "6TBX-R4MJ-9CPG" })).toMatchObject({
+      groupId: "group-1",
+      alreadyMember: false,
+    });
+
+    pullStore.mockRejectedValueOnce(new Error("The store is closed."));
+    expect(await join({ kind: "code", code: "6TBX-R4MJ-9CPG" })).toMatchObject({
+      groupId: "group-1",
+      alreadyMember: false,
+    });
+  });
+
+  it("resolves without a name when the name read fails", async () => {
+    detailReply = () => answer(500, { message: "Boom" });
+
+    expect(await join({ kind: "link", token: "dev-new-hire" })).toEqual({
+      groupId: "group-1",
+      groupName: null,
+      alreadyMember: false,
+    });
+  });
+
+  it("resolves an ALREADY_MEMBER answer to its group, without a pull", async () => {
+    writeReply = () =>
+      answer(409, {
+        errors: [{ message: "Already", context: { code: "ALREADY_MEMBER", groupId: "group-1" } }],
+      });
+
+    expect(await join({ kind: "link", token: "dev-new-hire" })).toEqual({
+      groupId: "group-1",
+      groupName: "Dev Team",
+      alreadyMember: true,
+    });
+    expect(steps).toEqual(["write", "name"]);
+    expect(pullStore).not.toHaveBeenCalled();
+  });
+
+  it("rejects with the server's answer for any other refusal, and pulls nothing", async () => {
+    writeReply = () =>
+      answer(410, { errors: [{ message: "Used", context: { code: "INVITE_USED" } }] });
+    const hook = await renderHook(() => useJoinGroup(), { wrapper });
+
+    let failure: unknown;
+    await act(async () => {
+      await hook.result.current
+        .mutateAsync({ kind: "link", token: "dev-new-hire" })
+        .catch((error: unknown) => (failure = error));
+    });
+
+    expect(failure).toBeInstanceOf(ApiError);
+    expect(failure).toMatchObject({ status: 410, context: { code: "INVITE_USED" } });
+    expect(pullStore).not.toHaveBeenCalled();
+  });
+
+  it("invalidates the administered read, the group's detail and members and the dashboard summary", async () => {
+    const keys = [
+      qk.administeredGroups(),
+      qk.groupUsers("group-1"),
+      qk.dashboardSummary(),
+      qk.groupUsers("group-2"),
+    ];
+    for (const key of keys) queryClient.setQueryData(key, []);
+
+    await join({ kind: "code", code: "6TBX-R4MJ-9CPG" });
+
+    const invalidated = (key: readonly unknown[]) => queryClient.getQueryState(key)?.isInvalidated;
+    expect(invalidated(qk.administeredGroups())).toBe(true);
+    expect(invalidated(qk.group("group-1"))).toBe(true);
+    expect(invalidated(qk.groupUsers("group-1"))).toBe(true);
+    expect(invalidated(qk.dashboardSummary())).toBe(true);
+    expect(invalidated(qk.groupUsers("group-2"))).toBe(false);
   });
 });

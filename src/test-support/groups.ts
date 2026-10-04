@@ -76,3 +76,16 @@ export function administeredGroup(patch: Partial<AdministeredGroup> = {}): Admin
     ...patch,
   };
 }
+
+/** The membership row both join paths answer with, 201. */
+export function joinedMembership(groupId = "group-1") {
+  return {
+    id: "membership-nina",
+    userId: "nina",
+    groupId,
+    viewAccess: true,
+    adminAccess: false,
+    approverAccess: false,
+    controlledUser: true,
+  };
+}

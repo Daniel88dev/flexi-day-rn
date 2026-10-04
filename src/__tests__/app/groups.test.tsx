@@ -260,6 +260,27 @@ describe("Groups route", () => {
     );
   });
 
+  it("opens the Join sheet from the empty card's Join a group", async () => {
+    await renderGroups();
+
+    expect(screen.getByTestId("groups-empty-join")).toHaveTextContent(en.groups.empty.join);
+    await fireEvent.press(screen.getByTestId("groups-empty-join"));
+
+    expect(router.push).toHaveBeenCalledWith("/groups/join");
+  });
+
+  it("opens the Join sheet from the Join pill in the header, with or without groups", async () => {
+    myGroups.mockReturnValue([group()]);
+    await renderGroups();
+
+    const pill = screen.getByTestId("groups-join");
+    expect(pill).toHaveTextContent(en.groups.join);
+    expect(pill.props.accessibilityLabel).toBe(en.join.sheet.title);
+    await fireEvent.press(pill);
+
+    expect(router.push).toHaveBeenCalledWith("/groups/join");
+  });
+
   it("says so when the pull-to-refresh cannot reach the server", async () => {
     pullStore.mockRejectedValue(new Error("offline"));
 

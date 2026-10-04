@@ -24,6 +24,7 @@ export {
   useGroupDetail,
   useGroupMembers,
   useHolidayCountries,
+  useJoinGroup,
   useQuotas,
   type AdministeredGroup,
   type GroupAccess,
@@ -31,6 +32,7 @@ export {
   type GroupMember,
   type GroupOrganization,
   type HolidayCountry,
+  type JoinedGroup,
   type UserYearQuota,
 } from "./groups";
 export { qk } from "./keys";
@@ -42,6 +44,7 @@ export {
   type AppNotification,
   type NotificationBusy,
 } from "./notifications";
+export { useOnline } from "./online";
 export { QueryLayer } from "./query-layer";
 export type { ApiRequest, ApiRequestOptions } from "./request";
 export {

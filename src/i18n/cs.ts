@@ -89,8 +89,9 @@ export const cs: Dictionary = {
     },
     noGroups: {
       title: "Zatím žádné skupiny",
-      body: "Připojte se k týmu pomocí odkazu nebo kódu z pozvánky, nebo si vytvořte vlastní skupinu. Obojí se dělá na webu.",
-      open: "Otevřít skupiny na webu",
+      body: "Připojte se k týmu pomocí odkazu nebo kódu z pozvánky. Skupinu vytvoříte na webu.",
+      join: "Připojit se ke skupině",
+      createOnWeb: "Vytvořit skupinu na webu",
     },
   },
   sync: {
@@ -715,7 +716,7 @@ export const cs: Dictionary = {
       "Žádost se vytvoří jako schválená a bude uvedeno, že jste ji schválili vy.",
     membersFailed: "Členy skupiny se nepodařilo načíst. Pro sebe můžete žádat dál.",
     noGroups:
-      "Zatím nejste v žádné skupině. Připojte se k nějaké na webu a pak si můžete žádat o volno.",
+      "Zatím nejste v žádné skupině. Připojte se k nějaké ve Skupinách v nabídce Více a pak si můžete žádat o volno.",
     offline:
       "Server je nedostupný. Žádost potřebuje připojení, proto Odeslat počká, až server odpoví.",
     retry: "Zkusit znovu",
@@ -845,6 +846,7 @@ export const cs: Dictionary = {
     emptyBody: "Novinky o vašich žádostech a schvalování se zobrazí tady.",
   },
   groups: {
+    join: "Připojit",
     yourGroups: "Vaše skupiny",
     roles: { manager: "Manažer", admin: "Správce", approver: "Schvalovatel" },
     defaultsLine: (vacation: number, homeOffice: number) =>
@@ -862,6 +864,7 @@ export const cs: Dictionary = {
     empty: {
       title: "Zatím nejste v žádné skupině",
       body: "Připojte se pomocí kódu nebo odkazu z pozvánky od svého manažera. O volno můžete žádat, jakmile budete ve skupině.",
+      join: "Připojit se ke skupině",
       createOnWeb: "Vytvořit skupinu na webu",
     },
     notFound: "Tato skupina už neexistuje.",
@@ -911,6 +914,33 @@ export const cs: Dictionary = {
               })
               .join(", "),
     },
+  },
+  join: {
+    sheet: {
+      title: "Připojit se ke skupině",
+      body: "Vložte odkaz na pozvánku z e-mailu, nebo napište kód pozvánky.",
+      label: "Odkaz nebo kód z pozvánky",
+      placeholder: "7KQ2-M9PX-4HRT",
+      paste: "Vložit",
+      helper: "Skupinu vytvoříte jen na webu.",
+      offline: "K připojení ke skupině potřebujete internet.",
+      join: "Připojit se",
+      joining: "Připojování…",
+    },
+    errors: {
+      brokenLink: "V odkazu chybí pozvánka. Otevřete ho znovu z e-mailu.",
+      notFound: "Taková pozvánka neexistuje. Zkontrolujte kód, nebo požádejte o novou pozvánku.",
+      used: "Pozvánka už byla použita.",
+      expired: "Platnost pozvánky vypršela. Požádejte o novou.",
+      revoked: "Pozvánka byla zrušena. Požádejte o novou.",
+      emailMismatch: "Pozvánka byla poslána na jinou e-mailovou adresu.",
+      unverified: "Použijte tlačítko pro připojení v e-mailu s pozvánkou.",
+      malformedCode: "Tohle nevypadá jako kód pozvánky. Kódy vypadají jako 7KQ2-M9PX-4HRT.",
+    },
+    joined: (group: string | null) =>
+      group ? `Připojili jste se ke skupině ${group}` : "Připojili jste se ke skupině",
+    alreadyMember: (group: string | null) =>
+      group ? `Do skupiny ${group} už patříte` : "Do této skupiny už patříte",
   },
   common: {
     locale: "cs-CZ",

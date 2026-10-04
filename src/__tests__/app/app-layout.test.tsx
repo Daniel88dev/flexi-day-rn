@@ -59,7 +59,11 @@ jest.mock("@/lib/app-state", () => ({
   deviceAppState: jest.requireActual("@/test-support/fake-app-state").createFakeAppState(),
 }));
 
-jest.mock("sonner-native", () => ({ Toaster: () => null }));
+jest.mock("sonner-native", () => {
+  const { View } = jest.requireActual("react-native");
+  const React = jest.requireActual("react");
+  return { Toaster: () => React.createElement(View, { testID: "toaster" }) };
+});
 
 // Its own test covers what it does; here it only has to mount once the store is open.
 jest.mock("@/components/reminders/clock-reminders", () => {
@@ -88,9 +92,14 @@ jest.mock("expo-secure-store", () => ({ setItemAsync: jest.fn(), getItemAsync: j
 
 jest.mock("@better-auth/expo/client", () => ({ storageAdapter: (storage: unknown) => storage }));
 
-jest.mock("react-native-gesture-handler", () => ({
-  GestureHandlerRootView: jest.requireActual("react-native").View,
-}));
+jest.mock("react-native-gesture-handler", () => {
+  const { View } = jest.requireActual("react-native");
+  const React = jest.requireActual("react");
+  return {
+    GestureHandlerRootView: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(View, { testID: "gesture-root" }, children),
+  };
+});
 
 beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
@@ -146,6 +155,14 @@ describe("AppLayout", () => {
     expect(screen.queryByText("/welcome")).toBeNull();
     expect(screen.getByTestId("tab-slot")).toBeTruthy();
     expect(open).toHaveBeenCalledWith(VIEWER.id, expect.anything());
+  });
+
+  it("leaves the gesture handler root and the Toaster to the root layout", async () => {
+    await renderShell("signed-in");
+
+    expect(await screen.findByTestId("clock-reminders")).toBeTruthy();
+    expect(screen.queryByTestId("gesture-root")).toBeNull();
+    expect(screen.queryByTestId("toaster")).toBeNull();
   });
 
   it("mounts the Clock reminders once the Local store is open", async () => {

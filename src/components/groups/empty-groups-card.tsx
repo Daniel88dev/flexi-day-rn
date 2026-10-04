@@ -1,6 +1,8 @@
+import { router } from "expo-router";
 import { UsersThreeIcon } from "phosphor-react-native";
 import { View } from "react-native";
 
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { TextLink } from "@/components/ui/text-link";
@@ -21,6 +23,12 @@ export function EmptyGroupsCard() {
         </Text>
         <Text className="text-[14.5px] leading-5 text-muted-foreground">{labels.body}</Text>
       </View>
+      <Button
+        testID="groups-empty-join"
+        label={labels.join}
+        onPress={() => router.push("/groups/join")}
+        className="h-12"
+      />
       <TextLink
         testID="groups-empty-create-on-web"
         label={labels.createOnWeb}

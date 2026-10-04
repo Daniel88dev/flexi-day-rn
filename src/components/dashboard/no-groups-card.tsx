@@ -1,13 +1,15 @@
+import { router } from "expo-router";
 import { UsersThreeIcon } from "phosphor-react-native";
 import { View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { TextLink } from "@/components/ui/text-link";
 import { useTranslation } from "@/i18n/use-translation";
 import { openWebPage, WEB_PATHS } from "@/lib/web";
 
-/** Joining and creating a group live on the web only, so the phone points there. */
+/** Joining happens on the phone through the Join sheet; creating a group stays on the web. */
 export function NoGroupsCard() {
   const { t } = useTranslation();
   const labels = t.dashboard.noGroups;
@@ -23,10 +25,16 @@ export function NoGroupsCard() {
         <Text className="text-[14.5px] leading-5 text-muted-foreground">{labels.body}</Text>
       </View>
       <Button
-        testID="no-groups-open-web"
-        label={labels.open}
-        onPress={() => void openWebPage(WEB_PATHS.groups)}
+        testID="no-groups-join"
+        label={labels.join}
+        onPress={() => router.push("/groups/join")}
         className="h-12"
+      />
+      <TextLink
+        testID="no-groups-open-web"
+        label={labels.createOnWeb}
+        onPress={() => void openWebPage(WEB_PATHS.groups)}
+        className="self-center py-1"
       />
     </View>
   );

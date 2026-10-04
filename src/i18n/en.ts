@@ -101,8 +101,9 @@ export const en = {
     },
     noGroups: {
       title: "No groups yet",
-      body: "Join your team with the link or code from your invite, or create a group of your own. Both happen on the web.",
-      open: "Open groups on the web",
+      body: "Join your team with the link or code from your invite. Creating a group happens on the web.",
+      join: "Join a group",
+      createOnWeb: "Create a group on the web",
     },
   },
   sync: {
@@ -725,7 +726,7 @@ export const en = {
     approveImmediately: "Approve immediately",
     approveImmediatelyHint: "The request is created already approved, attributed to you.",
     membersFailed: "Couldn't load the group's members. You can still book for yourself.",
-    noGroups: "You're not in a group yet. Join one on the web to book time off.",
+    noGroups: "You're not in a group yet. Join one from Groups, under More, to book time off.",
     offline:
       "Can't reach the server. Booking needs a connection, so Submit waits until it answers.",
     retry: "Retry",
@@ -849,6 +850,7 @@ export const en = {
     emptyBody: "Updates on your requests and approvals show up here.",
   },
   groups: {
+    join: "Join",
     yourGroups: "Your groups",
     roles: { manager: "Manager", admin: "Admin", approver: "Approver" },
     defaultsLine: (vacation: number, homeOffice: number) =>
@@ -865,6 +867,7 @@ export const en = {
     empty: {
       title: "You're not in a group yet",
       body: "Join with the invite code or link your manager sent you. Booking leave starts once you're in a group.",
+      join: "Join a group",
       createOnWeb: "Create a group on the web",
     },
     notFound: "This group no longer exists.",
@@ -911,6 +914,32 @@ export const en = {
               })
               .join(", "),
     },
+  },
+  join: {
+    sheet: {
+      title: "Join a group",
+      body: "Paste the invite link from your email, or type the invite code.",
+      label: "Invite link or code",
+      placeholder: "7KQ2-M9PX-4HRT",
+      paste: "Paste",
+      helper: "Creating a group stays on the web.",
+      offline: "Joining a group needs a connection.",
+      join: "Join",
+      joining: "Joining…",
+    },
+    errors: {
+      brokenLink: "That link is missing its invite. Open it from your email again.",
+      notFound: "That invite doesn't exist. Check the code, or ask for a new invite.",
+      used: "This invite has already been used.",
+      expired: "This invite has expired. Ask for a new one.",
+      revoked: "This invite was withdrawn. Ask for a new one.",
+      emailMismatch: "This invite was sent to a different email address.",
+      unverified: "Use the Join button in your invite email.",
+      malformedCode: "That doesn't look like an invite code. Codes look like 7KQ2-M9PX-4HRT.",
+    },
+    joined: (group: string | null) => (group ? `You joined ${group}` : "You joined the group"),
+    alreadyMember: (group: string | null) =>
+      group ? `You're already in ${group}` : "You're already in this group",
   },
   common: {
     locale: "en-GB",

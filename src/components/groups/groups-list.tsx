@@ -1,8 +1,9 @@
 import { router } from "expo-router";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { PlusIcon } from "phosphor-react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 import { StackScreen } from "@/components/shell/stack-screen";
-import { useTone } from "@/components/ui/icon";
+import { Icon, useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
@@ -17,6 +18,23 @@ import { AdministeredGroupCard, GroupCard } from "./group-card";
 
 const openGroup = (groupId: string) =>
   router.push({ pathname: "/groups/[groupId]", params: { groupId } });
+
+function JoinPill() {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      testID="groups-join"
+      onPress={() => router.push("/groups/join")}
+      accessibilityRole="button"
+      accessibilityLabel={t.join.sheet.title}
+      hitSlop={6}
+      className="h-10 flex-row items-center gap-1.5 rounded-full bg-accent px-4 active:opacity-70"
+    >
+      <Icon icon={PlusIcon} tone="primary" size={16} weight="bold" />
+      <Text className="text-[15px] font-semibold text-primary">{t.groups.join}</Text>
+    </Pressable>
+  );
+}
 
 const HEADING = "font-display text-[16px] font-semibold text-foreground";
 
@@ -68,7 +86,7 @@ export function GroupsList() {
   };
 
   return (
-    <StackScreen testID="groups" title={t.nav.groups}>
+    <StackScreen testID="groups" title={t.nav.groups} trailing={<JoinPill />}>
       <ScrollView
         testID="groups-scroll"
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}

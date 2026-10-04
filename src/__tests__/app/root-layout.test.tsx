@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react-native";
+import { render, screen, waitFor, within } from "@testing-library/react-native";
 
 import RootLayout from "@/app/_layout";
 import { loadDeviceId } from "@/lib/session/device-id";
@@ -13,6 +13,21 @@ jest.mock("expo-router", () => {
   const { useRootRoute } = jest.requireActual("@/lib/session/root-route-context");
   const Stack = () => React.createElement(Text, null, `app:${useRootRoute()}`);
   return { Stack };
+});
+
+jest.mock("react-native-gesture-handler", () => {
+  const { View } = jest.requireActual("react-native");
+  const React = jest.requireActual("react");
+  return {
+    GestureHandlerRootView: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(View, { testID: "gesture-root" }, children),
+  };
+});
+
+jest.mock("sonner-native", () => {
+  const { View } = jest.requireActual("react-native");
+  const React = jest.requireActual("react");
+  return { Toaster: () => React.createElement(View, { testID: "toaster" }) };
 });
 
 jest.mock("@/lib/session/device-id", () => ({ loadDeviceId: jest.fn() }));
@@ -72,5 +87,16 @@ describe("RootLayout", () => {
     await render(<RootLayout />);
 
     await waitFor(() => expect(app()).toBe("app:welcome"));
+  });
+
+  it("mounts the gesture handler root around the root stack and the Toaster after it", async () => {
+    readSessionCache.mockResolvedValue({ userId: "a-user" });
+
+    await render(<RootLayout />);
+
+    await waitFor(() => expect(app()).toBe("app:signed-in"));
+    const root = screen.getByTestId("gesture-root");
+    expect(within(root).getByText("app:signed-in")).toBeTruthy();
+    expect(within(root).getByTestId("toaster")).toBeTruthy();
   });
 });
