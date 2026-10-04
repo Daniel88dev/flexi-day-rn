@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react-native";
 import { useState } from "react";
 
-import { PeriodChip, ReportFilterBar } from "@/components/report/report-filters";
+import { PeriodChip, PeriodControls, ReportFilterBar } from "@/components/report/report-filters";
 import { TranslationProvider } from "@/i18n/use-translation";
 import {
   assignMemberColors,
@@ -51,6 +51,14 @@ describe("PeriodChip", () => {
 
     expect(onChange).toHaveBeenCalledWith(2025);
     expect(screen.queryByTestId("member-period-sheet")).toBeNull();
+  });
+});
+
+describe("PeriodControls", () => {
+  it("renders the member period chip on the period it is given", async () => {
+    await renderIn(<PeriodControls period={2025} years={[2025, 2026]} onChange={jest.fn()} />);
+
+    expect(screen.getByTestId("member-period")).toHaveProp("accessibilityLabel", "Period, 2025");
   });
 });
 

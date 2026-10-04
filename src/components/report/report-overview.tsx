@@ -6,7 +6,6 @@ import type { CalendarRecordType } from "@/lib/local-store";
 import type { ReportWindow } from "@/lib/query";
 import {
   activeRecordTypes,
-  assignMemberColors,
   daysLeftScale,
   peopleSections,
   uniqueMembers,
@@ -18,23 +17,24 @@ import {
 import { LeaveTypeTabs } from "./leave-type-tabs";
 import { PeopleList } from "./people-list";
 import { ReportFilterBar } from "./report-filters";
+import { ReportStale } from "./report-states";
 import { UsageCard } from "./usage-card";
 
 export function ReportOverview({
   scope,
+  colors,
   window,
   filters,
   onFiltersChange,
 }: {
   scope: ReportScope;
+  colors: Record<string, string>;
   window: ReportWindow<Overview> & { data: Overview };
   filters: OverviewFilters;
   onFiltersChange: (filters: OverviewFilters) => void;
 }) {
   const overview = window.data;
   const [picked, setPicked] = useState<CalendarRecordType | null>(null);
-  // From the whole scope, never the filtered answer, so a person keeps their colour.
-  const colors = useMemo(() => assignMemberColors(scope.members), [scope.members]);
   const types = useMemo(() => activeRecordTypes(overview.summary), [overview.summary]);
   if (picked && !types.includes(picked)) setPicked(null);
   const type = picked ?? types[0];
@@ -62,6 +62,9 @@ export function ReportOverview({
         <LeaveTypeTabs types={types} value={type} onChange={setPicked} />
       </View>
       <View className="gap-3.5 px-4">
+        {window.staleSince ? (
+          <ReportStale since={window.staleSince} onRetry={window.retry} />
+        ) : null}
         <UsageCard window={window} members={members} colors={colors} type={type} />
         {sections.map((section) => (
           <PeopleList

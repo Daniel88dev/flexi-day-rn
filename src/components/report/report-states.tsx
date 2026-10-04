@@ -9,8 +9,11 @@ import { Pressable, View } from "react-native";
 
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { deviceUses24HourClock } from "@/i18n";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
+import { formatKeptAt } from "@/lib/report";
+import { useToday } from "@/lib/use-today";
 
 const COLUMNS = [38, 62, 20, 84, 50, 30, 96, 70, 44, 24, 58, 36];
 const ROWS = [0.9, 0.75, 0.6, 0.45];
@@ -55,6 +58,49 @@ export function ReportSkeleton() {
             <Bone className="h-3" width={`${share * 60}%`} />
           </View>
         ))}
+      </View>
+    </View>
+  );
+}
+
+export function MemberSkeleton() {
+  const { t } = useTranslation();
+  return (
+    <View
+      testID="report-loading"
+      accessible
+      accessibilityLabel={t.report.loading}
+      className="gap-3.5 px-4 pt-1"
+    >
+      <View className="flex-row items-center gap-3">
+        <View className="h-[52px] w-[52px] rounded-full bg-muted" />
+        <View className="flex-1 gap-2">
+          <Bone className="h-5 w-1/2" />
+          <Bone className="h-3 w-1/3" />
+        </View>
+      </View>
+      <Bone className="h-9 w-[132px]" />
+      <View className="rounded-[24px] border border-border bg-card p-4">
+        <Bone className="h-4 w-1/3" />
+        <Bone className="mt-4 h-9 w-1/2" />
+        <View className="mt-4 flex-row justify-between">
+          {ROWS.map((share) => (
+            <Bone key={share} className="h-3" width={`${share * 20}%`} />
+          ))}
+        </View>
+        <View className="mt-5 h-[110px] flex-row items-end justify-between px-6">
+          {COLUMNS.map((height) => (
+            <View
+              key={height}
+              style={{ height: height * 0.8, width: 13 }}
+              className="rounded-t-[4px] bg-muted"
+            />
+          ))}
+        </View>
+      </View>
+      <View className="rounded-[24px] border border-border bg-card p-4">
+        <Bone className="h-4 w-1/3" />
+        <Bone className="mt-4 h-9 w-2/5" />
       </View>
     </View>
   );
@@ -119,10 +165,19 @@ export function ReportForbidden() {
   );
 }
 
-/** The first read failed and the phone keeps no report of its own, so there is nothing to show. */
-export function ReportOffline({ onRetry }: { onRetry: () => void }) {
+/**
+ * The first read failed and the phone keeps no report of its own, so there is nothing to show.
+ * `controls` are the chips the person moved to get here, so they can move them back.
+ */
+export function ReportOffline({
+  onRetry,
+  controls,
+}: {
+  onRetry: () => void;
+  controls?: ReactNode;
+}) {
   const { t } = useTranslation();
-  return (
+  const state = (
     <StateScreen
       testID="report-offline"
       icon={CloudSlashIcon}
@@ -140,6 +195,41 @@ export function ReportOffline({ onRetry }: { onRetry: () => void }) {
         <Text className="text-[15px] font-semibold text-primary-foreground">{t.report.retry}</Text>
       </Pressable>
     </StateScreen>
+  );
+  if (!controls) return state;
+  return (
+    <View className="flex-1">
+      {controls}
+      {state}
+    </View>
+  );
+}
+
+/** A reread failed over a kept answer: the screen keeps it and says how old it is. */
+export function ReportStale({ since, onRetry }: { since: Date; onRetry: () => void }) {
+  const { t } = useTranslation();
+  const today = useToday();
+  const time = formatKeptAt(since, today, t.common.locale, deviceUses24HourClock());
+  return (
+    <View
+      testID="report-stale"
+      className="flex-row items-center gap-3 rounded-[16px] bg-muted px-3.5 py-3"
+    >
+      <Icon icon={CloudSlashIcon} tone="muted" size={20} />
+      <Text className="flex-1 text-[13.5px] leading-[19px] text-muted-foreground">
+        {t.report.stale(time)}
+      </Text>
+      <Pressable
+        testID="report-stale-retry"
+        onPress={onRetry}
+        accessibilityRole="button"
+        accessibilityLabel={t.report.retry}
+        hitSlop={8}
+        className="active:opacity-60"
+      >
+        <Text className="text-[14px] font-semibold text-primary">{t.report.retry}</Text>
+      </Pressable>
+    </View>
   );
 }
 

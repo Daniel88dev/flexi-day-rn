@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
@@ -63,7 +63,10 @@ beforeEach(() => {
   answer();
 });
 
-afterEach(() => queryClient.clear());
+afterEach(() => {
+  onlineManager.setOnline(true);
+  queryClient.clear();
+});
 
 describe("useReportScope", () => {
   it("returns the scope from /api/reports/scope under the web's key", async () => {
@@ -208,5 +211,38 @@ describe("useRereadReportOnFocus", () => {
     await waitFor(() => expect(urlsOf("/api/reports/overview")).toHaveLength(2));
     expect(urlsOf("/api/reports/scope")).toHaveLength(2);
     await waitFor(() => expect(urlsOf("/api/reports/members")).toHaveLength(2));
+  });
+});
+
+describe("useReportScope, useReportOverview and useMemberReport on reconnect", () => {
+  it("returns fresh answers once the network comes back after a failed read", async () => {
+    await renderHook(
+      () => {
+        useReportScope();
+        useReportOverview({ year: 2026 });
+        useMemberReport("u-erin", 2026);
+      },
+      { wrapper }
+    );
+    await waitFor(() => expect(urlsOf("/api/reports/members")).toHaveLength(1));
+    await act(async () => onlineManager.setOnline(false));
+    mockFetch.mockRejectedValue(new TypeError("Network request failed"));
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+    const before = mockFetch.mock.calls.length;
+
+    answer();
+    await act(async () => onlineManager.setOnline(true));
+
+    await waitFor(() => expect(mockFetch.mock.calls.length).toBe(before + 3), { timeout: 5000 });
+    const reread = mockFetch.mock.calls.slice(before).map(([url]) => String(url));
+    expect(reread).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("/api/reports/scope"),
+        expect.stringContaining("/api/reports/overview?year=2026"),
+        expect.stringContaining("/api/reports/members/u-erin?year=2026"),
+      ])
+    );
   });
 });

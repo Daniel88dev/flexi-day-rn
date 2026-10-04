@@ -1,7 +1,7 @@
 # Report window
 
 The report window is what `useReportWindow(period, source)` in `src/lib/query/report-window.ts`
-works out for the overview and the member screen, and later for the self view. The source picks
+works out for the overview, the member screen and the self view. The source picks
 the read: the overview with its groups and people, or one person's member report. Both are read
 per year in the same way.
 
@@ -38,3 +38,14 @@ Beside the state:
 - `coldOffline` is a failed first read with nothing kept, unless the server answered 403 or 404.
 - `forbidden` is a 403 or 404 on the current read. Only a member read can answer that.
 - `retry` reads the scope and both years again.
+
+## What the screens make of it
+
+- `staleSince` shows as "Offline. Showing the report as of HH:MM." with Retry above the kept
+  answer, on all three screens. The time follows the device's clock setting, with the date in front
+  when the answer is not from today.
+- `coldOffline` replaces the body with "Can't reach the server" and Retry. When the person got
+  there by moving a chip off where the screen opened, a filter on the overview or the period on the
+  member screen and the self view, those chips stay above it so the change can be undone.
+- Nobody has to tap Retry once the connection is back: the query client's reconnect and foreground
+  rereads and the screen-focus reread (`useRereadReportOnFocus`) read the report again.

@@ -1,9 +1,10 @@
 export { bookingsNewestFirst, keyedBookings, type KeyedBooking } from "./bookings";
 export { reportBranch, type ReportBranch } from "./branch";
 export { CHART_FALLBACK_COLORS, assignMemberColors } from "./colors";
-export { formatDays } from "./format";
+export { formatDays, formatKeptAt } from "./format";
 export {
   DEFAULT_OVERVIEW_FILTERS,
+  filtersMoved,
   periodChoices,
   pickLabel,
   pickWithGroups,

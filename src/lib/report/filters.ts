@@ -10,6 +10,11 @@ export const DEFAULT_OVERVIEW_FILTERS: OverviewFilters = {
   userIds: [],
 };
 
+export const filtersMoved = (filters: OverviewFilters): boolean =>
+  filters.period !== DEFAULT_OVERVIEW_FILTERS.period ||
+  filters.groupIds.length > 0 ||
+  filters.userIds.length > 0;
+
 export type VisiblePerson = { member: ReportScopeMember; groupNames: string[] };
 
 export function pickLabel(

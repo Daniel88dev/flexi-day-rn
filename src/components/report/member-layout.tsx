@@ -8,11 +8,11 @@ import { AllowanceCard } from "./allowance-card";
 import { MemberBookings, MemberChanges, MemberQuotas } from "./member-sections";
 import { ReportAvatar } from "./report-avatar";
 import { PeriodChip } from "./report-filters";
-import { IncompleteNote } from "./report-states";
+import { IncompleteNote, ReportStale } from "./report-states";
 
 export type MemberWindow = Pick<
   ReportWindow<MemberReport>,
-  "slots" | "usage" | "state" | "priorYear" | "retry"
+  "slots" | "usage" | "state" | "priorYear" | "staleSince" | "retry"
 >;
 
 /**
@@ -69,6 +69,7 @@ export function MemberLayout({
           onChange={onPeriodChange}
         />
       </View>
+      {window.staleSince ? <ReportStale since={window.staleSince} onRetry={window.retry} /> : null}
       {window.state === "incomplete" ? (
         <IncompleteNote year={window.priorYear} onRetry={window.retry} />
       ) : null}

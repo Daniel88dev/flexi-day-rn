@@ -14,6 +14,7 @@ import {
   selfMember,
   selfScope,
 } from "@/test-support/report";
+import { pressableProblems } from "@/test-support/accessibility";
 import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
@@ -58,7 +59,10 @@ jest.mock(
       }
     )
 );
-jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: mockLanguage }] }));
+jest.mock("expo-localization", () => ({
+  getLocales: () => [{ languageCode: mockLanguage }],
+  getCalendars: () => [{ uses24hourClock: true }],
+}));
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
@@ -222,9 +226,46 @@ describe("Report self view", () => {
     await renderReport();
 
     expect(await screen.findByTestId("report-offline", {}, { timeout: 5000 })).toBeOnTheScreen();
+    expect(screen.queryByTestId("member-period")).toBeNull();
 
     answer();
     await fireEvent.press(screen.getByTestId("report-retry"));
+
+    expect(await screen.findByTestId("report-self")).toBeOnTheScreen();
+  });
+
+  it("keeps the viewer's report with the kept answer's time when a reread fails", async () => {
+    await renderReport();
+    await screen.findByTestId("report-self");
+    await waitFor(() => expect(urlsOf("year=2025")).toHaveLength(1));
+
+    answer({ members: { 2025: "offline", 2026: "offline" } });
+    await act(async () => mockFocus());
+    await act(async () => mockFocus());
+
+    const notice = await screen.findByTestId("report-stale", {}, { timeout: 5000 });
+    expect(notice).toHaveTextContent("Offline. Showing the report as of 10:00.Retry");
+    expect(within(screen.getByTestId("report-self")).getByTestId("report-stale")).toBe(notice);
+    expect(screen.getByText("Your leave")).toBeOnTheScreen();
+    expect(screen.getByTestId("allowance-VACATION")).toBeOnTheScreen();
+    expect(screen.queryByTestId("report-offline")).toBeNull();
+    expect(pressableProblems(screen.toJSON())).toEqual([]);
+  });
+
+  it("keeps the period chip above Can't reach the server when a period change finds nothing", async () => {
+    answer({ members: { 2025: "offline" } });
+    await renderReport();
+    await screen.findByTestId("report-self");
+
+    await fireEvent.press(screen.getByTestId("member-period"));
+    await fireEvent.press(screen.getByTestId("member-period-sheet-2025"));
+
+    expect(await screen.findByTestId("report-offline", {}, { timeout: 5000 })).toBeOnTheScreen();
+    expect(screen.getByTestId("member-period")).toHaveProp("accessibilityLabel", "Period, 2025");
+    expect(pressableProblems(screen.toJSON())).toEqual([]);
+
+    await fireEvent.press(screen.getByTestId("member-period"));
+    await fireEvent.press(screen.getByTestId("member-period-sheet-rolling"));
 
     expect(await screen.findByTestId("report-self")).toBeOnTheScreen();
   });

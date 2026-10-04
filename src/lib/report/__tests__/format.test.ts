@@ -1,4 +1,4 @@
-import { formatDays } from "../format";
+import { formatDays, formatKeptAt } from "../format";
 
 describe("formatDays", () => {
   it("returns a whole number bare", () => {
@@ -23,5 +23,23 @@ describe("formatDays", () => {
   it("returns a value with float noise rounded to one decimal", () => {
     expect(formatDays(0.1 + 0.2, ".")).toBe("0.3");
     expect(formatDays(2.9999999, ".")).toBe("3");
+  });
+});
+
+describe("formatKeptAt", () => {
+  const today = new Date(2026, 9, 4, 10);
+
+  it("returns the time alone for an answer from today", () => {
+    expect(formatKeptAt(new Date(2026, 9, 4, 9, 5), today, "en-GB", true)).toBe("09:05");
+    expect(formatKeptAt(new Date(2026, 9, 4, 18, 5), today, "cs-CZ", true)).toBe("18:05");
+  });
+
+  it("returns the date in front of the time for an answer from another day", () => {
+    expect(formatKeptAt(new Date(2026, 9, 3, 18, 5), today, "en-GB", true)).toBe("3 Oct, 18:05");
+    expect(formatKeptAt(new Date(2026, 9, 3, 18, 5), today, "cs-CZ", true)).toBe("3. 10. 18:05");
+  });
+
+  it("returns a twelve-hour time when the device uses one", () => {
+    expect(formatKeptAt(new Date(2026, 9, 4, 18, 5), today, "en-GB", false)).toBe("6:05 pm");
   });
 });

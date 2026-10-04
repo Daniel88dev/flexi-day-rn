@@ -901,6 +901,7 @@ export const cs: Dictionary = {
     offline: "Nepodařilo se spojit se serverem",
     offlineBody:
       "Report se pokaždé načítá z Flexi Day a v telefonu se neukládá. Připojte se a zkuste to znovu.",
+    stale: (time: string) => `Offline. Report ukazuje stav k\u00a0${time}.`,
     retry: "Zkusit znovu",
     taken: (type: string) => `${type}: vybráno`,
     days: (count: number) => czechDays(count),

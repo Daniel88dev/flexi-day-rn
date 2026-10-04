@@ -1,3 +1,4 @@
+import { onlineManager } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { router } from "expo-router";
 
@@ -17,11 +18,13 @@ import {
   reportOverview,
   reportScope,
 } from "@/test-support/report";
+import { pressableProblems } from "@/test-support/accessibility";
 import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
 let mockFocus: () => void = () => undefined;
+let mockLanguage = "en";
 
 jest.mock("@/lib/api", () => {
   const actual = jest.requireActual("@/lib/api");
@@ -41,7 +44,10 @@ jest.mock("expo-router", () => ({
   Redirect: jest.requireActual("@/test-support/expo-router").RedirectShim,
 }));
 
-jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
+jest.mock("expo-localization", () => ({
+  getLocales: () => [{ languageCode: mockLanguage }],
+  getCalendars: () => [{ uses24hourClock: true }],
+}));
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
 jest.mock("@/lib/local-store", () => ({ pull: jest.fn() }));
@@ -131,6 +137,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   held.length = 0;
   holdOverviews = false;
+  mockLanguage = "en";
   mockCanGoBack.mockReturnValue(true);
   // Only the date is fixed: the query layer's timers stay real.
   jest.useFakeTimers({
@@ -150,6 +157,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  onlineManager.setOnline(true);
   queryClient.clear();
   jest.useRealTimers();
 });
@@ -306,6 +314,7 @@ describe("Report route", () => {
     await renderReport();
 
     expect(await screen.findByTestId("report-offline", {}, { timeout: 5000 })).toBeOnTheScreen();
+    expect(screen.queryByTestId("report-period")).toBeNull();
 
     answer();
     await fireEvent.press(screen.getByTestId("report-retry"));
@@ -313,7 +322,7 @@ describe("Report route", () => {
     expect(await screen.findByTestId("people-g-team")).toBeOnTheScreen();
   });
 
-  it("keeps the overview on screen when a reread fails", async () => {
+  it("keeps the overview on screen with the kept answer's time when a reread fails", async () => {
     await renderReport();
     await screen.findByTestId("people-g-team");
 
@@ -321,10 +330,62 @@ describe("Report route", () => {
     await act(async () => mockFocus());
     await act(async () => mockFocus());
 
-    // The failed reread and its one retry.
-    await waitFor(() => expect(urlsOf("/api/reports/scope")).toHaveLength(3), { timeout: 5000 });
+    const notice = await screen.findByTestId("report-stale", {}, { timeout: 5000 });
+    expect(notice).toHaveTextContent("Offline. Showing the report as of 10:00.Retry");
+    expect(within(screen.getByTestId("report-overview")).getByTestId("report-stale")).toBe(notice);
     expect(screen.getByTestId("people-g-team")).toBeOnTheScreen();
+    expect(screen.getByTestId("usage-card")).toBeOnTheScreen();
     expect(screen.queryByTestId("report-offline")).toBeNull();
+  });
+
+  it("puts the date in front of the kept answer's time once it is not from today", async () => {
+    await renderReport();
+    await screen.findByTestId("people-g-team");
+
+    jest.setSystemTime(new Date(2026, 9, 5, 8, 30));
+    answer({ overview: "offline" });
+    await act(async () => mockFocus());
+    await act(async () => mockFocus());
+
+    expect(await screen.findByTestId("report-stale", {}, { timeout: 5000 })).toHaveTextContent(
+      "Offline. Showing the report as of 4 Oct, 10:00.Retry"
+    );
+  });
+
+  it("reads again on Retry from the notice and drops it once the answer lands", async () => {
+    await renderReport();
+    await screen.findByTestId("people-g-team");
+    answer({ overview: "offline" });
+    await act(async () => mockFocus());
+    await act(async () => mockFocus());
+    await screen.findByTestId("report-stale", {}, { timeout: 5000 });
+    const before = urlsOf("/api/reports/overview").length;
+
+    answer();
+    await fireEvent.press(screen.getByTestId("report-stale-retry"));
+
+    await waitFor(() => expect(screen.queryByTestId("report-stale")).toBeNull());
+    expect(urlsOf("/api/reports/overview").length).toBeGreaterThan(before);
+    expect(screen.getByTestId("people-g-team")).toBeOnTheScreen();
+  });
+
+  it("reads the scope and the overview again by itself when the connection comes back", async () => {
+    await renderReport();
+    await screen.findByTestId("people-g-team");
+    answer({ scope: "offline", overview: "offline" });
+    await act(async () => onlineManager.setOnline(false));
+    await act(async () => mockFocus());
+    await act(async () => mockFocus());
+    await screen.findByTestId("report-stale", {}, { timeout: 5000 });
+    const scopeReads = urlsOf("/api/reports/scope").length;
+    const overviewReads = urlsOf("/api/reports/overview").length;
+
+    answer();
+    await act(async () => onlineManager.setOnline(true));
+
+    await waitFor(() => expect(screen.queryByTestId("report-stale")).toBeNull());
+    expect(urlsOf("/api/reports/scope").length).toBeGreaterThan(scopeReads);
+    expect(urlsOf("/api/reports/overview").length).toBeGreaterThan(overviewReads);
   });
 
   it("reads the scope and the overview again when the screen comes back into focus", async () => {
@@ -551,9 +612,12 @@ describe("Report filters", () => {
     await waitFor(() =>
       expect(within(screen.getByTestId("usage-card")).getByText("2024")).toBeOnTheScreen()
     );
-    expect(
-      within(screen.getByTestId("people-g-team")).getByText("2 people, 2024")
-    ).toBeOnTheScreen();
+    // The window label follows the period at once; the lists wait for the year's answer.
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId("people-g-team")).getByText("2 people, 2024")
+      ).toBeOnTheScreen()
+    );
 
     await fireEvent.press(screen.getByTestId("member-row-u-erin"));
     expect(router.push).toHaveBeenCalledWith({
@@ -713,6 +777,30 @@ describe("Report filters", () => {
     expect(screen.getByTestId("groups-sheet")).toBeOnTheScreen();
   });
 
+  it("keeps the chips above Can't reach the server when a filter change finds nothing, so it can be undone", async () => {
+    await renderReport();
+    await openSheet("report-groups", "groups-sheet");
+
+    answer({ overview: "offline" });
+    await fireEvent.press(screen.getByTestId("groups-sheet-g-team"));
+
+    expect(await screen.findByTestId("report-offline", {}, { timeout: 5000 })).toBeOnTheScreen();
+    expect(screen.getByTestId("report-groups")).toHaveProp(
+      "accessibilityLabel",
+      "Groups, Dev Team"
+    );
+    expect(screen.getByTestId("report-period")).toBeOnTheScreen();
+    expect(screen.getByTestId("report-members")).toBeOnTheScreen();
+
+    expect(pressableProblems(screen.toJSON())).toEqual([]);
+
+    await openSheet("report-groups", "groups-sheet");
+    await fireEvent.press(screen.getByTestId("groups-sheet-all"));
+
+    expect(await screen.findByTestId("people-g-support")).toBeOnTheScreen();
+    expect(screen.queryByTestId("report-offline")).toBeNull();
+  });
+
   it("falls back to the first leave type when the picked one leaves the answer, and stays there", async () => {
     await renderReport();
     await fireEvent.press(await screen.findByTestId("report-type-HOME_OFFICE"));
@@ -742,5 +830,103 @@ describe("Report filters", () => {
 
     expect(await screen.findByTestId("people-g-support")).toBeOnTheScreen();
     expect(within(screen.getByTestId("report-groups")).getByText("All groups")).toBeOnTheScreen();
+  });
+});
+
+describe("Report accessibility", () => {
+  beforeEach(() => {
+    jest.setSystemTime(CROSS_YEAR_TODAY);
+    answerCrossYear();
+  });
+
+  it("puts a testID and a label on every pressable of the overview, its callout and a sheet", async () => {
+    await renderReport();
+    await screen.findByTestId("people-g-design");
+    await waitFor(() => expect(screen.getAllByTestId(/^usage-chart-col-\d+$/)).toHaveLength(12));
+    await fireEvent.press(screen.getByTestId("usage-chart-col-3"));
+    expect(screen.getByTestId("usage-chart-tip", { includeHiddenElements: true })).toBeTruthy();
+    expect(pressableProblems(screen.toJSON())).toEqual([]);
+
+    for (const [chip, sheet] of [
+      ["report-period", "period-sheet"],
+      ["report-groups", "groups-sheet"],
+      ["report-members", "members-sheet"],
+    ]) {
+      await fireEvent.press(screen.getByTestId(chip));
+      expect(screen.getByTestId(sheet)).toBeOnTheScreen();
+      expect(pressableProblems(screen.toJSON())).toEqual([]);
+      await fireEvent.press(screen.getByTestId(`${sheet}-done`));
+    }
+  });
+
+  it("puts a testID and a label on every pressable of the offline states", async () => {
+    await renderReport();
+    await screen.findByTestId("people-g-team");
+    answerCrossYear({ 2025: "offline", 2026: "offline" });
+    await act(async () => mockFocus());
+    await act(async () => mockFocus());
+    await screen.findByTestId("report-stale", {}, { timeout: 5000 });
+
+    expect(pressableProblems(screen.toJSON())).toEqual([]);
+  });
+});
+
+describe("Report in Czech", () => {
+  beforeEach(() => {
+    mockLanguage = "cs";
+    jest.setSystemTime(CROSS_YEAR_TODAY);
+    answerCrossYear();
+  });
+
+  it("renders the overview with Czech month names, plurals and half days with a comma", async () => {
+    await renderReport();
+
+    const card = await screen.findByTestId("usage-card");
+    await waitFor(() => expect(within(card).getByText("26,5")).toBeOnTheScreen());
+    expect(within(card).getByText("Dovolená: vybráno")).toBeOnTheScreen();
+    expect(within(card).getByText("Bře 2025 až Úno 2026")).toBeOnTheScreen();
+    expect(within(card).getByText("dne")).toBeOnTheScreen();
+    expect(screen.getByTestId("usage-chart-col-3")).toHaveProp(
+      "accessibilityLabel",
+      "Červen 2025, 8 dní: Erin Kral 3, Bob Dvorak 5"
+    );
+
+    expect(screen.getByTestId("report-period")).toHaveProp(
+      "accessibilityLabel",
+      "Období, Posledních 12 měsíců"
+    );
+    expect(within(screen.getByTestId("people-g-support")).getByText("2 lidé, 2026")).toBeTruthy();
+    expect(within(screen.getByTestId("people-g-design")).getByText("1 člověk, 2026")).toBeTruthy();
+    expect(screen.getByTestId("member-row-u-bob")).toHaveProp(
+      "accessibilityLabel",
+      "Bob Dvorak, zbývá -1,5 dne z 22"
+    );
+  });
+
+  it("renders the owner's people lists in Czech with 27,5 and Czech plurals", async () => {
+    jest.setSystemTime(new Date(2026, 9, 4, 10));
+    answer();
+
+    await renderReport();
+
+    const frank = await screen.findByTestId("member-row-u-frank");
+    expect(within(frank).getByText("27,5")).toBeOnTheScreen();
+    expect(within(frank).getByText("z 31")).toBeOnTheScreen();
+    expect(within(frank).getByText("3,5 vybráno")).toBeOnTheScreen();
+    expect(frank).toHaveProp("accessibilityLabel", "Frank Benes, zbývá 27,5 dne z 31");
+    expect(within(screen.getByTestId("people-g-team")).getByText("2 lidé, 2026")).toBeTruthy();
+    expect(within(screen.getByTestId("usage-card")).getByText("Lis 2025 až Říj 2026")).toBeTruthy();
+  });
+
+  it("renders the offline notice in Czech over the kept overview", async () => {
+    await renderReport();
+    await screen.findByTestId("people-g-team");
+    answerCrossYear({ 2025: "offline", 2026: "offline" });
+    await act(async () => mockFocus());
+    await act(async () => mockFocus());
+
+    expect(await screen.findByTestId("report-stale", {}, { timeout: 5000 })).toHaveTextContent(
+      "Offline. Report ukazuje stav k\u00a010:00.Zkusit znovu"
+    );
   });
 });

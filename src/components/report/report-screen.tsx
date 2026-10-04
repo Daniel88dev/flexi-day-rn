@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { View } from "react-native";
 
 import { StackScreen } from "@/components/shell/stack-screen";
 import { useTranslation } from "@/i18n/use-translation";
@@ -6,6 +7,7 @@ import { useReportScope, useReportWindow, useRereadReportOnFocus } from "@/lib/q
 import {
   DEFAULT_OVERVIEW_FILTERS,
   assignMemberColors,
+  filtersMoved,
   reportBranch,
   type ReportPeriod,
   type ReportScope,
@@ -13,22 +15,33 @@ import {
 import { useViewer } from "@/lib/viewer/use-viewer";
 
 import { MemberLayout } from "./member-layout";
+import { PeriodControls, ReportFilterBar } from "./report-filters";
 import { ReportOverview } from "./report-overview";
-import { ReportEmpty, ReportOffline, ReportSkeleton } from "./report-states";
+import { MemberSkeleton, ReportEmpty, ReportOffline, ReportSkeleton } from "./report-states";
 
 function OverviewBody({ scope }: { scope: ReportScope }) {
   const [filters, setFilters] = useState(DEFAULT_OVERVIEW_FILTERS);
+  // From the whole scope, never the filtered answer, so a person keeps their colour.
+  const colors = useMemo(() => assignMemberColors(scope.members), [scope.members]);
   const window = useReportWindow(filters.period, {
     kind: "overview",
     groupIds: filters.groupIds,
     userIds: filters.userIds,
   });
-  if (window.coldOffline) return <ReportOffline onRetry={window.retry} />;
+  if (window.coldOffline) {
+    const controls = filtersMoved(filters) ? (
+      <View className="pt-1 pb-3">
+        <ReportFilterBar scope={scope} colors={colors} filters={filters} onChange={setFilters} />
+      </View>
+    ) : undefined;
+    return <ReportOffline onRetry={window.retry} controls={controls} />;
+  }
   const { data } = window;
   if (!data) return <ReportSkeleton />;
   return (
     <ReportOverview
       scope={scope}
+      colors={colors}
       window={{ ...window, data }}
       filters={filters}
       onFiltersChange={setFilters}
@@ -42,9 +55,15 @@ function SelfReport({ scope, userId }: { scope: ReportScope; userId: string }) {
   const window = useReportWindow(period, { kind: "member", userId });
   const colors = useMemo(() => assignMemberColors(scope.members), [scope.members]);
   // A viewer may always read their own report, so a refusal gets Retry, not "Not in your report".
-  if (window.coldOffline || window.forbidden) return <ReportOffline onRetry={window.retry} />;
+  if (window.coldOffline || window.forbidden) {
+    const controls =
+      period === "rolling" ? undefined : (
+        <PeriodControls period={period} years={scope.years} onChange={setPeriod} />
+      );
+    return <ReportOffline onRetry={window.retry} controls={controls} />;
+  }
   const report = window.data;
-  if (!report) return <ReportSkeleton />;
+  if (!report) return <MemberSkeleton />;
   const groups = report.groups.map((group) => group.groupName).join(", ");
   return (
     <MemberLayout
@@ -63,7 +82,7 @@ function SelfReport({ scope, userId }: { scope: ReportScope; userId: string }) {
 
 function SelfBody({ scope }: { scope: ReportScope }) {
   const viewer = useViewer();
-  if (!viewer) return <ReportSkeleton />;
+  if (!viewer) return <MemberSkeleton />;
   return <SelfReport scope={scope} userId={viewer.id} />;
 }
 

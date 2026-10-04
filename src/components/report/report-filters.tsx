@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ScrollView } from "react-native";
+import { ScrollView, View } from "react-native";
 
 import { useTranslation } from "@/i18n/use-translation";
 import {
@@ -74,6 +74,23 @@ export function PeriodChip({
         }}
       />
     </>
+  );
+}
+
+/** The period chip alone, above a cold offline state the person reached by moving it. */
+export function PeriodControls({
+  period,
+  years,
+  onChange,
+}: {
+  period: ReportPeriod;
+  years: number[];
+  onChange: (period: ReportPeriod) => void;
+}) {
+  return (
+    <View className="flex-row px-4 pt-1">
+      <PeriodChip testID="member-period" period={period} years={years} onChange={onChange} />
+    </View>
   );
 }
 

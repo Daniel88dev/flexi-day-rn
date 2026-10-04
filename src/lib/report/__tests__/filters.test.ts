@@ -1,4 +1,5 @@
 import {
+  filtersMoved,
   keepVisiblePeople,
   periodChoices,
   pickLabel,
@@ -108,5 +109,17 @@ describe("periodChoices", () => {
 
   it("returns the current year when the scope lists none", () => {
     expect(periodChoices([], today)).toEqual(["rolling", 2026]);
+  });
+});
+
+describe("filtersMoved", () => {
+  it("returns false on the defaults", () => {
+    expect(filtersMoved({ period: "rolling", groupIds: [], userIds: [] })).toBe(false);
+  });
+
+  it("returns true once the period, the groups or the people are off their default", () => {
+    expect(filtersMoved({ period: 2025, groupIds: [], userIds: [] })).toBe(true);
+    expect(filtersMoved({ period: "rolling", groupIds: ["g-team"], userIds: [] })).toBe(true);
+    expect(filtersMoved({ period: "rolling", groupIds: [], userIds: ["u-bob"] })).toBe(true);
   });
 });

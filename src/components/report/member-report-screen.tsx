@@ -6,7 +6,8 @@ import { useReportScope, useReportWindow, useRereadReportOnFocus } from "@/lib/q
 import { assignMemberColors, type ReportPeriod } from "@/lib/report";
 
 import { MemberLayout } from "./member-layout";
-import { ReportForbidden, ReportSkeleton } from "./report-states";
+import { PeriodControls } from "./report-filters";
+import { MemberSkeleton, ReportForbidden, ReportOffline } from "./report-states";
 
 function MemberBody({ userId, initialPeriod }: { userId: string; initialPeriod: ReportPeriod }) {
   const [period, setPeriod] = useState(initialPeriod);
@@ -16,9 +17,17 @@ function MemberBody({ userId, initialPeriod }: { userId: string; initialPeriod: 
   // From the whole scope, as on the overview, so the avatar matches the person's chart colour.
   const colors = useMemo(() => assignMemberColors(scope.data?.members ?? []), [scope.data]);
 
+  const years = scope.data?.years ?? [];
   const report = window.data;
   if (window.forbidden) return <ReportForbidden />;
-  if (!report) return <ReportSkeleton />;
+  if (window.coldOffline) {
+    const controls =
+      period === initialPeriod ? undefined : (
+        <PeriodControls period={period} years={years} onChange={setPeriod} />
+      );
+    return <ReportOffline onRetry={window.retry} controls={controls} />;
+  }
+  if (!report) return <MemberSkeleton />;
   return (
     <MemberLayout
       testID="member-report"
@@ -28,7 +37,7 @@ function MemberBody({ userId, initialPeriod }: { userId: string; initialPeriod: 
       report={report}
       window={window}
       period={period}
-      years={scope.data?.years ?? []}
+      years={years}
       onPeriodChange={setPeriod}
     />
   );

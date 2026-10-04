@@ -880,6 +880,7 @@ export const en = {
     offline: "Can't reach the server",
     offlineBody:
       "The report is read from Flexi Day each time and isn't kept on this phone. Connect and try again.",
+    stale: (time: string) => `Offline. Showing the report as of ${time}.`,
     retry: "Retry",
     taken: (type: string) => `${type} taken`,
     days: (count: number): string => (count === 1 ? "day" : "days"),
