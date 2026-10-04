@@ -54,8 +54,9 @@ class SyncPullError extends Error {
   }
 }
 
-// A cursor-less pull answers a snapshot, which never restarts, so a correct server needs one
-// restart; the second absorbs one inconsistent answer before a server that never settles fails.
+// A restart pulls again without a cursor, and a settled server pages that snapshot to its end, so
+// one restart is enough; the second absorbs one more rejected cursor, say mid-deploy, before a
+// pull that never settles fails.
 const MAX_RESET_RESTARTS = 2;
 
 const PULLED: PullOutcome = { ok: true };
@@ -117,31 +118,32 @@ export function createPullController({
   };
 
   /** One pull loop, page by page. Returns whether the tombstones it saw ask for a snapshot. */
-  const runLoop = async (): Promise<boolean> => {
+  const runLoop = async (restarts: { spent: number }): Promise<boolean> => {
     const state = readSyncState(runtime.getDatabase());
     let cursor = state?.cursor ?? null;
     let generation = state?.generation ?? 0;
     let snapshot = false;
     let selfReset = false;
-    let restarts = 0;
-    let first = true;
+    let onFirstPage = true;
 
     for (;;) {
       const page = await requestPage(cursor);
 
-      if (!first && page.reset && !snapshot) {
-        // Only a loop that starts as a snapshot sweeps, so a delta reset mid-loop starts over.
-        if (restarts === MAX_RESET_RESTARTS) {
-          throw new Error("The sync pull kept answering a reset in the middle of a delta.");
+      if (!onFirstPage && (page.first === true || (page.reset && !snapshot))) {
+        // The server abandoned this loop, and only a loop that starts as a snapshot sweeps, so the
+        // pull starts over without a cursor and the fresh snapshot bumps the generation again.
+        if (restarts.spent === MAX_RESET_RESTARTS) {
+          throw new Error("The sync pull kept answering a reset or a first page mid-loop.");
         }
-        restarts += 1;
+        restarts.spent += 1;
+        snapshot = false;
         selfReset = false;
         cursor = null;
-        first = true;
+        onFirstPage = true;
         continue;
       }
 
-      if (first && page.reset) {
+      if (onFirstPage && page.reset) {
         snapshot = true;
         generation += 1;
       }
@@ -150,7 +152,7 @@ export function createPullController({
       const last = !page.hasMore;
       runtime.write((transaction) => {
         applyPage(transaction, page, generation);
-        if (first && snapshot && !last) {
+        if (onFirstPage && snapshot && !last) {
           // Stamping the generation now, cursor and all, is what makes an interrupted snapshot
           // sweep on the next one: its rows can never share a generation with a later snapshot.
           writeSyncState(transaction, { cursor: null, generation });
@@ -171,7 +173,7 @@ export function createPullController({
 
       if (last) return selfReset;
       cursor = page.cursor;
-      first = false;
+      onFirstPage = false;
     }
   };
 
@@ -182,8 +184,10 @@ export function createPullController({
     try {
       // A delta that saw a membership tombstone dropped its cursor, so one more loop runs and
       // the server answers with the snapshot that sweeps the rows it can no longer see. That
-      // answer is a snapshot, which never self-resets, so the retry is bounded at one.
-      if (await runLoop()) await runLoop();
+      // answer is a snapshot, which never self-resets, so the retry is bounded at one. Both loops
+      // draw on one allowance of restarts.
+      const restarts = { spent: 0 };
+      if (await runLoop(restarts)) await runLoop(restarts);
       setStatus({ lastError: null });
       return PULLED;
     } catch (error) {
