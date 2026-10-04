@@ -242,6 +242,16 @@ a URL scheme. That is not a capability, so no provisioning profile changes.
 The sheet opens on the iOS 27 simulator: the Google button raises the system prompt for
 `accounts.google.com`, and Cancel there comes back as "Sign-in was cancelled."
 
+## Microsoft sign-in needs no rebuild
+
+`expo-auth-session` is JavaScript only, and the native modules it relies on (`expo-web-browser`,
+`expo-crypto`, `expo-application`, `expo-linking`) were already in the dev client. Metro alone
+picks it up. The redirect `flexiday://auth` rides on the app's existing scheme.
+
+The sheet opens on the iOS 27 simulator: the Microsoft button raises the system prompt for
+`login.microsoftonline.com`, Continue opens Microsoft's sign-in page in the auth session browser,
+and closing it comes back as "Sign-in was cancelled."
+
 ## Known state (2026-10-03)
 
 - Mac: Xcode 27.0, CocoaPods 1.17.0 from Homebrew, Node 24.
