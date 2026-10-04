@@ -1,7 +1,10 @@
 import type { AttendanceEventType } from "@/lib/attendance/types";
+import type { WeekdayRun } from "@/lib/groups/facts";
 
 import type { DayMonth, Dictionary } from "./en";
 
+const daysWord = (count: number) =>
+  count === 1 ? "den" : count >= 2 && count <= 4 ? "dny" : "dní";
 const czechDays = (count: number) => {
   if (!Number.isInteger(count)) return "dne";
   if (count === 1) return "den";
@@ -96,8 +99,9 @@ export const cs: Dictionary = {
     },
     noGroups: {
       title: "Zatím žádné skupiny",
-      body: "Připojte se k týmu pomocí odkazu nebo kódu z pozvánky, nebo si vytvořte vlastní skupinu. Obojí se dělá na webu.",
-      open: "Otevřít skupiny na webu",
+      body: "Připojte se k týmu pomocí odkazu nebo kódu z pozvánky. Skupinu vytvoříte na webu.",
+      join: "Připojit se ke skupině",
+      createOnWeb: "Vytvořit skupinu na webu",
     },
   },
   sync: {
@@ -722,7 +726,7 @@ export const cs: Dictionary = {
       "Žádost se vytvoří jako schválená a bude uvedeno, že jste ji schválili vy.",
     membersFailed: "Členy skupiny se nepodařilo načíst. Pro sebe můžete žádat dál.",
     noGroups:
-      "Zatím nejste v žádné skupině. Připojte se k nějaké na webu a pak si můžete žádat o volno.",
+      "Zatím nejste v žádné skupině. Připojte se k nějaké ve Skupinách v nabídce Více a pak si můžete žádat o volno.",
     offline:
       "Server je nedostupný. Žádost potřebuje připojení, proto Odeslat počká, až server odpoví.",
     retry: "Zkusit znovu",
@@ -864,6 +868,137 @@ export const cs: Dictionary = {
     deleteLabel: (title: string) => `Smazat oznámení: ${title}`,
     empty: "Máte přečteno.",
     emptyBody: "Novinky o vašich žádostech a schvalování se zobrazí tady.",
+  },
+  groups: {
+    join: "Připojit",
+    yourGroups: "Vaše skupiny",
+    roles: { manager: "Manažer", admin: "Správce", approver: "Schvalovatel" },
+    defaultsLine: (vacation: number, homeOffice: number) =>
+      `${vacation} ${daysWord(vacation)} dovolené · ${homeOffice} home office`,
+    administered: {
+      heading: "Skupiny, které spravujete",
+      memberCount: (count: number) =>
+        `${count} ${count === 1 ? "člen" : count >= 2 && count <= 4 ? "členové" : "členů"}`,
+      footnote:
+        "Spravujete je prostřednictvím své organizace. Nejste jejich členem, takže v nich nemůžete brát ani schvalovat volno.",
+    },
+    orgAdmin: "Správce organizace",
+    orgAdminNotice: (organization: string) =>
+      `Tuto skupinu spravujete jako správce organizace ${organization}. Nejste jejím členem, takže si zde nemůžete brát ani schvalovat volno.`,
+    empty: {
+      title: "Zatím nejste v žádné skupině",
+      body: "Připojte se pomocí kódu nebo odkazu z pozvánky od svého manažera. O volno můžete žádat, jakmile budete ve skupině.",
+      join: "Připojit se ke skupině",
+      createOnWeb: "Vytvořit skupinu na webu",
+    },
+    notFound: "Tato skupina už neexistuje.",
+    noAccess: "K této skupině už nemáte přístup.",
+    detailFailed:
+      "Skupinu se nepodařilo načíst. Zkontrolujte připojení a klepněte na Zkusit znovu.",
+    noViewAccess:
+      "Členy a nároky vidí lidé, kteří mají v této skupině přístup k náhledu. Pokud je potřebujete, požádejte manažera skupiny.",
+    tabsFailed:
+      "Členy a nároky se nepodařilo načíst. Zkontrolujte připojení a klepněte na Zkusit znovu.",
+    offlineUpdated: (time: string) => `Offline, aktualizováno ${time}`,
+    retry: "Zkusit znovu",
+    members: {
+      tab: "Členové",
+      heading: (count: number) =>
+        `${count} ${count === 1 ? "člověk" : count >= 2 && count <= 4 ? "lidé" : "lidí"}`,
+      notTracked: "Mimo evidenci",
+    },
+    quotas: {
+      tab: "Nároky",
+      heading: (year: number) => `Nárok ${year}`,
+      perYear: "dní za rok",
+      figures: {
+        vacation: "Dovolená",
+        homeOffice: "Home office",
+        sickDays: "Zdravotní volno",
+        carriedOver: "Převedeno",
+      },
+    },
+    facts: {
+      workingDays: "Pracovní dny",
+      holidayCountry: "Státní svátky",
+      defaultAllowance: "Výchozí nárok",
+      none: "Žádné",
+      allowance: (vacation: number, homeOffice: number) =>
+        `${vacation} ${daysWord(vacation)} dovolené, ${homeOffice} home office`,
+      weekdayInitials: ["P", "Ú", "S", "Č", "P", "S", "N"],
+      workingDaysPhrase: (runs: readonly WeekdayRun[]) =>
+        runs.length === 0
+          ? cs.groups.facts.none
+          : runs
+              .map(({ from, to }) => {
+                const days = cs.calendar.weekdaysShort;
+                if (from === to) return days[from];
+                if (to === from + 1) return `${days[from]}, ${days[to]}`;
+                return `${days[from]} až ${days[to]}`;
+              })
+              .join(", "),
+    },
+  },
+  join: {
+    sheet: {
+      title: "Připojit se ke skupině",
+      body: "Vložte odkaz na pozvánku z e-mailu, nebo napište kód pozvánky.",
+      label: "Odkaz nebo kód z pozvánky",
+      placeholder: "7KQ2-M9PX-4HRT",
+      paste: "Vložit",
+      helper: "Skupinu vytvoříte jen na webu.",
+      offline: "K připojení ke skupině potřebujete internet.",
+      join: "Připojit se",
+      joining: "Připojování…",
+    },
+    screen: {
+      close: "Zavřít",
+      invitedBy: (inviter: string | null) =>
+        inviter ? `${inviter} vás zve do skupiny` : "Máte pozvánku do skupiny",
+      inviteFor: "Pozvánka pro",
+      anyoneWithLink: "Kdokoli s odkazem",
+      expires: "Platí do",
+      loadFailed:
+        "Pozvánku se nepodařilo načíst. Zkontrolujte připojení a klepněte na Zkusit znovu.",
+      dead: {
+        notFound: "Taková pozvánka neexistuje",
+        used: "Pozvánka už byla použita",
+        expired: "Platnost pozvánky vypršela",
+        revoked: "Pozvánka byla zrušena",
+      },
+      notFoundBody: "Zkontrolujte odkaz v e-mailu, nebo požádejte o novou pozvánku.",
+      askForNew: (inviter: string | null, group: string) =>
+        `Novou pozvánku do skupiny ${group} vám může poslat ${inviter ?? "manažer skupiny"}.`,
+      done: "Hotovo",
+      alreadyMember: (group: string) => `Do skupiny ${group} už patříte.`,
+      openGroup: "Otevřít skupinu",
+      join: (group: string) => `Připojit se ke skupině ${group}`,
+      signInToJoin: "Přihlásit se a připojit",
+      createAccount: "Vytvořte si účet",
+      wrongAccount: (invited: string, current: string) =>
+        `Tato pozvánka je pro ${invited}. Jste přihlášeni jako ${current}.`,
+      signOutAndContinue: "Odhlásit se a pokračovat",
+      confirmSignOut: {
+        title: "Odhlásit se a pokračovat?",
+        body: "Odhlášením smažete, co má tento telefon uložené k vašemu účtu. Potom se přihlásíte pozvanou adresou.",
+        cancel: "Zrušit",
+        signOut: "Odhlásit se",
+      },
+    },
+    errors: {
+      brokenLink: "V odkazu chybí pozvánka. Otevřete ho znovu z e-mailu.",
+      notFound: "Taková pozvánka neexistuje. Zkontrolujte kód, nebo požádejte o novou pozvánku.",
+      used: "Pozvánka už byla použita.",
+      expired: "Platnost pozvánky vypršela. Požádejte o novou.",
+      revoked: "Pozvánka byla zrušena. Požádejte o novou.",
+      emailMismatch: "Pozvánka byla poslána na jinou e-mailovou adresu.",
+      unverified: "Použijte tlačítko pro připojení v e-mailu s pozvánkou.",
+      malformedCode: "Tohle nevypadá jako kód pozvánky. Kódy vypadají jako 7KQ2-M9PX-4HRT.",
+    },
+    joined: (group: string | null) =>
+      group ? `Připojili jste se ke skupině ${group}` : "Připojili jste se ke skupině",
+    alreadyMember: (group: string | null) =>
+      group ? `Do skupiny ${group} už patříte` : "Do této skupiny už patříte",
   },
   report: {
     periodRolling: "Posledních 12 měsíců",

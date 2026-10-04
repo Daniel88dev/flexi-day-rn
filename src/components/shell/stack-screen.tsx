@@ -18,9 +18,16 @@ type Header = { title: string; backLabel?: never } | { backLabel: string; title?
 export function StackScreen({
   title,
   backLabel,
+  hideTitle,
+  trailing,
   children,
   testID,
-}: Header & { children?: ReactNode; testID?: string }) {
+}: Header & {
+  hideTitle?: boolean;
+  trailing?: ReactNode;
+  children?: ReactNode;
+  testID?: string;
+}) {
   const { t } = useTranslation();
   const name = title ?? backLabel;
   return (
@@ -42,9 +49,15 @@ export function StackScreen({
             <Text className="text-[16px] text-foreground">{backLabel}</Text>
           )}
         </Pressable>
-        {title === undefined ? null : (
-          <Text className="font-display text-[19px] font-semibold text-foreground">{title}</Text>
+        {title === undefined || hideTitle ? null : (
+          <Text
+            className="font-display flex-1 text-[19px] font-semibold text-foreground"
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
         )}
+        {trailing ? <View className="ml-auto">{trailing}</View> : null}
       </View>
       {children ?? (
         <View className="flex-1 items-center justify-center px-8">

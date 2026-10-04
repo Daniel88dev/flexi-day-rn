@@ -8,6 +8,7 @@ import { apiRequest, queryClient } from "@/lib/query";
 import type { FakeAppState } from "@/test-support/fake-app-state";
 import { authClient } from "@/lib/session/auth-client";
 import { setDevSignInLanding, takeDevSignInLanding } from "@/lib/session/dev-sign-in";
+import { clearHeldInvite, holdInvite, takeHeldInvite } from "@/lib/session/held-invite";
 import { clearSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
 import { attendance, session } from "@/test-support/attendance";
 import { SESSION, VIEWER } from "@/test-support/session";
@@ -59,7 +60,11 @@ jest.mock("@/lib/app-state", () => ({
   deviceAppState: jest.requireActual("@/test-support/fake-app-state").createFakeAppState(),
 }));
 
-jest.mock("sonner-native", () => ({ Toaster: () => null }));
+jest.mock("sonner-native", () => {
+  const { View } = jest.requireActual("react-native");
+  const React = jest.requireActual("react");
+  return { Toaster: () => React.createElement(View, { testID: "toaster" }) };
+});
 
 // Its own test covers what it does; here it only has to mount once the store is open.
 jest.mock("@/components/reminders/clock-reminders", () => {
@@ -88,9 +93,14 @@ jest.mock("expo-secure-store", () => ({ setItemAsync: jest.fn(), getItemAsync: j
 
 jest.mock("@better-auth/expo/client", () => ({ storageAdapter: (storage: unknown) => storage }));
 
-jest.mock("react-native-gesture-handler", () => ({
-  GestureHandlerRootView: jest.requireActual("react-native").View,
-}));
+jest.mock("react-native-gesture-handler", () => {
+  const { View } = jest.requireActual("react-native");
+  const React = jest.requireActual("react");
+  return {
+    GestureHandlerRootView: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(View, { testID: "gesture-root" }, children),
+  };
+});
 
 beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
@@ -127,6 +137,7 @@ beforeEach(() => {
   mockFetch.mockReset();
   mockFetch.mockResolvedValue({ status: 404, json: async () => ({}) });
   clearSignedOutNotice();
+  clearHeldInvite();
   useSession.mockReturnValue(SESSION);
   getSession.mockResolvedValue(SESSION);
   serverSignOut.mockResolvedValue({});
@@ -146,6 +157,14 @@ describe("AppLayout", () => {
     expect(screen.queryByText("/welcome")).toBeNull();
     expect(screen.getByTestId("tab-slot")).toBeTruthy();
     expect(open).toHaveBeenCalledWith(VIEWER.id, expect.anything());
+  });
+
+  it("leaves the gesture handler root and the Toaster to the root layout", async () => {
+    await renderShell("signed-in");
+
+    expect(await screen.findByTestId("clock-reminders")).toBeTruthy();
+    expect(screen.queryByTestId("gesture-root")).toBeNull();
+    expect(screen.queryByTestId("toaster")).toBeNull();
   });
 
   it("mounts the Clock reminders once the Local store is open", async () => {
@@ -178,6 +197,64 @@ describe("AppLayout", () => {
 
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings"));
     expect(takeDevSignInLanding()).toBeNull();
+  });
+
+  it("puts the held invite's Join screen over the shell once the Local store is open", async () => {
+    let storeOpened: () => void = () => undefined;
+    open.mockReturnValueOnce(new Promise((resolve) => (storeOpened = () => resolve(undefined))));
+    holdInvite({ token: "dev-alice-support-00000000000000000", invitedEmail: "alice@dev.local" });
+
+    await renderShell("signed-in");
+
+    expect(router.push).not.toHaveBeenCalled();
+
+    await act(async () => storeOpened());
+
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: "/join",
+        params: { token: "dev-alice-support-00000000000000000" },
+      })
+    );
+    expect(router.push).toHaveBeenCalledTimes(1);
+    expect(takeHeldInvite()).toBeNull();
+  });
+
+  it("opens a dev sign-in's landing before a held invite, which stays held", async () => {
+    const invite = {
+      token: "dev-alice-support-00000000000000000",
+      invitedEmail: "alice@dev.local",
+    };
+    setDevSignInLanding("/settings");
+    holdInvite(invite);
+
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings"));
+    expect(router.push).toHaveBeenCalledTimes(1);
+    expect(takeHeldInvite()).toEqual(invite);
+  });
+
+  it("opens nothing over the shell when nothing is held", async () => {
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(open).toHaveBeenCalled());
+    await act(async () => undefined);
+
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("leaves a held invite alone for a visitor sent to welcome", async () => {
+    const invite = {
+      token: "dev-alice-support-00000000000000000",
+      invitedEmail: "alice@dev.local",
+    };
+    holdInvite(invite);
+
+    await renderShell("welcome");
+
+    expect(router.push).not.toHaveBeenCalled();
+    expect(takeHeldInvite()).toEqual(invite);
   });
 
   it("opens the Clock sheet from the centre disc", async () => {

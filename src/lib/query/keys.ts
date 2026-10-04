@@ -10,8 +10,18 @@ export const qk = {
   vacation: (id: string) => ["vacation", id] as const,
   /** Every request detail: the prefix the web invalidates after a decision. */
   vacationDetails: () => ["vacation"] as const,
+  /** Phone-only, under the web's `groups` prefix so invalidating that covers it. */
+  administeredGroups: () => ["groups", "administered"] as const,
+  /**
+   * Unhashed, unlike the web's: the token is the invite link secret, but this cache is memory
+   * only and the phone ships no error reporter.
+   */
+  invitePreview: (token: string) => ["invite-preview", token] as const,
   group: (groupId: string) => ["group", groupId] as const,
   groupUsers: (groupId: string) => ["group-users", groupId] as const,
+  quotas: (groupId: string, year: number, userId?: string) =>
+    ["quotas", groupId, year, userId ?? "all"] as const,
+  bankHolidayCountries: () => ["bank-holiday-countries"] as const,
   myApprovals: () => ["my-approvals"] as const,
   dashboardSummary: () => ["dashboard-summary"] as const,
   notifications: (unreadOnly: boolean) => ["notifications", unreadOnly] as const,

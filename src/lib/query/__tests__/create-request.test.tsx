@@ -5,7 +5,7 @@ import { toast } from "sonner-native";
 
 import { TranslationProvider } from "@/i18n/use-translation";
 import { createVacation, pull, type CreateOutcome, type VacationDraft } from "@/lib/local-store";
-import { useCreateRequest, useGroupMembers } from "@/lib/query/create-request";
+import { useCreateRequest } from "@/lib/query/create-request";
 import { queryClient } from "@/lib/query/runtime";
 
 const mockFetch = jest.fn();
@@ -133,28 +133,5 @@ describe("useCreateRequest", () => {
     expect(outcome).toEqual({ ok: false, reason: "unreachable", message: null });
     expect(pull).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
-  });
-});
-
-describe("useGroupMembers", () => {
-  it("returns the group's members from /api/group-user/:groupId", async () => {
-    const eva = {
-      userId: "user-2",
-      controlledUser: true,
-      deletedAt: null,
-      user: { id: "user-2", name: "Eva", initials: "E", avatarColor: "hsl(0 0% 50%)" },
-    };
-    mockFetch.mockResolvedValue(answer(200, [eva]));
-
-    const { result } = await renderHook(() => useGroupMembers("group-1"), { wrapper });
-
-    await waitFor(() => expect(result.current.data).toEqual([eva]));
-    expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/api\/group-user\/group-1$/);
-  });
-
-  it("reads nothing without a group", async () => {
-    await renderHook(() => useGroupMembers(null), { wrapper });
-
-    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,6 @@
 import * as WebBrowser from "expo-web-browser";
 
-import { openWebPage } from "@/lib/web";
+import { openWebPage, webJoinPath } from "@/lib/web";
 
 jest.mock("@/lib/api", () => ({ WEB_URL: "https://web.test" }));
 
@@ -30,5 +30,17 @@ describe("openWebPage", () => {
     openBrowserAsync.mockRejectedValue(new Error("Another browser is already open."));
 
     await expect(openWebPage("/sign-up/")).resolves.toBeUndefined();
+  });
+});
+
+describe("webJoinPath", () => {
+  it("returns the web's Join page for the invite's token", () => {
+    expect(webJoinPath("dev-alice-support-00000000000000000")).toBe(
+      "/join/?token=dev-alice-support-00000000000000000"
+    );
+  });
+
+  it("encodes a token that carries characters a query cannot", () => {
+    expect(webJoinPath("a+b/c=d&e")).toBe("/join/?token=a%2Bb%2Fc%3Dd%26e");
   });
 });

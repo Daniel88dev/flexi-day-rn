@@ -480,6 +480,20 @@ describe("DashboardScreen", () => {
     expect(screen.queryByText(en.dashboard.empty.title)).toBeNull();
   });
 
+  it("opens the Join sheet from the no-groups card, keeping the web link beside it", async () => {
+    standing.mockReturnValue({ member: false, approver: false });
+    fakeStore({ counts: { ...NO_ROWS, organizations: 1 }, hasCursor: true });
+    await renderDashboard();
+
+    expect(screen.getByText(en.dashboard.noGroups.body)).toBeTruthy();
+    expect(screen.getByTestId("no-groups-open-web")).toHaveTextContent(
+      en.dashboard.noGroups.createOnWeb
+    );
+    await fireEvent.press(screen.getByTestId("no-groups-join"));
+
+    expect(router.push).toHaveBeenCalledWith("/groups/join");
+  });
+
   it("renders no no-groups card before the first pull has finished", async () => {
     standing.mockReturnValue({ member: false, approver: false });
     fakeStore({ inFlight: true });

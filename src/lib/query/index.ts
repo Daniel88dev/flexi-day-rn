@@ -17,8 +17,26 @@ export {
   type DashboardSummaryRead,
   type PendingApproval,
 } from "./dashboard";
-export { useCreateRequest, useGroupMembers } from "./create-request";
+export { useCreateRequest } from "./create-request";
 export { ApiError, classifyFailure, type FailureClass } from "./failure";
+export {
+  useAdministeredGroups,
+  useGroupDetail,
+  useGroupMembers,
+  useHolidayCountries,
+  useInvitePreview,
+  useJoinGroup,
+  useQuotas,
+  type AdministeredGroup,
+  type GroupAccess,
+  type GroupDetail,
+  type GroupMember,
+  type GroupOrganization,
+  type HolidayCountry,
+  type InvitePreview,
+  type JoinedGroup,
+  type UserYearQuota,
+} from "./groups";
 export { qk } from "./keys";
 export {
   useHasUnreadNotifications,
@@ -28,6 +46,7 @@ export {
   type AppNotification,
   type NotificationBusy,
 } from "./notifications";
+export { useOnline } from "./online";
 export { QueryLayer } from "./query-layer";
 export {
   useMemberReport,
@@ -57,11 +76,8 @@ export type { WriteFailureHandler, WriteFailureOptions } from "./write-failure";
 export { useVacationActions, type VacationAction } from "./vacation-actions";
 export {
   useCommentVacation,
-  useGroupDetail,
   useVacationDetail,
   type Attachment,
-  type GroupDetail,
-  type GroupMember,
   type UserSummary,
   type VacationDetail,
   type VacationEvent,

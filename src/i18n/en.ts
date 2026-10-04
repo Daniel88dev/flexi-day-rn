@@ -1,4 +1,5 @@
 import type { AttendanceEventType } from "@/lib/attendance/types";
+import type { WeekdayRun } from "@/lib/groups/facts";
 
 /** A calendar day without its year, `month` 1-based. */
 export type DayMonth = { day: number; month: number };
@@ -100,8 +101,9 @@ export const en = {
     },
     noGroups: {
       title: "No groups yet",
-      body: "Join your team with the link or code from your invite, or create a group of your own. Both happen on the web.",
-      open: "Open groups on the web",
+      body: "Join your team with the link or code from your invite. Creating a group happens on the web.",
+      join: "Join a group",
+      createOnWeb: "Create a group on the web",
     },
   },
   sync: {
@@ -724,7 +726,7 @@ export const en = {
     approveImmediately: "Approve immediately",
     approveImmediatelyHint: "The request is created already approved, attributed to you.",
     membersFailed: "Couldn't load the group's members. You can still book for yourself.",
-    noGroups: "You're not in a group yet. Join one on the web to book time off.",
+    noGroups: "You're not in a group yet. Join one from Groups, under More, to book time off.",
     offline:
       "Can't reach the server. Booking needs a connection, so Submit waits until it answers.",
     retry: "Retry",
@@ -847,6 +849,133 @@ export const en = {
     deleteLabel: (title: string) => `Delete notification: ${title}`,
     empty: "You're all caught up.",
     emptyBody: "Updates on your requests and approvals show up here.",
+  },
+  groups: {
+    join: "Join",
+    yourGroups: "Your groups",
+    roles: { manager: "Manager", admin: "Admin", approver: "Approver" },
+    defaultsLine: (vacation: number, homeOffice: number) =>
+      `${vacation} vacation ${vacation === 1 ? "day" : "days"} · ${homeOffice} home office`,
+    administered: {
+      heading: "Groups you administer",
+      memberCount: (count: number) => `${count} ${count === 1 ? "member" : "members"}`,
+      footnote:
+        "You manage these through your organization. You aren't a member, so you can't book or approve leave in them.",
+    },
+    orgAdmin: "Org admin",
+    orgAdminNotice: (organization: string) =>
+      `You're managing this group as an administrator of ${organization}. You're not a member of it, so you can't book or approve leave here.`,
+    empty: {
+      title: "You're not in a group yet",
+      body: "Join with the invite code or link your manager sent you. Booking leave starts once you're in a group.",
+      join: "Join a group",
+      createOnWeb: "Create a group on the web",
+    },
+    notFound: "This group no longer exists.",
+    noAccess: "You don't have access to this group any more.",
+    detailFailed: "This group couldn't load. Check your connection, then tap Retry.",
+    noViewAccess:
+      "Members and quotas show to people with view access in this group. Ask the group's manager if you need them.",
+    tabsFailed: "Members and quotas couldn't load. Check your connection, then tap Retry.",
+    offlineUpdated: (time: string) => `Offline, updated ${time}`,
+    retry: "Retry",
+    members: {
+      tab: "Members",
+      heading: (count: number) => `${count} ${count === 1 ? "person" : "people"}`,
+      notTracked: "Not tracked",
+    },
+    quotas: {
+      tab: "Quotas",
+      heading: (year: number) => `Allowance ${year}`,
+      perYear: "days per year",
+      figures: {
+        vacation: "Vacation",
+        homeOffice: "Home office",
+        sickDays: "Sick days",
+        carriedOver: "Carried over",
+      },
+    },
+    facts: {
+      workingDays: "Working days",
+      holidayCountry: "Holiday country",
+      defaultAllowance: "Default allowance",
+      none: "None",
+      allowance: (vacation: number, homeOffice: number) =>
+        `${vacation} vacation, ${homeOffice} home office`,
+      weekdayInitials: ["M", "T", "W", "T", "F", "S", "S"],
+      workingDaysPhrase: (runs: readonly WeekdayRun[]) =>
+        runs.length === 0
+          ? en.groups.facts.none
+          : runs
+              .map(({ from, to }) => {
+                const days = en.calendar.weekdaysShort;
+                if (from === to) return days[from];
+                if (to === from + 1) return `${days[from]}, ${days[to]}`;
+                return `${days[from]} to ${days[to]}`;
+              })
+              .join(", "),
+    },
+  },
+  join: {
+    sheet: {
+      title: "Join a group",
+      body: "Paste the invite link from your email, or type the invite code.",
+      label: "Invite link or code",
+      placeholder: "7KQ2-M9PX-4HRT",
+      paste: "Paste",
+      helper: "Creating a group stays on the web.",
+      offline: "Joining a group needs a connection.",
+      join: "Join",
+      joining: "Joining…",
+    },
+    screen: {
+      close: "Close",
+      invitedBy: (inviter: string | null) =>
+        inviter ? `${inviter} invited you to join` : "You're invited to join",
+      inviteFor: "Invite for",
+      anyoneWithLink: "Anyone with the link",
+      expires: "Expires",
+      loadFailed: "This invite couldn't load. Check your connection, then tap Retry.",
+      dead: {
+        notFound: "This invite doesn't exist",
+        used: "This invite has already been used",
+        expired: "This invite has expired",
+        revoked: "This invite was withdrawn",
+      },
+      notFoundBody: "Check the link in your email, or ask for a new invite.",
+      askForNew: (inviter: string | null, group: string) =>
+        inviter
+          ? `Ask ${inviter} to send you a new one for ${group}.`
+          : `Ask the group's manager to send you a new one for ${group}.`,
+      done: "Done",
+      alreadyMember: (group: string) => `You're already in ${group}.`,
+      openGroup: "Open the group",
+      join: (group: string) => `Join ${group}`,
+      signInToJoin: "Sign in to join",
+      createAccount: "Create your account",
+      wrongAccount: (invited: string, current: string) =>
+        `This invite is for ${invited}. You're signed in as ${current}.`,
+      signOutAndContinue: "Sign out and continue",
+      confirmSignOut: {
+        title: "Sign out and continue?",
+        body: "Signing out clears what this phone has stored for your account. You'll sign in with the invited address next.",
+        cancel: "Cancel",
+        signOut: "Sign out",
+      },
+    },
+    errors: {
+      brokenLink: "That link is missing its invite. Open it from your email again.",
+      notFound: "That invite doesn't exist. Check the code, or ask for a new invite.",
+      used: "This invite has already been used.",
+      expired: "This invite has expired. Ask for a new one.",
+      revoked: "This invite was withdrawn. Ask for a new one.",
+      emailMismatch: "This invite was sent to a different email address.",
+      unverified: "Use the Join button in your invite email.",
+      malformedCode: "That doesn't look like an invite code. Codes look like 7KQ2-M9PX-4HRT.",
+    },
+    joined: (group: string | null) => (group ? `You joined ${group}` : "You joined the group"),
+    alreadyMember: (group: string | null) =>
+      group ? `You're already in ${group}` : "You're already in this group",
   },
   report: {
     periodRolling: "Last 12 months",

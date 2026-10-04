@@ -7,10 +7,15 @@ export const WEB_PATHS = {
   signUp: "/sign-up/",
   forgotPassword: "/forgot-password/",
   groups: "/groups/",
+  join: "/join/",
   privacy: "/privacy/",
   terms: "/terms/",
   deleteAccount: "/settings/?delete-account",
 } as const;
+
+export function webJoinPath(token: string): string {
+  return `${WEB_PATHS.join}?token=${encodeURIComponent(token)}`;
+}
 
 /**
  * Opens a page of the web app in a sheet over the screen that asked for it. Sign-up, the password

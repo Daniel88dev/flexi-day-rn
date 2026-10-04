@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { RootRouteProvider, useRootRoute } from "@/lib/session/root-route-context";
+import { clearHeldInvite, holdInvite, takeHeldInvite } from "@/lib/session/held-invite";
 import { showSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
 import { useTwoFactor } from "@/lib/session/use-two-factor";
 import { createFakeClock, type FakeClock } from "@/test-support/fake-clock";
@@ -154,6 +155,24 @@ describe("useTwoFactor", () => {
     });
 
     expect(auth.verifyBackupCode).toHaveBeenCalledWith({ code: "abcde-fghij" });
+  });
+
+  it("leaves a held invite for the shell when it lands on the dashboard", async () => {
+    const invite = {
+      token: "dev-alice-support-00000000000000000",
+      invitedEmail: "alice@dev.local",
+    };
+    holdInvite(invite);
+    const auth = fakeTwoFactorAuth();
+    const { result } = await renderTwoFactor(["totp"], auth, createFakeClock());
+
+    await act(async () => {
+      await result.current.form.submit("123456");
+    });
+
+    expect(replace).toHaveBeenCalledWith("/dashboard");
+    expect(takeHeldInvite()).toEqual(invite);
+    clearHeldInvite();
   });
 
   it("lands on the dashboard once the server accepts the code", async () => {

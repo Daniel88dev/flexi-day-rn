@@ -19,6 +19,7 @@ import { installTestStore } from "@/lib/local-store/test-support/test-store";
 import { queryClient } from "@/lib/query";
 import type { Attachment, GroupDetail, GroupMember, VacationDetail } from "@/lib/query";
 import { fakeFiles } from "@/test-support/fake-file-system";
+import { GROUP_ACCESS, groupDetail, groupMember } from "@/test-support/groups";
 import { vacationDetail } from "@/test-support/vacation-detail";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
@@ -103,12 +104,10 @@ const storeOpen = useStoreOpen as jest.MockedFunction<typeof useStoreOpen>;
 const ENGINEERING = { groupId: "group-1", groupName: "Engineering" };
 const DESIGN = { groupId: "group-2", groupName: "Design" };
 
-const EVA: GroupMember = {
-  userId: "user-2",
-  controlledUser: true,
-  deletedAt: null,
+const EVA: GroupMember = groupMember("user-2", "Eva Horáková", {
+  email: "eva@example.com",
   user: { id: "user-2", name: "Eva Horáková", initials: "EH", avatarColor: "hsl(20 60% 50%)" },
-};
+});
 const SELF: GroupMember = {
   ...EVA,
   userId: "user-9",
@@ -125,6 +124,15 @@ function answer(status: number, body: unknown) {
 }
 
 let groupDetails: Record<string, GroupDetail>;
+
+const ACCESS = GROUP_ACCESS;
+const bookingGroup = (id: string, groupName: string, sickDayBenefitActive: boolean) =>
+  groupDetail({
+    id,
+    groupName,
+    organization: { name: "Acme", sickDayBenefitActive },
+    managerUserId: "user-1",
+  });
 
 let choose: (index: number) => void = () => {};
 let sheetOptions: string[] = [];
@@ -160,8 +168,8 @@ beforeEach(() => {
   storeOpen.mockReturnValue(true);
   create.mockResolvedValue(CREATED);
   groupDetails = {
-    "group-1": { id: "group-1", organization: { sickDayBenefitActive: false } },
-    "group-2": { id: "group-2", organization: { sickDayBenefitActive: true } },
+    "group-1": bookingGroup("group-1", "Engineering", false),
+    "group-2": bookingGroup("group-2", "Design", true),
   };
   mockFetch.mockImplementation(async (url: string) => {
     const path = String(url);
@@ -395,7 +403,10 @@ describe("NewRequest route", () => {
   });
 
   it("offers no member to someone the group does not name its admin", async () => {
-    groupDetails["group-1"] = { ...groupDetails["group-1"], access: { canAdmin: false } };
+    groupDetails["group-1"] = {
+      ...groupDetails["group-1"],
+      access: { ...ACCESS, canAdmin: false },
+    };
 
     await renderLoaded();
 
@@ -406,7 +417,7 @@ describe("NewRequest route", () => {
   });
 
   it("books on a member's behalf for an admin, asking the server who the members are", async () => {
-    groupDetails["group-1"] = { ...groupDetails["group-1"], access: { canAdmin: true } };
+    groupDetails["group-1"] = { ...groupDetails["group-1"], access: { ...ACCESS, canAdmin: true } };
     await renderLoaded();
     // The row opens once the members have answered.
     await waitFor(() => expect(screen.getByTestId("new-request-member")).toBeEnabled());
@@ -433,7 +444,7 @@ describe("NewRequest route", () => {
       userId: "user-3",
       user: { ...EVA.user, id: "user-3", name: "Jan Dvořák" },
     };
-    groupDetails["group-1"] = { ...groupDetails["group-1"], access: { canAdmin: true } };
+    groupDetails["group-1"] = { ...groupDetails["group-1"], access: { ...ACCESS, canAdmin: true } };
     mockFetch.mockImplementation(async (url: string) =>
       String(url).includes("/api/group-user/")
         ? answer(200, [EVA, JAN])

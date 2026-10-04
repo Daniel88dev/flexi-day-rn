@@ -3,12 +3,21 @@ import "../global.css";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Toaster } from "sonner-native";
 
 import { TranslationProvider } from "@/i18n/use-translation";
 import { loadDeviceId } from "@/lib/session/device-id";
 import { rootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { loadCachedSession, type CachedSession } from "@/lib/session/session-cache";
+
+const FORM_SHEET = {
+  presentation: "formSheet",
+  sheetAllowedDetents: "fitToContents",
+  sheetGrabberVisible: true,
+  sheetCornerRadius: 28,
+} as const;
 
 export default function RootLayout() {
   const [deviceIdRead, setDeviceIdRead] = useState(false);
@@ -32,35 +41,26 @@ export default function RootLayout() {
   if (route === "wait") return null;
 
   return (
-    <RootRouteProvider route={route}>
-      <TranslationProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen
-            name="clock"
-            options={{
-              presentation: "formSheet",
-              sheetAllowedDetents: "fitToContents",
-              sheetGrabberVisible: true,
-              sheetCornerRadius: 28,
-            }}
-          />
-          <Stack.Screen name="requests/new" options={{ presentation: "modal" }} />
-          <Stack.Screen name="settings/two-factor" options={{ presentation: "modal" }} />
-          <Stack.Screen name="settings/delete-account" options={{ presentation: "modal" }} />
-          <Stack.Screen
-            name="notifications-intro"
-            options={{
-              presentation: "formSheet",
-              sheetAllowedDetents: "fitToContents",
-              sheetGrabberVisible: true,
-              sheetCornerRadius: 28,
-            }}
-          />
-          <Stack.Screen name="my-attendance/entry" options={{ presentation: "modal" }} />
-          <Stack.Screen name="my-attendance/session/[id]" options={{ presentation: "modal" }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </TranslationProvider>
-    </RootRouteProvider>
+    // sonner-native's toasts need a gesture handler root above them and expo-router mounts none.
+    // The Toaster sits after the root stack, so toasts show over root-stack screens too.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <RootRouteProvider route={route}>
+        <TranslationProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="clock" options={FORM_SHEET} />
+            <Stack.Screen name="groups/join" options={FORM_SHEET} />
+            <Stack.Screen name="join" options={{ presentation: "modal" }} />
+            <Stack.Screen name="requests/new" options={{ presentation: "modal" }} />
+            <Stack.Screen name="settings/two-factor" options={{ presentation: "modal" }} />
+            <Stack.Screen name="settings/delete-account" options={{ presentation: "modal" }} />
+            <Stack.Screen name="notifications-intro" options={FORM_SHEET} />
+            <Stack.Screen name="my-attendance/entry" options={{ presentation: "modal" }} />
+            <Stack.Screen name="my-attendance/session/[id]" options={{ presentation: "modal" }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </TranslationProvider>
+      </RootRouteProvider>
+      <Toaster />
+    </GestureHandlerRootView>
   );
 }

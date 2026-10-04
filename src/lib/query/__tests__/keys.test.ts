@@ -27,6 +27,23 @@ describe("qk", () => {
     expect(qk.authAccounts()).toEqual(["auth", "accounts"]);
   });
 
+  it("returns the web's key for the holiday countries", () => {
+    expect(qk.bankHolidayCountries()).toEqual(["bank-holiday-countries"]);
+  });
+
+  it("returns the invite preview under the token itself, which only ever sits in memory", () => {
+    expect(qk.invitePreview("dev-secret")).toEqual(["invite-preview", "dev-secret"]);
+  });
+
+  it("returns the administered groups under the web's groups prefix", () => {
+    expect(qk.administeredGroups()).toEqual(["groups", "administered"]);
+  });
+
+  it("returns the web's key for a group's quotas, every member's unless one is named", () => {
+    expect(qk.quotas("group-1", 2026)).toEqual(["quotas", "group-1", 2026, "all"]);
+    expect(qk.quotas("group-1", 2026, "user-2")).toEqual(["quotas", "group-1", 2026, "user-2"]);
+  });
+
   it("returns the web's report keys, with the overview's filters as the query string it sends", () => {
     expect(qk.reportScope()).toEqual(["report-scope"]);
     expect(qk.reportOverview({ year: 2026 })).toEqual(["report-overview", "year=2026"]);

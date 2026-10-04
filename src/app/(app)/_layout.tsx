@@ -3,8 +3,6 @@ import { TabList, TabSlot, TabTrigger, Tabs } from "expo-router/ui";
 import { ListIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Toaster } from "sonner-native";
 
 import { ClockDisc } from "@/components/clock/clock-disc";
 import { ClockReminders } from "@/components/reminders/clock-reminders";
@@ -22,6 +20,7 @@ import {
 } from "@/lib/navigation/shell-links";
 import { QueryLayer } from "@/lib/query";
 import { takeDevSignInLanding } from "@/lib/session/dev-sign-in";
+import { takeHeldInvite } from "@/lib/session/held-invite";
 import { useSessionRevalidation } from "@/lib/session/revalidate-session";
 import { useRootRoute } from "@/lib/session/root-route-context";
 import { signOut } from "@/lib/session/sign-out";
@@ -69,7 +68,12 @@ export default function AppLayout() {
   useEffect(() => {
     if (!storeOpen) return;
     const landing = takeDevSignInLanding();
-    if (landing) router.push(landing as Href);
+    if (landing) {
+      router.push(landing as Href);
+      return;
+    }
+    const invite = takeHeldInvite();
+    if (invite) router.push({ pathname: "/join", params: { token: invite.token } });
   }, [storeOpen]);
 
   // A deep link into the shell without a session goes back to welcome. The root layout has read
@@ -84,62 +88,58 @@ export default function AppLayout() {
   };
 
   return (
-    // sonner-native's toasts need a gesture handler root above them and expo-router mounts none.
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryLayer onUnauthorized={onUnauthorized}>
-        {storeOpen ? <ClockReminders /> : null}
-        <View className="flex-1 bg-background">
-          <ShellLinks>
-            {({ bar, sheet, hiddenTabs }) => (
-              <>
-                {storeOpen ? (
-                  <Tabs>
-                    <TabSlot />
-                    <TabList asChild>
-                      <View className="flex-row border-t border-border bg-card pb-safe">
-                        {bar.slice(0, 2).map((link) => barSlot(link, go))}
+    <QueryLayer onUnauthorized={onUnauthorized}>
+      {storeOpen ? <ClockReminders /> : null}
+      <View className="flex-1 bg-background">
+        <ShellLinks>
+          {({ bar, sheet, hiddenTabs }) => (
+            <>
+              {storeOpen ? (
+                <Tabs>
+                  <TabSlot />
+                  <TabList asChild>
+                    <View className="flex-row border-t border-border bg-card pb-safe">
+                      {bar.slice(0, 2).map((link) => barSlot(link, go))}
 
-                        <ClockDisc onPress={() => router.push("/clock")} />
+                      <ClockDisc onPress={() => router.push("/clock")} />
 
-                        {bar.slice(2).map((link) => barSlot(link, go))}
+                      {bar.slice(2).map((link) => barSlot(link, go))}
 
-                        <TabButton
-                          testID="tab-more"
-                          label={t.nav.more}
-                          icon={ListIcon}
-                          onPress={() => setMoreOpen(true)}
+                      <TabButton
+                        testID="tab-more"
+                        label={t.nav.more}
+                        icon={ListIcon}
+                        onPress={() => setMoreOpen(true)}
+                      />
+
+                      {/* A tab kept off the bar stays a route, so a link still reaches it. */}
+                      {hiddenTabs.map((link) => (
+                        <TabTrigger
+                          key={link.key}
+                          name={link.key}
+                          href={link.href as Href}
+                          style={{ display: "none" }}
                         />
+                      ))}
+                    </View>
+                  </TabList>
+                </Tabs>
+              ) : null}
 
-                        {/* A tab kept off the bar stays a route, so a link still reaches it. */}
-                        {hiddenTabs.map((link) => (
-                          <TabTrigger
-                            key={link.key}
-                            name={link.key}
-                            href={link.href as Href}
-                            style={{ display: "none" }}
-                          />
-                        ))}
-                      </View>
-                    </TabList>
-                  </Tabs>
-                ) : null}
-
-                <MoreSheet
-                  open={moreOpen}
-                  onClose={() => setMoreOpen(false)}
-                  sections={sheet}
-                  utility={utility}
-                  viewer={viewer}
-                  onNavigate={go}
-                  onSignOut={() => void signOut(wipe)}
-                />
-              </>
-            )}
-          </ShellLinks>
-        </View>
-      </QueryLayer>
-      <Toaster />
-    </GestureHandlerRootView>
+              <MoreSheet
+                open={moreOpen}
+                onClose={() => setMoreOpen(false)}
+                sections={sheet}
+                utility={utility}
+                viewer={viewer}
+                onNavigate={go}
+                onSignOut={() => void signOut(wipe)}
+              />
+            </>
+          )}
+        </ShellLinks>
+      </View>
+    </QueryLayer>
   );
 }
 

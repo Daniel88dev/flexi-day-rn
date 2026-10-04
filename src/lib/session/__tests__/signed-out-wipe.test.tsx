@@ -7,6 +7,7 @@ import { queryClient } from "@/lib/query/runtime";
 import { reminderPrefs, reminderScheduler } from "@/lib/reminders/device";
 import { SESSION_COOKIE_KEY } from "@/lib/session/auth-client";
 import { DEVICE_ID_KEY } from "@/lib/session/device-id";
+import { clearHeldInvite, holdInvite, takeHeldInvite } from "@/lib/session/held-invite";
 import { RootRouteProvider, useRootRoute } from "@/lib/session/root-route-context";
 import { SESSION_CACHE_KEY } from "@/lib/session/session-cache";
 import {
@@ -130,6 +131,20 @@ describe("signedOutWipe", () => {
 
     expect(setRootRoute).toHaveBeenCalledWith("welcome");
     expect(replace).toHaveBeenCalledWith("/welcome");
+  });
+
+  it("leaves a held invite alone, so Sign out and continue carries it to the next sign-in", async () => {
+    const invite = {
+      token: "dev-alice-support-00000000000000000",
+      invitedEmail: "alice@dev.local",
+    };
+    holdInvite(invite);
+
+    await wipe();
+
+    expect(takeHeldInvite()).toEqual(invite);
+    expect(JSON.stringify(keychain.entries())).not.toContain(invite.token);
+    clearHeldInvite();
   });
 
   it("leaves the same phone behind when it runs twice", async () => {

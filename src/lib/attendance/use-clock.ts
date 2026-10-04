@@ -1,8 +1,8 @@
-import { onlineManager, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useRef, useState } from "react";
 
 import { haptic } from "@/lib/haptics";
-import { apiRequest, qk, rereadAttendance } from "@/lib/query";
+import { apiRequest, qk, rereadAttendance, useOnline } from "@/lib/query";
 
 import { clockView, type ClockView } from "./clock";
 import type { LocationEnd } from "./location-capture";
@@ -24,9 +24,6 @@ const LOCATION_ENDS: Partial<Record<ClockAction, LocationEnd>> = {
   "clock-out": "OUT",
 };
 
-const isOnline = () => onlineManager.isOnline();
-const subscribeOnline = (listener: () => void) => onlineManager.subscribe(listener);
-
 /**
  * The clock as the query cache holds it, read without an organization as the web does. A screen
  * that opens the clock reads it again on mount however fresh the answer is.
@@ -40,7 +37,7 @@ export function useClockRead({ rereadOnMount = false } = {}): {
     queryFn: ({ signal }) => apiRequest<AttendanceState>(CURRENT, { signal }),
     refetchOnMount: rereadOnMount ? "always" : true,
   });
-  const online = useSyncExternalStore(subscribeOnline, isOnline);
+  const online = useOnline();
   const { refetch } = query;
   const reread = useCallback(() => void refetch(), [refetch]);
   return {

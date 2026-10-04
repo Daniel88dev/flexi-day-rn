@@ -7,6 +7,7 @@ const TONES = {
   error: { surface: "bg-danger-soft", text: "text-danger" },
   success: { surface: "bg-ok-soft", text: "text-ok" },
   accent: { surface: "bg-accent", text: "text-accent-foreground" },
+  warm: { surface: "bg-warm-soft", text: "text-foreground" },
 } as const;
 
 export type NoticeTone = keyof typeof TONES;
