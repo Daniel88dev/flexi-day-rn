@@ -58,6 +58,52 @@ export type ReportOverview = {
   summary: ReportSummaryRow[];
 };
 
+export type ReportBooking = {
+  userId: string;
+  userName: string;
+  groupId: string;
+  groupName: string;
+  vacationType: CalendarRecordType;
+  from: string;
+  to: string;
+  days: number;
+  year: number;
+  month: number;
+  status: "approved" | "pending" | "rejected";
+  note: string | null;
+};
+
+export type MemberChange = {
+  id: string;
+  groupId: string;
+  changeType: string;
+  changeDetail: string;
+  /** Null for the year rollover, and for an admin who has since deleted their account. */
+  actor: ReportUser | null;
+  actorDeleted?: boolean;
+  createdAt: string;
+};
+
+export type ReportQuotaRow = {
+  userId: string;
+  groupId: string;
+  vacationDays: number;
+  homeOfficeDays: number;
+  sickDays?: number;
+  carriedOverDays: number;
+};
+
+export type MemberReport = {
+  year: number;
+  member: ReportUser;
+  groups: ReportScopeGroup[];
+  quotas: ReportQuotaRow[];
+  summary: ReportSummaryRow[];
+  monthly: MonthlyUsage[];
+  bookings: ReportBooking[];
+  changes: MemberChange[];
+};
+
 /** The web's filters without `types`: the phone picks one allowance from the full answer. */
 export type ReportFilters = {
   year: number;

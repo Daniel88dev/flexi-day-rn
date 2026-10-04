@@ -7,7 +7,15 @@ import { queryClient } from "@/lib/query";
 import type { ReportScope } from "@/lib/report";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
-import { ownerOverview, ownerScope, reportOverview, reportScope } from "@/test-support/report";
+import {
+  CROSS_YEAR_TODAY,
+  crossOverview,
+  crossScope,
+  ownerOverview,
+  ownerScope,
+  reportOverview,
+  reportScope,
+} from "@/test-support/report";
 import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
@@ -41,23 +49,46 @@ jest.mock("@/lib/app-state", () => ({
   deviceAppState: jest.requireActual("@/test-support/fake-app-state").createFakeAppState(),
 }));
 
-type Reply = { status: number; body?: unknown } | "offline";
+type Reply = { status: number; body?: unknown } | "offline" | "hold";
 
 const reply = (status: number, body: unknown) => ({ status, json: async () => body });
+const held: (() => void)[] = [];
 
 function answer({
   scope = { status: 200, body: ownerScope },
   overview = { status: 200, body: ownerOverview },
-}: { scope?: Reply; overview?: Reply } = {}) {
+  years = {},
+}: { scope?: Reply; overview?: Reply; years?: Record<number, Reply> } = {}) {
   mockFetch.mockImplementation(async (url: string) => {
+    const year = Number(new URL(url).searchParams.get("year"));
     const pick = url.includes("/api/reports/scope")
       ? scope
       : url.includes("/api/reports/overview")
-        ? overview
+        ? (years[year] ?? overview)
         : { status: 404, body: {} };
     if (pick === "offline") throw new TypeError("Network request failed");
+    if (pick === "hold") {
+      return new Promise((resolve) => held.push(() => resolve(reply(200, crossOverview(year)))));
+    }
     return reply(pick.status, pick.body);
   });
+}
+
+/** The cross-year fixtures: each overview read answers for the year it asked for. */
+function answerCrossYear(years: Record<number, Reply> = {}) {
+  answer({
+    scope: { status: 200, body: crossScope },
+    years: {
+      2025: { status: 200, body: crossOverview(2025) },
+      2026: { status: 200, body: crossOverview(2026) },
+      ...years,
+    },
+  });
+}
+
+function dotColor(testID: string): unknown {
+  const [dot] = screen.getByTestId(testID).children;
+  return typeof dot === "string" ? undefined : dot.props.style.backgroundColor;
 }
 
 const urlsOf = (path: string) =>
@@ -77,6 +108,7 @@ beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();
+  held.length = 0;
   mockCanGoBack.mockReturnValue(true);
   // Only the date is fixed: the query layer's timers stay real.
   jest.useFakeTimers({
@@ -174,9 +206,11 @@ describe("Report route", () => {
     await renderReport();
     await screen.findByTestId("report-overview");
 
-    const [url] = urlsOf("/api/reports/overview");
-    expect(url).toMatch(/\/api\/reports\/overview\?year=2026$/);
-    expect(new URL(url).searchParams.has("types")).toBe(false);
+    const urls = urlsOf("/api/reports/overview");
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toMatch(/\/api\/reports\/overview\?year=2026$/);
+    expect(new URL(urls[0]).searchParams.has("types")).toBe(false);
+    expect(screen.getByText("Nov 2025 to Oct 2026")).toBeOnTheScreen();
   });
 
   it("switches every list to the leave type picked", async () => {
@@ -280,5 +314,146 @@ describe("Report route", () => {
 
     await waitFor(() => expect(urlsOf("/api/reports/overview")).toHaveLength(2));
     expect(urlsOf("/api/reports/scope")).toHaveLength(2);
+  });
+});
+
+describe("Report usage card across two years", () => {
+  const HIDDEN = { includeHiddenElements: true };
+
+  beforeEach(() => {
+    jest.setSystemTime(CROSS_YEAR_TODAY);
+    answerCrossYear();
+  });
+
+  it("shows the window, the total and a column per month above the people lists", async () => {
+    await renderReport();
+
+    const card = await screen.findByTestId("usage-card");
+    await waitFor(() => expect(within(card).getByText("26.5")).toBeOnTheScreen());
+    expect(within(card).getByText("Vacation taken")).toBeOnTheScreen();
+    expect(within(card).getByText("Mar 2025 to Feb 2026")).toBeOnTheScreen();
+    expect(within(card).getAllByTestId(/^usage-chart-col-\d+$/)).toHaveLength(12);
+    expect(screen.getByTestId("usage-chart-col-3")).toHaveProp(
+      "accessibilityLabel",
+      "June 2025, 8 days: Erin Kral 3, Bob Dvorak 5"
+    );
+    expect(urlsOf("year=2025")).toHaveLength(1);
+    expect(urlsOf("year=2026")).toHaveLength(1);
+
+    const order = screen
+      .getAllByTestId(/^(usage-card|people-g-[a-z]+)$/)
+      .map((node) => node.props.testID);
+    expect(order).toEqual(["usage-card", "people-g-support", "people-g-team", "people-g-design"]);
+  });
+
+  it("opens the callout beside a tapped column and closes it on a second tap", async () => {
+    await renderReport();
+    await waitFor(() => expect(screen.getByText("26.5")).toBeOnTheScreen());
+
+    await fireEvent.press(screen.getByTestId("usage-chart-col-4"));
+
+    const callout = within(screen.getByTestId("usage-chart-tip", HIDDEN));
+    expect(callout.getByText("July 2025", HIDDEN)).toBeOnTheScreen();
+    expect(callout.getByText("6 d", HIDDEN)).toBeOnTheScreen();
+    expect(callout.getByText("Olivia Owner", HIDDEN)).toBeOnTheScreen();
+    expect(callout.getByText("Alice Novak", HIDDEN)).toBeOnTheScreen();
+    expect(screen.getByTestId("usage-chart-col-4")).toHaveProp("accessibilityState", {
+      selected: true,
+    });
+
+    await fireEvent.press(screen.getByTestId("usage-chart-col-4"));
+
+    expect(screen.queryByTestId("usage-chart-tip", HIDDEN)).toBeNull();
+  });
+
+  it("toggles a person off in the legend and resets the legend when the leave type changes", async () => {
+    await renderReport();
+    await waitFor(() => expect(screen.getByText("26.5")).toBeOnTheScreen());
+
+    await fireEvent.press(screen.getByTestId("usage-legend-u-bob"));
+
+    expect(screen.getByTestId("usage-legend-u-bob")).toHaveProp("accessibilityState", {
+      checked: false,
+    });
+    expect(screen.getByTestId("usage-chart-col-3")).toHaveProp(
+      "accessibilityLabel",
+      "June 2025, 3 days: Erin Kral 3"
+    );
+
+    await fireEvent.press(screen.getByTestId("report-type-SICK_DAY"));
+    await fireEvent.press(screen.getByTestId("report-type-VACATION"));
+
+    expect(screen.getByTestId("usage-legend-u-bob")).toHaveProp("accessibilityState", {
+      checked: true,
+    });
+  });
+
+  it("keeps each person's colour through a leave-type switch and a narrower answer", async () => {
+    await renderReport();
+    await waitFor(() => expect(screen.getByText("26.5")).toBeOnTheScreen());
+    // Frank's avatar hue is too close to Erin's, so the whole scope moves him to the palette.
+    const frank = dotColor("usage-legend-u-frank");
+    const bob = dotColor("usage-legend-u-bob");
+    expect(frank).not.toEqual(crossScope.members.find((m) => m.id === "u-frank")?.avatarColor);
+
+    await fireEvent.press(screen.getByTestId("report-type-SICK_DAY"));
+    expect(dotColor("usage-legend-u-bob")).toEqual(bob);
+    await fireEvent.press(screen.getByTestId("report-type-VACATION"));
+
+    const picked = (id: string) => id === "u-frank" || id === "u-bob";
+    const narrower = (year: number) => {
+      const overview = crossOverview(year);
+      return {
+        ...overview,
+        members: overview.members.filter((member) => picked(member.id)),
+        monthly: overview.monthly.filter((row) => picked(row.userId)),
+        summary: overview.summary.filter((row) => picked(row.userId)),
+      };
+    };
+    answerCrossYear({
+      2025: { status: 200, body: narrower(2025) },
+      2026: { status: 200, body: narrower(2026) },
+    });
+    await act(async () => mockFocus());
+    await act(async () => mockFocus());
+
+    await waitFor(() => expect(screen.queryByTestId("usage-legend-u-erin")).toBeNull());
+    expect(dotColor("usage-legend-u-frank")).toEqual(frank);
+    expect(dotColor("usage-legend-u-bob")).toEqual(bob);
+  });
+
+  it("says Loading the months while the prior year is outstanding, with the lists already shown", async () => {
+    answerCrossYear({ 2025: "hold" });
+
+    await renderReport();
+
+    expect(await screen.findByText("Loading the months")).toBeOnTheScreen();
+    expect(screen.getByTestId("people-g-team")).toBeOnTheScreen();
+    expect(screen.queryByTestId("usage-chart")).toBeNull();
+
+    await waitFor(() => expect(held).toHaveLength(1));
+    await act(async () => held.shift()?.());
+
+    await waitFor(() => expect(screen.getByText("26.5")).toBeOnTheScreen());
+    expect(screen.queryByText("Loading the months")).toBeNull();
+  });
+
+  it("shows the incomplete note with Retry when the prior year fails, and the whole window after Retry", async () => {
+    answerCrossYear({ 2025: "offline" });
+
+    await renderReport();
+
+    const note = await screen.findByTestId("report-incomplete", {}, { timeout: 5000 });
+    expect(
+      within(note).getByText("2025 didn't load, so its months show no leave yet.")
+    ).toBeOnTheScreen();
+    expect(within(screen.getByTestId("usage-card")).getByText("6")).toBeOnTheScreen();
+    expect(screen.getByTestId("usage-chart")).toBeOnTheScreen();
+
+    answerCrossYear();
+    await fireEvent.press(screen.getByTestId("report-incomplete-retry"));
+
+    await waitFor(() => expect(screen.queryByTestId("report-incomplete")).toBeNull());
+    expect(within(screen.getByTestId("usage-card")).getByText("26.5")).toBeOnTheScreen();
   });
 });

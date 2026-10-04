@@ -769,6 +769,7 @@ export const en = {
     /** `weekday` 0 for Monday. */
     dayTitle: (weekday: number, date: DayMonth) =>
       `${en.calendar.weekdaysShort[weekday]} ${date.day} ${MONTHS_SHORT_EN[date.month - 1]}`,
+    monthsShort: MONTHS_SHORT_EN,
     months: [
       "January",
       "February",
@@ -866,6 +867,18 @@ export const en = {
     offlineBody:
       "The report is read from Flexi Day each time and isn't kept on this phone. Connect and try again.",
     retry: "Retry",
+    taken: (type: string) => `${type} taken`,
+    days: (count: number): string => (count === 1 ? "day" : "days"),
+    daysShort: (days: string) => `${days} d`,
+    windowRange: (from: string, to: string) => `${from} to ${to}`,
+    loadingMonths: "Loading the months",
+    noOneMatches: "No one matches these filters.",
+    nobodyTookLeave: "Nobody took leave",
+    incomplete: (year: number) => `${year} didn't load, so its months show no leave yet.`,
+    columnLabel: (month: string, total: number, totalText: string, people: string[]) =>
+      people.length === 0
+        ? `${month}, ${totalText} ${en.report.days(total)}. Nobody took leave`
+        : `${month}, ${totalText} ${en.report.days(total)}: ${people.join(", ")}`,
   },
   common: {
     locale: "en-GB",

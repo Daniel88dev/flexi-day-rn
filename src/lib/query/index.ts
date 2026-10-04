@@ -30,6 +30,12 @@ export {
 } from "./notifications";
 export { QueryLayer } from "./query-layer";
 export { useReportOverview, useReportScope, useRereadReportOnFocus } from "./report";
+export {
+  useReportWindow,
+  type ReportSource,
+  type ReportWindow,
+  type WindowState,
+} from "./report-window";
 export type { ApiRequest, ApiRequestOptions } from "./request";
 export {
   putMySettings,

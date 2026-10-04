@@ -2,6 +2,12 @@ import type { AttendanceEventType } from "@/lib/attendance/types";
 
 import type { DayMonth, Dictionary } from "./en";
 
+const czechDays = (count: number) => {
+  if (!Number.isInteger(count)) return "dne";
+  if (count === 1) return "den";
+  return count >= 2 && count <= 4 ? "dny" : "dní";
+};
+
 export const cs: Dictionary = {
   nav: {
     menu: "Menu",
@@ -756,6 +762,20 @@ export const cs: Dictionary = {
     weekdaysShort: ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"],
     dayTitle: (weekday: number, date: DayMonth) =>
       `${cs.calendar.weekdaysShort[weekday]} ${date.day}. ${date.month}.`,
+    monthsShort: [
+      "Led",
+      "Úno",
+      "Bře",
+      "Dub",
+      "Kvě",
+      "Čvn",
+      "Čvc",
+      "Srp",
+      "Zář",
+      "Říj",
+      "Lis",
+      "Pro",
+    ],
     months: [
       "Leden",
       "Únor",
@@ -862,6 +882,19 @@ export const cs: Dictionary = {
     offlineBody:
       "Report se pokaždé načítá z Flexi Day a v telefonu se neukládá. Připojte se a zkuste to znovu.",
     retry: "Zkusit znovu",
+    taken: (type: string) => `${type}: vybráno`,
+    days: (count: number) => czechDays(count),
+    daysShort: (days: string) => `${days} d`,
+    windowRange: (from: string, to: string) => `${from} až ${to}`,
+    loadingMonths: "Načítám měsíce",
+    noOneMatches: "Filtrům nikdo neodpovídá.",
+    nobodyTookLeave: "Nikdo neměl volno",
+    incomplete: (year: number) =>
+      `Rok ${year} se nenačetl, takže jeho měsíce zatím neukazují žádné volno.`,
+    columnLabel: (month: string, total: number, totalText: string, people: string[]) =>
+      people.length === 0
+        ? `${month}, ${totalText} ${czechDays(total)}. Nikdo neměl volno`
+        : `${month}, ${totalText} ${czechDays(total)}: ${people.join(", ")}`,
   },
   common: {
     locale: "cs-CZ",

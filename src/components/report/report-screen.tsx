@@ -1,40 +1,42 @@
 import { StackScreen } from "@/components/shell/stack-screen";
 import { useTranslation } from "@/i18n/use-translation";
-import { useReportOverview, useReportScope, useRereadReportOnFocus } from "@/lib/query";
-import { reportBranch } from "@/lib/report";
-import { useToday } from "@/lib/use-today";
+import {
+  useReportScope,
+  useReportWindow,
+  useRereadReportOnFocus,
+  type ReportSource,
+} from "@/lib/query";
+import { reportBranch, type ReportPeriod, type ReportScope } from "@/lib/report";
 
 import { ReportOverview } from "./report-overview";
 import { ReportEmpty, ReportOffline, ReportSkeleton } from "./report-states";
 
+const PERIOD: ReportPeriod = "rolling";
+const EVERYONE: ReportSource = { kind: "overview" };
+
+function OverviewBody({ scope }: { scope: ReportScope }) {
+  const window = useReportWindow(PERIOD, EVERYONE);
+  if (window.coldOffline) return <ReportOffline onRetry={window.retry} />;
+  const { data } = window;
+  if (!data) return <ReportSkeleton />;
+  return <ReportOverview scope={scope} window={{ ...window, data }} period={PERIOD} />;
+}
+
 function ReportBody() {
-  const today = useToday();
   const scope = useReportScope();
   const branch = reportBranch(scope.data, scope.isError);
-  // The report opens on the last 12 months, whose figures belong to the current year.
-  const year = today.getFullYear();
-  const overviewWanted = branch === "overview" || branch === "self";
-  const overview = useReportOverview({ year }, overviewWanted);
   useRereadReportOnFocus();
-
-  const retry = () => {
-    void scope.refetch();
-    if (overviewWanted) void overview.refetch();
-  };
 
   switch (branch) {
     case "loading":
       return <ReportSkeleton />;
     case "offline":
-      return <ReportOffline onRetry={retry} />;
+      return <ReportOffline onRetry={() => void scope.refetch()} />;
     case "empty":
       return <ReportEmpty />;
     case "self":
     case "overview":
-      if (!scope.data || !overview.data) {
-        return overview.isError ? <ReportOffline onRetry={retry} /> : <ReportSkeleton />;
-      }
-      return <ReportOverview scope={scope.data} overview={overview.data} period="rolling" />;
+      return scope.data ? <OverviewBody scope={scope.data} /> : <ReportSkeleton />;
   }
 }
 

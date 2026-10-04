@@ -1,5 +1,6 @@
 import type { CalendarRecordType } from "@/lib/local-store";
 
+import { round } from "./round";
 import type { ReportScopeMember, ReportSummaryRow } from "./types";
 
 export type MemberRemaining = {
@@ -15,8 +16,6 @@ export type MemberRemaining = {
   overdraft: number;
   remaining: number;
 };
-
-const round = (value: number) => Number(value.toFixed(2));
 
 /** Each person once, by name then id: a person in two groups appears in the scope twice. */
 export function uniqueMembers(members: ReportScopeMember[]): ReportScopeMember[] {

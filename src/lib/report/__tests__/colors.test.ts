@@ -1,5 +1,6 @@
 import { CHART_FALLBACK_COLORS, assignMemberColors } from "../colors";
 import type { ReportScopeMember } from "../types";
+import { crossScope } from "@/test-support/report";
 
 function member(id: string, name: string, avatarColor: string, groupId = "g-1"): ReportScopeMember {
   return { id, name, initials: name.slice(0, 2), avatarColor, groupId };
@@ -61,5 +62,15 @@ describe("assignMemberColors", () => {
     const colors = assignMemberColors(scope);
     expect(colors["u-1"]).toBe("hsl(4, 70%, 50%)");
     expect(assignMemberColors([...scope].reverse())).toEqual(colors);
+  });
+
+  it("returns colours a filtered subset would not reproduce, so a screen assigns them over the scope", () => {
+    const scope = assignMemberColors(crossScope.members);
+    const subset = assignMemberColors(
+      crossScope.members.filter((entry) => entry.id === "u-frank" || entry.id === "u-bob")
+    );
+
+    expect(subset["u-bob"]).toBe(scope["u-bob"]);
+    expect(subset["u-frank"]).not.toBe(scope["u-frank"]);
   });
 });
