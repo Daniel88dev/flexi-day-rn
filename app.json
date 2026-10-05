@@ -13,6 +13,7 @@
       "supportsTablet": false,
       "appleTeamId": "S6FC47MMXJ",
       "associatedDomains": ["applinks:www.flexi-day.com"],
+      "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -84,6 +85,7 @@
           "iosUrlScheme": "com.googleusercontent.apps.456983325414-tt5nktncl12ece3qjrtb043jlc4lia37"
         }
       ],
+      "expo-apple-authentication",
       "./plugins/without-push-entitlement"
     ],
     "experiments": {

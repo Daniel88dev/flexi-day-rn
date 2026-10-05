@@ -30,3 +30,8 @@ export function createGoogleAdapter(): ProviderAdapter {
 }
 
 export const googleAdapter = createGoogleAdapter();
+
+/** Drops the SDK's own Keychain tokens. Needs no `configure()`, so it runs on any phone. */
+export async function signOutGoogle(): Promise<void> {
+  await GoogleSignin.signOut();
+}

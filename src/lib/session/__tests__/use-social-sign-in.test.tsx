@@ -1,12 +1,15 @@
-import { act, renderHook } from "@testing-library/react-native";
+import { act, renderHook, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { ReactNode } from "react";
 
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import type { ProviderAdapter, ProviderOutcome, SocialProvider } from "@/lib/auth/providers/types";
+import { ApiError } from "@/lib/query/failure";
+import { apiRequest } from "@/lib/query/runtime";
 import { useRootRoute, RootRouteProvider } from "@/lib/session/root-route-context";
 import { showSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
+import { APPLE_AUTHORIZATION_PATH } from "@/lib/session/social-follow-up";
 import {
   useSocialSignIn,
   type AfterSocialSignIn,
@@ -23,6 +26,8 @@ jest.mock("@/lib/session/auth-client", () => ({
   authClient: { signIn: { email: jest.fn(), social: jest.fn() } },
 }));
 
+jest.mock("@/lib/query/runtime", () => ({ apiRequest: jest.fn() }));
+
 jest.mock("@/lib/web", () => ({
   openWebPage: jest.fn(),
   WEB_PATHS: jest.requireActual("@/lib/web").WEB_PATHS,
@@ -30,6 +35,7 @@ jest.mock("@/lib/web", () => ({
 
 const replace = router.replace as jest.Mock;
 const openPage = openWebPage as jest.MockedFunction<typeof openWebPage>;
+const request = jest.mocked(apiRequest);
 
 const TOKEN: ProviderOutcome = {
   kind: "token",
@@ -73,6 +79,7 @@ const notLinked: SocialSignInAnswer = {
 beforeEach(() => {
   jest.clearAllMocks();
   openPage.mockResolvedValue(undefined);
+  request.mockResolvedValue(undefined);
 });
 
 describe("useSocialSignIn", () => {
@@ -167,6 +174,74 @@ describe("useSocialSignIn", () => {
     expect(result.current.social.notice).toBeNull();
     expect(result.current.route).toBe("signed-in");
     expect(warn).toHaveBeenCalled();
+  });
+
+  it("posts Apple's authorization code once through the app's API client after an Apple sign-in", async () => {
+    const requestSocialSignIn: RequestSocialSignIn = jest.fn().mockResolvedValue(signedIn);
+    const { result } = await renderSocial({
+      adapters: adaptersAnswering(TOKEN),
+      requestSocialSignIn,
+    });
+
+    await act(async () => {
+      await result.current.social.signIn("apple");
+    });
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(APPLE_AUTHORIZATION_PATH, {
+      method: "POST",
+      body: { authorizationCode: "an-authorization-code" },
+    });
+  });
+
+  it("posts no authorization code after a Google or Microsoft sign-in", async () => {
+    const requestSocialSignIn: RequestSocialSignIn = jest.fn().mockResolvedValue(signedIn);
+    const first = await renderSocial({ adapters: adaptersAnswering(TOKEN), requestSocialSignIn });
+    const second = await renderSocial({ adapters: adaptersAnswering(TOKEN), requestSocialSignIn });
+
+    await act(async () => {
+      await first.result.current.social.signIn("google");
+      await second.result.current.social.signIn("microsoft");
+    });
+
+    expect(requestSocialSignIn).toHaveBeenCalledTimes(2);
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("posts no authorization code when the Apple sign-in itself was refused", async () => {
+    const requestSocialSignIn: RequestSocialSignIn = jest.fn().mockResolvedValue(notLinked);
+    const { result } = await renderSocial({
+      adapters: adaptersAnswering(TOKEN),
+      requestSocialSignIn,
+    });
+
+    await act(async () => {
+      await result.current.social.signIn("apple");
+    });
+
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("changes nothing on screen when the authorization POST fails", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    request.mockRejectedValue(new ApiError(502, "Apple refused the code.", {}));
+    const requestSocialSignIn: RequestSocialSignIn = jest.fn().mockResolvedValue(signedIn);
+    const { result } = await renderSocial({
+      adapters: adaptersAnswering(TOKEN),
+      requestSocialSignIn,
+    });
+
+    await act(async () => {
+      await result.current.social.signIn("apple");
+    });
+
+    await waitFor(() => expect(warn).toHaveBeenCalled());
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(result.current.social.notice).toBeNull();
+    expect(result.current.route).toBe("signed-in");
+    expect(result.current.social.pending).toBe("apple");
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledWith("/dashboard");
   });
 
   it("names the tapped provider when the address already has a password account", async () => {

@@ -585,7 +585,7 @@ export const cs: Dictionary = {
       retry: "Zkusit znovu",
       failed: "Účet se nepodařilo smazat.",
       webHint:
-        "Tento účet se přihlašuje přes Google nebo Microsoft, proto se maže na webu. Přihlaste se tam a pak ho smažte.",
+        "Tento účet se přihlašuje přes Google, Microsoft nebo Apple, proto se maže na webu. Přihlaste se tam a pak ho smažte.",
       openWeb: "Smazat na webu",
     },
   },

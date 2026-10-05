@@ -1,4 +1,5 @@
 import { PROVIDER_ADAPTERS, PROVIDER_NAMES, SOCIAL_PROVIDERS } from "@/lib/auth/providers";
+import { appleAdapter } from "@/lib/auth/providers/apple";
 import { googleAdapter } from "@/lib/auth/providers/google";
 import { microsoftAdapter } from "@/lib/auth/providers/microsoft";
 
@@ -30,9 +31,7 @@ describe("PROVIDER_ADAPTERS", () => {
     expect(PROVIDER_ADAPTERS.microsoft).toBe(microsoftAdapter);
   });
 
-  it("returns an apple placeholder that resolves failed until its SDK lands", async () => {
-    const outcome = await PROVIDER_ADAPTERS.apple.signIn();
-
-    expect(outcome.kind).toBe("failed");
+  it("returns the expo-apple-authentication adapter for apple", () => {
+    expect(PROVIDER_ADAPTERS.apple).toBe(appleAdapter);
   });
 });

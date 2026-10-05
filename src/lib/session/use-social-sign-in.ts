@@ -16,6 +16,7 @@ import { openWebPage, WEB_PATHS } from "@/lib/web";
 import { authClient } from "./auth-client";
 import { useSetRootRoute } from "./root-route-context";
 import { clearSignedOutNotice } from "./signed-out-notice";
+import { socialFollowUp } from "./social-follow-up";
 
 export type SocialSignInRequest = {
   provider: SocialProvider;
@@ -83,11 +84,10 @@ async function askProvider(adapter: ProviderAdapter): Promise<ProviderOutcome> {
 }
 
 function runFollowUp(
-  afterSignIn: AfterSocialSignIn | undefined,
+  afterSignIn: AfterSocialSignIn,
   provider: SocialProvider,
   outcome: TokenOutcome
 ): void {
-  if (!afterSignIn) return;
   Promise.resolve()
     .then(() => afterSignIn(provider, outcome))
     .catch((cause: unknown) => {
@@ -102,7 +102,7 @@ function runFollowUp(
 export function useSocialSignIn({
   adapters = PROVIDER_ADAPTERS,
   requestSocialSignIn = requestThroughAuthClient,
-  afterSignIn,
+  afterSignIn = socialFollowUp,
 }: {
   adapters?: Record<SocialProvider, ProviderAdapter>;
   requestSocialSignIn?: RequestSocialSignIn;

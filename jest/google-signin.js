@@ -3,5 +3,6 @@ module.exports = {
   GoogleSignin: {
     configure: jest.fn(),
     signIn: jest.fn(async () => ({ type: "cancelled", data: null })),
+    signOut: jest.fn(async () => null),
   },
 };

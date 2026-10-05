@@ -121,7 +121,7 @@ lookup and sign-out itself, and its request hook attaches the same client header
 `signedOutWipe()` in `src/lib/session/signed-out-wipe.ts` is the only way out. A 401 from the
 wrapper, a session lookup that answers with none, and sign-out all end there: the cookie jar, the
 session cache, the local store, the query cache, the scheduled clock reminders and their settings
-go, the Device id stays, and welcome says why.
+go, the Device id stays, and welcome says why. The Google SDK's own tokens go too.
 `signOut()` is the one path that tells the server first, and it wipes whatever the server answers.
 Deleting the account (`useAccountDeletion`) runs the wipe directly, not `signOut()`, because the
 204 already ended the server session; welcome then says the account was deleted.
