@@ -1,12 +1,18 @@
 import { Pressable, View } from "react-native";
 
+import {
+  ADJACENT_NUMBER_OPACITY,
+  fadesNumber,
+  MonthSeam,
+  monthShortName,
+} from "@/components/calendar/adjacent-days";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
 import { placeWeek, type CalendarRange, type PlacedBar } from "@/lib/calendar/lanes";
-import { monthWeeks } from "@/lib/calendar/month-grid";
+import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { cn } from "@/lib/cn";
 import { isoDay, type YearMonth } from "@/lib/requests/months";
 import { firstName } from "@/lib/viewer/viewer";
@@ -194,6 +200,7 @@ export function LaneMonth({
             maxLanes: MAX_LANES,
             viewerId,
           });
+          const labelColumn = monthLabelColumn(week);
           return (
             <View
               key={week[0].date}
@@ -202,13 +209,13 @@ export function LaneMonth({
             >
               {week.map(({ date, day, inMonth }, column) => {
                 const isToday = date === today;
+                const label = column === labelColumn ? monthShortName(t, date) : null;
                 return (
                   <Pressable
                     key={date}
-                    testID={inMonth ? `calendar-day-${date}` : undefined}
-                    disabled={!inMonth}
+                    testID={inMonth ? `calendar-day-${date}` : `calendar-adjacent-day-${date}`}
                     onPress={() => onDay(date)}
-                    accessibilityRole={inMonth ? "button" : undefined}
+                    accessibilityRole="button"
                     style={{ width: cellWidth }}
                     className={cn(
                       "px-1 pt-1.5 active:bg-muted",
@@ -216,7 +223,7 @@ export function LaneMonth({
                       (!inMonth || column >= 5) && "bg-tint"
                     )}
                   >
-                    {inMonth ? (
+                    <View className="flex-row items-center gap-[3px]">
                       <View
                         className={cn(
                           "h-[22px] min-w-[22px] items-center justify-center self-start rounded-full px-1",
@@ -228,18 +235,29 @@ export function LaneMonth({
                             "text-[12px]",
                             isToday
                               ? "font-bold text-primary-foreground"
-                              : column >= 5
+                              : !inMonth || column >= 5
                                 ? "text-faint"
                                 : "font-medium text-muted-foreground"
                           )}
+                          style={
+                            fadesNumber({ inMonth, highlighted: isToday })
+                              ? { opacity: ADJACENT_NUMBER_OPACITY }
+                              : undefined
+                          }
                         >
                           {day}
                         </Text>
                       </View>
-                    ) : null}
+                      {label ? (
+                        <Text className="text-[9.5px] font-bold text-muted-foreground uppercase">
+                          {label}
+                        </Text>
+                      ) : null}
+                    </View>
                   </Pressable>
                 );
               })}
+              <MonthSeam week={week} cellWidth={cellWidth} />
               {bank.map((bar) => {
                 const iso = week[bar.startColumn].date;
                 return (

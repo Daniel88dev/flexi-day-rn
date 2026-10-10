@@ -1,4 +1,4 @@
-import { monthWeeks, weeksCovering } from "../month-grid";
+import { gridRange, monthLabelColumn, monthWeeks, seamColumn, weeksCovering } from "../month-grid";
 
 const dates = (weeks: ReturnType<typeof monthWeeks>) =>
   weeks.map((week) => week.map((cell) => cell.date));
@@ -87,5 +87,63 @@ describe("monthWeeks", () => {
 
     expect(weeks[0].slice(0, 4)).toEqual(["2026-12-28", "2026-12-29", "2026-12-30", "2026-12-31"]);
     expect(weeks[weeks.length - 1].slice(-1)).toEqual(["2027-01-31"]);
+  });
+});
+
+describe("gridRange", () => {
+  it("returns the first cell up to, not including, the day after the last cell", () => {
+    expect(gridRange({ year: 2026, month: 11 })).toEqual({
+      from: "2026-10-26",
+      until: "2026-12-07",
+    });
+  });
+
+  it("returns the month itself when it fills whole weeks", () => {
+    expect(gridRange({ year: 2027, month: 2 })).toEqual({
+      from: "2027-02-01",
+      until: "2027-03-01",
+    });
+  });
+
+  it("returns a range reaching into the previous December for January", () => {
+    expect(gridRange({ year: 2025, month: 1 })).toEqual({
+      from: "2024-12-30",
+      until: "2025-02-03",
+    });
+  });
+});
+
+describe("seamColumn", () => {
+  it("returns the column of the 1st where the month changes mid-week", () => {
+    const weeks = monthWeeks({ year: 2026, month: 10 });
+
+    expect(seamColumn(weeks[0])).toBe(3);
+    expect(seamColumn(weeks[4])).toBe(6);
+  });
+
+  it("returns null for a week inside the month", () => {
+    expect(seamColumn(monthWeeks({ year: 2026, month: 10 })[2])).toBeNull();
+  });
+
+  it("returns null where the month changes on a Monday", () => {
+    const weeks = monthWeeks({ year: 2027, month: 2 });
+
+    expect(seamColumn(weeks[0])).toBeNull();
+    expect(seamColumn(weeks[3])).toBeNull();
+  });
+});
+
+describe("monthLabelColumn", () => {
+  it("returns the grid's first cell for the leading days and the first trailing day after the month", () => {
+    const weeks = monthWeeks({ year: 2026, month: 11 });
+
+    expect(monthLabelColumn(weeks[0])).toBe(0);
+    expect(monthLabelColumn(weeks[5])).toBe(1);
+  });
+
+  it("returns null for a week with no adjacent days", () => {
+    const weeks = monthWeeks({ year: 2027, month: 2 });
+
+    expect(weeks.map(monthLabelColumn)).toEqual([null, null, null, null]);
   });
 });

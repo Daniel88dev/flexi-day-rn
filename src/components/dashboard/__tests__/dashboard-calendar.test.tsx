@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import { ActionSheetIOS } from "react-native";
 
 import { DashboardCalendar } from "@/components/dashboard/dashboard-calendar";
@@ -252,6 +252,56 @@ describe("DashboardCalendar", () => {
     await fireEvent.press(await screen.findByTestId("day-list-row-mine-14"));
 
     expect(screen.getByTestId("day-list")).toBeOnTheScreen();
+  });
+
+  describe("on the adjacent months' days", () => {
+    beforeEach(() =>
+      pullIn({
+        bankHolidays: [bankHolidayRow({ id: "h-nov", date: "2026-11-01", name: "All Saints" })],
+        vacations: ["2026-09-30", "2026-10-01", "2026-10-02"].map((requestedDay) =>
+          vacationRow({
+            id: `cross-${requestedDay.slice(5)}`,
+            userId: VIEWER,
+            groupId: "g-design",
+            requestId: "r-cross",
+            requestedDay,
+            approvedAt: APPROVED,
+          })
+        ),
+      })
+    );
+
+    it("draws their records, a booking across the month boundary as one bar", async () => {
+      await renderCalendar();
+
+      const october = within(screen.getByTestId("calendar-month-2026-10"));
+      expect(october.getAllByTestId("calendar-bar-cross-09-30")).toHaveLength(1);
+      expect(october.queryByTestId("calendar-bar-cross-10-01")).toBeNull();
+      expect(october.getByTestId("calendar-holiday-2026-11-01")).toHaveTextContent("All Saints");
+    });
+
+    it("opens the day list on a tapped adjacent day and keeps the month", async () => {
+      const { onBook } = await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-adjacent-day-2026-09-30"));
+
+      expect(await screen.findByTestId("day-list")).toHaveTextContent(/Wed 30 Sep/);
+      expect(screen.getByTestId("calendar-title")).toHaveTextContent("October 2026");
+      await fireEvent.press(screen.getByTestId("day-list-book"));
+      expect(onBook).toHaveBeenCalledWith("2026-09-30");
+    });
+
+    it("shows a tapped adjacent day in the stripes' card and keeps the month", async () => {
+      answerSettings({ dashboardCalendarView: "STRIPES" });
+      await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-adjacent-day-2026-11-01"));
+
+      expect(screen.getByTestId("calendar-adjacent-day-2026-11-01")).toBeSelected();
+      expect(screen.getByTestId("day-card")).toHaveTextContent(/Sun 1 Nov/);
+      expect(screen.getByTestId("day-card")).toHaveTextContent(/All Saints/);
+      expect(screen.getByTestId("calendar-title")).toHaveTextContent("October 2026");
+    });
   });
 
   it("hides a type the filter leaves out, and says how many types it shows", async () => {
