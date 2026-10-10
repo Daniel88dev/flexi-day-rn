@@ -1,7 +1,9 @@
-import type { CalendarRange, Week } from "../lanes";
+import type { CalendarRange } from "../lanes";
+import { monthWeeks } from "../month-grid";
 import { placeStripeWeek } from "../stripes";
 
-const WEEK: Week = [12, 13, 14, 15, 16, 17, 18];
+const [SEPT_28_TO_OCT_4, , OCT_12_TO_18] = monthWeeks({ year: 2026, month: 10 });
+const WEEK = OCT_12_TO_18;
 
 function range(patch: Partial<CalendarRange> & Pick<CalendarRange, "id">): CalendarRange {
   return {
@@ -10,8 +12,8 @@ function range(patch: Partial<CalendarRange> & Pick<CalendarRange, "id">): Calen
     type: "VACATION",
     status: "approved",
     halfDay: false,
-    from: 12,
-    to: 16,
+    from: "2026-10-12",
+    to: "2026-10-16",
     vacationIds: [patch.id],
     names: [],
     pending: false,
@@ -29,8 +31,8 @@ describe("placeStripeWeek", () => {
       [
         range({ id: "ada" }),
         range({ id: "ben" }),
-        range({ id: "cyd", from: 13, to: 14 }),
-        range({ id: "me", from: 14, to: 15 }),
+        range({ id: "cyd", from: "2026-10-13", to: "2026-10-14" }),
+        range({ id: "me", from: "2026-10-14", to: "2026-10-15" }),
       ],
       { viewerId: "me" }
     );
@@ -49,7 +51,13 @@ describe("placeStripeWeek", () => {
     const placed = placeStripeWeek(
       WEEK,
       [
-        range({ id: "bank|2026-10-15", userId: null, type: "BANK_HOLIDAY", from: 15, to: 16 }),
+        range({
+          id: "bank|2026-10-15",
+          userId: null,
+          type: "BANK_HOLIDAY",
+          from: "2026-10-15",
+          to: "2026-10-16",
+        }),
         range({ id: "ada" }),
         range({ id: "ben" }),
         range({ id: "cyd" }),
@@ -77,5 +85,25 @@ describe("placeStripeWeek", () => {
       placed.stripes.map((stripe) => [stripe.range.id, stripe.faded])
     );
     expect(faded).toEqual({ asked: true, sending: true, approved: false });
+  });
+
+  it("returns a bank holiday on a padding day tinted by its date", () => {
+    const placed = placeStripeWeek(
+      SEPT_28_TO_OCT_4,
+      [
+        range({
+          id: "bank|2026-09-28",
+          userId: null,
+          type: "BANK_HOLIDAY",
+          from: "2026-09-28",
+          to: "2026-09-28",
+        }),
+        range({ id: "ada", from: "2026-10-01", to: "2026-10-02" }),
+      ],
+      { viewerId: null }
+    );
+
+    expect(placed.holidays).toEqual(new Set([0]));
+    expect(placed.stripes.map((s) => [s.startColumn, s.endColumn])).toEqual([[3, 5]]);
   });
 });

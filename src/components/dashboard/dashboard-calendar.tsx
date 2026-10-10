@@ -13,7 +13,7 @@ import { StripeMonth, stripeMonthHeight } from "@/components/calendar/stripe-mon
 import { useMonthRanges } from "@/components/calendar/use-month-ranges";
 import { LEAVE_TYPE_ORDER } from "@/components/ui/leave-classes";
 import { openingDay } from "@/lib/calendar/day";
-import { buildWeeks } from "@/lib/calendar/lanes";
+import { monthWeeks } from "@/lib/calendar/month-grid";
 import { dashboardScope } from "@/lib/calendar/scope";
 import { calendarView, type CalendarView } from "@/lib/calendar/view";
 import {
@@ -170,8 +170,8 @@ export function DashboardCalendar({
         width={width}
         height={
           view === "stripes"
-            ? stripeMonthHeight(buildWeeks(month).length)
-            : laneMonthHeight(buildWeeks(month).length)
+            ? stripeMonthHeight(monthWeeks(month).length)
+            : laneMonthHeight(monthWeeks(month).length)
         }
         extraData={[view, selectedDay, scope, filter, viewerId, today]}
         renderMonth={(page) => (

@@ -4,7 +4,8 @@ import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
-import { buildWeeks, type CalendarRange } from "@/lib/calendar/lanes";
+import type { CalendarRange } from "@/lib/calendar/lanes";
+import { monthWeeks } from "@/lib/calendar/month-grid";
 import { placeStripeWeek } from "@/lib/calendar/stripes";
 import { cn } from "@/lib/cn";
 import { isoDay, type YearMonth } from "@/lib/requests/months";
@@ -40,17 +41,17 @@ export function StripeMonth({
 }) {
   const { t } = useTranslation();
   const cellWidth = (width - CALENDAR_GUTTER * 2) / 7;
-  const weeks = buildWeeks(month);
+  const weeks = monthWeeks(month);
 
-  const dayLabel = (iso: string, day: number) => {
+  const dayLabel = (iso: string) => {
     const { weekday, date } = dayParts(iso);
     const away = new Set(
       ranges
-        .filter((range) => range.type !== "BANK_HOLIDAY" && range.from <= day && range.to >= day)
+        .filter((range) => range.type !== "BANK_HOLIDAY" && range.from <= iso && range.to >= iso)
         .map((range) => range.userId)
     ).size;
     const holidays = ranges
-      .filter((range) => range.type === "BANK_HOLIDAY" && range.from <= day && range.to >= day)
+      .filter((range) => range.type === "BANK_HOLIDAY" && range.from <= iso && range.to >= iso)
       .flatMap((range) => range.names);
     return [
       iso === today ? t.calendar.today : null,
@@ -86,28 +87,22 @@ export function StripeMonth({
         const { stripes, more, holidays } = placeStripeWeek(week, ranges, { viewerId });
         return (
           <View
-            key={week.find((day) => day !== null)}
+            key={week[0].date}
             style={{ height: ROW_H }}
             className="flex-row border-t border-border"
           >
-            {week.map((day, column) => {
-              if (day === null) {
-                // Seven fixed columns that never reorder: the column is the cell.
-                // eslint-disable-next-line @eslint-react/no-array-index-key
-                return <View key={column} style={{ width: cellWidth }} />;
-              }
-              const iso = isoDay(month, day);
+            {week.map(({ date: iso, day, inMonth }, column) => {
+              if (!inMonth) return <View key={iso} style={{ width: cellWidth }} />;
               const isToday = iso === today;
               const isSelected = iso === selected;
               const holiday = holidays.has(column);
               return (
                 <Pressable
-                  // eslint-disable-next-line @eslint-react/no-array-index-key
-                  key={column}
+                  key={iso}
                   testID={`calendar-day-${iso}`}
                   onPress={() => onDay(iso)}
                   accessibilityRole="button"
-                  accessibilityLabel={dayLabel(iso, day)}
+                  accessibilityLabel={dayLabel(iso)}
                   accessibilityState={{ selected: isSelected }}
                   style={{ width: cellWidth }}
                   className="items-center pt-1"
@@ -174,7 +169,7 @@ export function StripeMonth({
             {[...more].map(([column, count]) => (
               <View
                 key={column}
-                testID={`calendar-more-${isoDay(month, week[column]!)}`}
+                testID={`calendar-more-${week[column].date}`}
                 pointerEvents="none"
                 style={{
                   position: "absolute",

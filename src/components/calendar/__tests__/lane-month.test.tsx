@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { LaneMonth } from "@/components/calendar/lane-month";
 import { TranslationProvider } from "@/i18n/use-translation";
 import type { CalendarRange } from "@/lib/calendar/lanes";
+import { isoDay } from "@/lib/requests/months";
 
 const OCTOBER = { year: 2026, month: 10 };
 const VIEWER = "me";
@@ -15,8 +16,8 @@ function bar(id: string, from: number, to: number, patch: Partial<CalendarRange>
     type: "VACATION",
     status: "approved",
     halfDay: false,
-    from,
-    to,
+    from: isoDay(OCTOBER, from),
+    to: isoDay(OCTOBER, to),
     vacationIds: [`${id}-${from}`],
     names: [],
     pending: false,
@@ -48,6 +49,7 @@ describe("LaneMonth", () => {
     expect(screen.getByTestId("calendar-month-2026-10")).toBeOnTheScreen();
     expect(screen.getByTestId("calendar-day-2026-10-01")).toBeOnTheScreen();
     expect(screen.getByTestId("calendar-day-2026-10-31")).toBeOnTheScreen();
+    expect(screen.queryByTestId("calendar-day-2026-09-30")).toBeNull();
     expect(screen.queryByTestId("calendar-day-2026-11-01")).toBeNull();
     expect(screen.getByText("Mon")).toBeOnTheScreen();
   });
