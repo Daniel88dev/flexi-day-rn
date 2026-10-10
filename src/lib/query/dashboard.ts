@@ -51,9 +51,10 @@ export function useDashboardSummary(): DashboardSummaryRead {
   return { state: "loading" };
 }
 
-export function useMyApprovals() {
+export function useMyApprovals({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: qk.myApprovals(),
+    enabled,
     queryFn: ({ signal }) => apiRequest<PendingApproval[]>("/api/users/me/approvals", { signal }),
   });
 }

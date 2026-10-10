@@ -13,7 +13,7 @@ export type GroupStanding = {
 
 /**
  * What the dashboard shows the viewer, never what the viewer may do (ADR 0003): the approver half
- * only decides whether the Pending tile and the Approvals card appear. It is exact because org
+ * only decides whether the Pending tile and "Waiting on you" appear. It is exact because org
  * admins never approve, so no standing the phone lacks can make someone an approver.
  */
 export function groupStanding(db: StoreDatabase): GroupStanding {

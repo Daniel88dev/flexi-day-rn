@@ -61,6 +61,7 @@ export { useMyGroups } from "./use-my-groups";
 export { usePendingChanges } from "./use-pending-changes";
 export {
   useMemberGroups,
+  useMyAwaitingRequests,
   useRequestListVacations,
   useRequestScopeGroups,
   useStoredRequest,

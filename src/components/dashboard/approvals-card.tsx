@@ -1,16 +1,20 @@
-import { CheckCircleIcon, CheckIcon } from "phosphor-react-native";
+import { CheckCircleIcon, CheckIcon, ClockIcon } from "phosphor-react-native";
 import type { ReactNode } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { SendingBadge } from "@/components/requests/badges";
 import { askForReason } from "@/components/requests/reason-prompt";
 import { Icon, useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import type { Dictionary } from "@/i18n/en";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
 import { approvalKey } from "@/lib/dashboard/approvals";
+import { businessDaysBetween } from "@/lib/days";
 import { haptic } from "@/lib/haptics";
+import { useMyAwaitingRequests } from "@/lib/local-store";
 import {
   useApprovalDecisions,
   useMyApprovals,
@@ -18,6 +22,13 @@ import {
   type PendingApproval,
 } from "@/lib/query";
 import { runDatesLabel } from "@/lib/requests/format";
+import type { RequestRun } from "@/lib/requests/runs";
+
+function datedRange(range: { from: string; to: string }, t: Dictionary): string {
+  const label = runDatesLabel(range, t.requests.runDates);
+  const year = range.from.slice(0, 4);
+  return year === String(new Date().getFullYear()) ? label : `${label} ${year}`;
+}
 
 function ApprovalItem({
   item,
@@ -36,12 +47,9 @@ function ApprovalItem({
   const labels = t.dashboard.approvals;
   const onPrimary = useTone("onPrimary");
   const foreground = useTone("foreground");
-  const range = runDatesLabel(item, t.requests.runDates);
-  const year = item.from.slice(0, 4);
-  const dated = year === String(new Date().getFullYear()) ? range : `${range} ${year}`;
   const meta = labels.meta(
     t.recordTypes[item.vacationType],
-    dated,
+    datedRange(item, t),
     t.requests.dayCount(item.businessDays)
   );
   const key = approvalKey(item);
@@ -103,14 +111,28 @@ function ApprovalItem({
   );
 }
 
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View className="gap-3">
+      <Text className="text-[12px] font-semibold tracking-wide text-faint uppercase">{title}</Text>
+      {children}
+    </View>
+  );
+}
+
 /**
- * Only for a viewer who approves in some group. Its items and their buttons come from
- * `/me/approvals`, never from local rows (ADR 0003); a read that failed shows no buttons at all.
+ * Its items and their buttons come from `/me/approvals`, never from local rows (ADR 0003); a read
+ * that failed shows no buttons at all.
  */
-export function ApprovalsCard({ onOpen }: { onOpen: (vacationId: string) => void }) {
+function WaitingOnYou({
+  query,
+  onOpen,
+}: {
+  query: ReturnType<typeof useMyApprovals>;
+  onOpen: (vacationId: string) => void;
+}) {
   const { t } = useTranslation();
   const labels = t.dashboard.approvals;
-  const query = useMyApprovals();
   const { deciding, approve, decline } = useApprovalDecisions();
   const items = query.data ?? [];
 
@@ -128,9 +150,8 @@ export function ApprovalsCard({ onOpen }: { onOpen: (vacationId: string) => void
     if (reason !== null) haptic((await decline(item, reason)) ? "success" : "error");
   };
 
-  let body: ReactNode;
   if (query.isError) {
-    body = (
+    return (
       <View className="gap-2">
         <Text className="text-[14px] text-muted-foreground">{labels.unreachable}</Text>
         <Pressable
@@ -144,47 +165,125 @@ export function ApprovalsCard({ onOpen }: { onOpen: (vacationId: string) => void
         </Pressable>
       </View>
     );
-  } else if (query.isPending) {
-    body = <Text className="text-[14px] text-muted-foreground">{labels.loading}</Text>;
-  } else if (items.length === 0) {
-    body = (
+  }
+  if (query.isPending) {
+    return <Text className="text-[14px] text-muted-foreground">{labels.loading}</Text>;
+  }
+  if (items.length === 0) {
+    return (
       <View className="flex-row items-center gap-2.5 py-1">
         <Icon icon={CheckCircleIcon} tone="ok" size={20} />
         <Text className="text-[14px] text-muted-foreground">{labels.allCaughtUp}</Text>
       </View>
     );
-  } else {
-    body = (
-      <View className="gap-4">
-        {items.map((item) => (
-          <ApprovalItem
-            key={approvalKey(item)}
-            item={item}
-            busy={deciding?.id === approvalKey(item) ? deciding.decision : null}
-            disabled={deciding !== null || item.vacationIds.length === 0}
-            onOpen={() => item.vacationIds[0] && onOpen(item.vacationIds[0])}
-            onDecide={(decision) => void decide(item, decision)}
-          />
-        ))}
+  }
+  return (
+    <View className="gap-4">
+      {items.map((item) => (
+        <ApprovalItem
+          key={approvalKey(item)}
+          item={item}
+          busy={deciding?.id === approvalKey(item) ? deciding.decision : null}
+          disabled={deciding !== null || item.vacationIds.length === 0}
+          onOpen={() => item.vacationIds[0] && onOpen(item.vacationIds[0])}
+          onDecide={(decision) => void decide(item, decision)}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** A booking still in flight has no server rows to open yet, so it waits without a tap. */
+function AwaitingRequest({ run, onOpen }: { run: RequestRun; onOpen: () => void }) {
+  const { t } = useTranslation();
+  const labels = t.dashboard.approvals;
+  const type = t.recordTypes[run.vacationType];
+  const span = labels.span(
+    datedRange(run, t),
+    t.requests.dayCount(businessDaysBetween(run.from, run.to))
+  );
+  const waiting = labels.waitingIn(run.groupName ?? "");
+
+  return (
+    <Pressable
+      testID={`awaiting-request-${run.id}`}
+      onPress={onOpen}
+      disabled={run.pending}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: run.pending }}
+      accessibilityLabel={`${type}, ${span}, ${waiting}`}
+      style={run.pending ? { opacity: 0.55 } : undefined}
+      className="active:opacity-70"
+    >
+      <Text className="text-[14.5px] font-semibold text-foreground">{type}</Text>
+      <View className="flex-row flex-wrap items-center gap-2">
+        <Text className="text-[12.5px] text-faint">{span}</Text>
+        {run.pending ? <SendingBadge /> : null}
       </View>
+      <View className="mt-1 flex-row items-center gap-1.5">
+        <Icon icon={ClockIcon} tone="warm" size={14} />
+        <Text className="text-[12.5px] font-medium text-warm">{waiting}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function YourRequests({ onOpen }: { onOpen: (vacationId: string) => void }) {
+  const { t } = useTranslation();
+  const runs = useMyAwaitingRequests();
+
+  if (runs.length === 0) {
+    return (
+      <Text className="text-[14px] text-muted-foreground">
+        {t.dashboard.approvals.noPendingRequests}
+      </Text>
     );
   }
+  return (
+    <View className="gap-4">
+      {runs.map((run) => (
+        <AwaitingRequest key={run.id} run={run} onOpen={() => onOpen(run.id)} />
+      ))}
+    </View>
+  );
+}
+
+export function ApprovalsCard({
+  approver,
+  onOpen,
+}: {
+  approver: boolean;
+  onOpen: (vacationId: string) => void;
+}) {
+  const { t } = useTranslation();
+  const labels = t.dashboard.approvals;
+  const query = useMyApprovals({ enabled: approver });
+  const toReview = approver && !query.isError ? (query.data?.length ?? 0) : 0;
 
   return (
     <DashboardCard
       testID="approvals-card"
       title={labels.title}
       badge={
-        !query.isError && items.length > 0 ? (
+        toReview > 0 ? (
           <View className="rounded-full bg-warm-soft px-2.5 py-1">
             <Text className="text-[12.5px] font-semibold text-warm">
-              {labels.toReview(items.length)}
+              {labels.toReview(toReview)}
             </Text>
           </View>
         ) : null
       }
     >
-      {body}
+      <View className="gap-5">
+        {approver ? (
+          <Section title={labels.waitingOnYou}>
+            <WaitingOnYou query={query} onOpen={onOpen} />
+          </Section>
+        ) : null}
+        <Section title={labels.yourRequests}>
+          <YourRequests onOpen={onOpen} />
+        </Section>
+      </View>
     </DashboardCard>
   );
 }

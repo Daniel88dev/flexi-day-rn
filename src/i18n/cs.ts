@@ -90,6 +90,11 @@ export const cs: Dictionary = {
       meta: (type: string, range: string, days: string) => `${type} · ${range} · ${days}`,
       approve: "Schválit",
       decline: "Zamítnout",
+      waitingOnYou: "Čeká na vás",
+      yourRequests: "Vaše žádosti",
+      noPendingRequests: "Žádná z vašich žádostí nečeká na schválení.",
+      span: (range: string, days: string) => `${range} · ${days}`,
+      waitingIn: (group: string) => `Čeká na schválení ve skupině ${group}`,
     },
     balance: {
       title: (year: number) => `Můj zůstatek ${year}`,

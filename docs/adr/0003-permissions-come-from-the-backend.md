@@ -1,7 +1,9 @@
 # ADR 0003: Ask the backend what the viewer may do instead of deriving it from the local store
 
 Date: 2026-09-26. Status: accepted. Amended 2026-10-03: read scope comes from the backend,
-display-only local checks are a class, and the shell line names the admin pages.
+display-only local checks are a class, and the shell line names the admin pages. Amended
+2026-10-11: a fourth display-only check keeps some of the viewer's own requests awaiting
+approval out of a list.
 
 ## Context
 
@@ -51,11 +53,16 @@ The phone asks the backend what the viewer may do, per screen, the same way the 
   check may choose a label, a badge, a section heading, or whether a widget shows. It never decides
   whether an action is offered or what a screen loads. The checks today:
   - whether the viewer approves in some group (manager, main or temp approver, or `approverAccess`).
-    It shows the approvals widget and pending stat, and it is exact, because org admins never
-    approve;
+    It shows the approvals card's "Waiting on you" section and the pending stat, and it is exact,
+    because org admins never approve;
   - whether the viewer belongs to any live group. It shows the balance card or the no-groups state;
   - the role badge on a group card, from the viewer's `groupUsers` flags and the group's manager.
-    Like the web's badge, it leaves org-admin standing out.
+    Like the web's badge, it leaves org-admin standing out;
+  - whether the viewer decides their own requests in a group: `approverAccess` on a live
+    membership and no live mirror of their records into the group, the backend's `mayDecideOwn`.
+    It keeps those requests out of the card's "Your requests" section, because `/me/approvals`
+    already lists them under "Waiting on you". Should the rule drift, a request shows in both
+    sections or in neither; no action depends on it.
 - Quota editing is not on the phone, and the report's `canEditQuotas` goes unused. If the phone ever
   edits quotas, it offers the action where the report scope or member report returns
   `canEditQuotas`, never on the local `adminAccess` flag.

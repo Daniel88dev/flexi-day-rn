@@ -103,7 +103,7 @@ export default function DashboardScreen() {
         </View>
       )}
       <View className="mt-6 gap-4 px-4">
-        {standing.approver ? <ApprovalsCard onOpen={openRequest} /> : null}
+        <ApprovalsCard approver={standing.approver} onOpen={openRequest} />
         {standing.member ? <BalanceCard year={year} /> : null}
         <DevelopmentCard />
       </View>

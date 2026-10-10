@@ -41,9 +41,15 @@ jest.mock("@/lib/query", () => ({
 jest.mock("@/components/dashboard/approvals-card", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
   return {
-    ApprovalsCard: ({ onOpen }: { onOpen: (vacationId: string) => void }) => (
+    ApprovalsCard: ({
+      approver,
+      onOpen,
+    }: {
+      approver: boolean;
+      onOpen: (vacationId: string) => void;
+    }) => (
       <Pressable testID="approvals-open" onPress={() => onOpen("vacation-9")}>
-        <Text>approvals card</Text>
+        <Text>{approver ? "approvals card for an approver" : "approvals card"}</Text>
       </Pressable>
     ),
   };
@@ -399,7 +405,7 @@ describe("DashboardScreen", () => {
     expect(toastError).not.toHaveBeenCalled();
   });
 
-  it("renders Out today, Coming up and Working today for an employee, and no approvals", async () => {
+  it("renders Out today, Coming up and Working today for an employee, and their own requests", async () => {
     fakeStore({ counts: { ...NO_ROWS, groups: 1 }, hasCursor: true });
 
     await renderDashboard();
@@ -408,7 +414,7 @@ describe("DashboardScreen", () => {
     expect(screen.getByTestId("stat-outToday")).toHaveAccessibleName("Out today: 3");
     expect(screen.getByTestId("stat-comingUp")).toHaveAccessibleName("Coming up · 14d: 4");
     expect(screen.getByTestId("stat-workingToday")).toHaveAccessibleName("Working today: 5");
-    expect(screen.queryByText("approvals card")).toBeNull();
+    expect(screen.getByText("approvals card")).toBeTruthy();
   });
 
   it("renders Pending first and the Approvals card for a viewer who approves in some group", async () => {
@@ -423,7 +429,7 @@ describe("DashboardScreen", () => {
       .map((tile) => tile.props.testID);
     expect(tiles).toEqual(["stat-pending", "stat-outToday", "stat-comingUp", "stat-workingToday"]);
     expect(screen.getByTestId("stat-pending")).toHaveAccessibleName("Pending approvals: 0");
-    expect(screen.getByText("approvals card")).toBeTruthy();
+    expect(screen.getByText("approvals card for an approver")).toBeTruthy();
   });
 
   it("renders a dash in every tile while the summary can't be read", async () => {
@@ -446,7 +452,6 @@ describe("DashboardScreen", () => {
   });
 
   it("opens a request's detail from the Approvals card", async () => {
-    standing.mockReturnValue(APPROVER);
     fakeStore({ counts: { ...NO_ROWS, groups: 1 }, hasCursor: true });
     await renderDashboard();
 

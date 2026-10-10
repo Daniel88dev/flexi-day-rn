@@ -13,6 +13,7 @@ import {
 } from "../test-support/sync-fixtures";
 import { openTestStore } from "../test-support/test-store";
 import {
+  useMyAwaitingRequests,
   useMemberGroups,
   useRequestListVacations,
   useRequestScopeGroups,
@@ -125,5 +126,29 @@ describe("useStoredRequest", () => {
       activePendingChanges().markProvisional(["vacation-1"]);
     });
     expect(result.current).toEqual(expect.objectContaining({ pending: true }));
+  });
+});
+
+describe("useMyAwaitingRequests", () => {
+  it("returns the viewer's awaiting requests again once a day lands, and a booking in flight", async () => {
+    await pullIn({ groups: [groupRow({ managerUserId: "boss" })], groupUsers: [groupUserRow()] });
+    const { result } = await renderHook(() => useMyAwaitingRequests());
+    expect(result.current).toEqual([]);
+
+    await pullIn({ vacations: [vacationRow()] });
+    expect(result.current).toEqual([
+      expect.objectContaining({ vacationIds: ["vacation-1"], pending: false }),
+    ]);
+
+    await act(async () => {
+      activePendingChanges().add({
+        kind: "create",
+        draft: { groupId: "group-1", from: "2026-10-05", to: "2026-10-05" },
+      });
+    });
+    expect(result.current).toEqual([
+      expect.objectContaining({ vacationIds: ["vacation-1"] }),
+      expect.objectContaining({ from: "2026-10-05", pending: true }),
+    ]);
   });
 });

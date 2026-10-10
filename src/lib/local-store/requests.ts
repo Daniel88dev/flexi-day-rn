@@ -116,7 +116,7 @@ export function scopedVacations(
   db: StoreDatabase,
   changes: readonly OverlayEntry[],
   scope: RequestListScope,
-  range: DayRange
+  range?: DayRange
 ): ListedVacation[] {
   const viewerId = readSyncState(db)?.userId ?? null;
   const inScope =
