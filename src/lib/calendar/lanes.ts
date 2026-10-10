@@ -1,4 +1,5 @@
-import { dayNumber, mondayIndex } from "@/lib/days";
+import type { Week } from "@/lib/calendar/month-grid";
+import { dayNumber } from "@/lib/days";
 import type {
   CalendarBankHoliday,
   CalendarRecordType,
@@ -6,7 +7,6 @@ import type {
   VacationStatus,
 } from "@/lib/local-store";
 import { runKey } from "@/lib/requests/runs";
-import { isoDay, type YearMonth } from "@/lib/requests/months";
 
 export type CalendarRow = Pick<
   ListedVacation,
@@ -23,7 +23,7 @@ export type CalendarRow = Pick<
   | "pending"
 >;
 
-/** `from` and `to` are days of the month. A bank holiday has no person; `names` are its holidays. */
+/** `from` and `to` are ISO days. A bank holiday has no person; `names` are its holidays. */
 export type CalendarRange = {
   id: string;
   userId: string | null;
@@ -31,32 +31,15 @@ export type CalendarRange = {
   type: CalendarRecordType;
   status: VacationStatus;
   halfDay: boolean;
-  from: number;
-  to: number;
+  from: string;
+  to: string;
   vacationIds: string[];
   names: string[];
   /** A pending change or a Provisional row holds one of its days, so the bar waits. */
   pending: boolean;
 };
 
-/** Monday first; null pads the days outside the month. */
-export type Week = (number | null)[];
-
-export function buildWeeks({ year, month }: YearMonth): Week[] {
-  const days = new Date(year, month, 0).getDate();
-  const first = mondayIndex(isoDay({ year, month }, 1));
-  const cells: Week = [];
-  for (let i = 0; i < first; i++) cells.push(null);
-  for (let day = 1; day <= days; day++) cells.push(day);
-  while (cells.length % 7) cells.push(null);
-  const weeks: Week[] = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-  return weeks;
-}
-
 const isNextDay = (previous: string, next: string) => dayNumber(next) - dayNumber(previous) === 1;
-
-const dayOfMonth = (iso: string) => Number(iso.slice(8, 10));
 
 /**
  * The web's `groupConsecutiveByUserType`, keyed by the Requests list's run key rather than user and
@@ -76,7 +59,7 @@ export function groupConsecutiveByRunKey(rows: readonly CalendarRow[]): Calendar
   let lastDay: string | null = null;
   for (const { row, key } of sorted) {
     if (current && key === lastKey && lastDay && isNextDay(lastDay, row.requestedDay)) {
-      current.to = dayOfMonth(row.requestedDay);
+      current.to = row.requestedDay;
       current.vacationIds.push(row.id);
       current.pending ||= row.pending;
     } else {
@@ -87,8 +70,8 @@ export function groupConsecutiveByRunKey(rows: readonly CalendarRow[]): Calendar
         type: row.vacationType,
         status: row.status,
         halfDay: row.halfDay,
-        from: dayOfMonth(row.requestedDay),
-        to: dayOfMonth(row.requestedDay),
+        from: row.requestedDay,
+        to: row.requestedDay,
         vacationIds: [row.id],
         names: [],
         pending: row.pending,
@@ -105,14 +88,9 @@ export function groupConsecutiveByRunKey(rows: readonly CalendarRow[]): Calendar
  * One pill per run of consecutive holidays, where the web has one per date. The same date in
  * several countries is one day, since every pill shares one lane.
  */
-export function bankHolidaysToRanges(
-  holidays: readonly CalendarBankHoliday[],
-  { year, month }: YearMonth
-): CalendarRange[] {
-  const prefix = `${year}-${String(month).padStart(2, "0")}-`;
+export function bankHolidaysToRanges(holidays: readonly CalendarBankHoliday[]): CalendarRange[] {
   const namesByDate = new Map<string, string[]>();
   for (const holiday of holidays) {
-    if (!holiday.date.startsWith(prefix)) continue;
     const names = namesByDate.get(holiday.date) ?? [];
     if (!names.includes(holiday.name)) names.push(holiday.name);
     namesByDate.set(holiday.date, names);
@@ -123,7 +101,7 @@ export function bankHolidaysToRanges(
   let lastDate: string | null = null;
   for (const [date, names] of [...namesByDate].sort(([a], [b]) => a.localeCompare(b))) {
     if (current && lastDate && isNextDay(lastDate, date)) {
-      current.to = dayOfMonth(date);
+      current.to = date;
       current.names.push(...names);
     } else {
       current = {
@@ -133,8 +111,8 @@ export function bankHolidaysToRanges(
         type: "BANK_HOLIDAY",
         status: "approved",
         halfDay: false,
-        from: dayOfMonth(date),
-        to: dayOfMonth(date),
+        from: date,
+        to: date,
         vacationIds: [],
         names: [...names],
         pending: false,
@@ -173,14 +151,14 @@ export function placeWeek(
   ranges: readonly CalendarRange[],
   { maxLanes, viewerId }: { maxLanes: number; viewerId: string | null }
 ): PlacedWeek {
-  const days = week.filter((day): day is number => day !== null);
-  const weekStart = days[0];
-  const weekEnd = days[days.length - 1];
+  const weekStart = week[0].date;
+  const weekEnd = week[week.length - 1].date;
+  const column = (date: string) => week.findIndex((cell) => cell.date === date);
 
   const place = (range: CalendarRange): PlacedBar => ({
     range,
-    startColumn: week.indexOf(Math.max(range.from, weekStart)),
-    endColumn: week.indexOf(Math.min(range.to, weekEnd)) + 1,
+    startColumn: column(range.from > weekStart ? range.from : weekStart),
+    endColumn: column(range.to < weekEnd ? range.to : weekEnd) + 1,
     continuesLeft: range.from < weekStart,
     continuesRight: range.to > weekEnd,
     lane: 0,

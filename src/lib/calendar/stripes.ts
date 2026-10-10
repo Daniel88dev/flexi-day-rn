@@ -1,4 +1,5 @@
-import { placeWeek, type CalendarRange, type PlacedBar, type Week } from "@/lib/calendar/lanes";
+import { placeWeek, type CalendarRange, type PlacedBar } from "@/lib/calendar/lanes";
+import type { Week } from "@/lib/calendar/month-grid";
 
 const MAX_STRIPES = 3;
 
@@ -25,8 +26,8 @@ export function placeStripeWeek(
   const holidays = new Set<number>();
   for (const range of ranges) {
     if (range.type !== "BANK_HOLIDAY") continue;
-    week.forEach((day, column) => {
-      if (day !== null && day >= range.from && day <= range.to) holidays.add(column);
+    week.forEach(({ date }, column) => {
+      if (date >= range.from && date <= range.to) holidays.add(column);
     });
   }
 

@@ -1,39 +1,10 @@
 import {
   bankHolidaysToRanges,
-  buildWeeks,
   groupConsecutiveByRunKey,
   placeWeek,
   type CalendarRange,
-  type Week,
 } from "../lanes";
-
-describe("buildWeeks", () => {
-  it("returns Monday-first weeks padded with nulls on both ends", () => {
-    expect(buildWeeks({ year: 2026, month: 10 })).toEqual([
-      [null, null, null, 1, 2, 3, 4],
-      [5, 6, 7, 8, 9, 10, 11],
-      [12, 13, 14, 15, 16, 17, 18],
-      [19, 20, 21, 22, 23, 24, 25],
-      [26, 27, 28, 29, 30, 31, null],
-    ]);
-  });
-
-  it("returns six weeks for a month that starts on a Saturday", () => {
-    const weeks = buildWeeks({ year: 2026, month: 8 });
-
-    expect(weeks).toHaveLength(6);
-    expect(weeks[0]).toEqual([null, null, null, null, null, 1, 2]);
-    expect(weeks[5]).toEqual([31, null, null, null, null, null, null]);
-  });
-
-  it("returns four full weeks for a February that starts on a Monday", () => {
-    const weeks = buildWeeks({ year: 2027, month: 2 });
-
-    expect(weeks).toHaveLength(4);
-    expect(weeks[0]).toEqual([1, 2, 3, 4, 5, 6, 7]);
-    expect(weeks[3]).toEqual([22, 23, 24, 25, 26, 27, 28]);
-  });
-});
+import { monthWeeks } from "../month-grid";
 
 type Row = Parameters<typeof groupConsecutiveByRunKey>[0][number];
 
@@ -70,8 +41,8 @@ describe("groupConsecutiveByRunKey", () => {
       userId: "u1",
       userName: "Dana Holt",
       type: "VACATION",
-      from: 8,
-      to: 10,
+      from: "2026-06-08",
+      to: "2026-06-10",
       vacationIds: ["v-u1-2026-06-08", "v-u1-2026-06-09", "v-u1-2026-06-10"],
     });
   });
@@ -83,8 +54,8 @@ describe("groupConsecutiveByRunKey", () => {
     ]);
 
     expect(ranges.map((r) => [r.from, r.to])).toEqual([
-      [8, 8],
-      [10, 10],
+      ["2026-06-08", "2026-06-08"],
+      ["2026-06-10", "2026-06-10"],
     ]);
   });
 
@@ -106,9 +77,9 @@ describe("groupConsecutiveByRunKey", () => {
     ]);
 
     expect(ranges.map((r) => [r.from, r.status, r.halfDay])).toEqual([
-      [8, "approved", false],
-      [9, "pending", false],
-      [10, "pending", true],
+      ["2026-06-08", "approved", false],
+      ["2026-06-09", "pending", false],
+      ["2026-06-10", "pending", true],
     ]);
   });
 
@@ -169,70 +140,81 @@ describe("groupConsecutiveByRunKey", () => {
     ]);
 
     expect(ranges).toHaveLength(1);
-    expect(ranges[0]).toMatchObject({ from: 8, to: 10 });
+    expect(ranges[0]).toMatchObject({ from: "2026-06-08", to: "2026-06-10" });
+  });
+
+  it("returns one range for a run that crosses into the next month", () => {
+    const ranges = groupConsecutiveByRunKey([
+      row({ requestedDay: "2026-09-30" }),
+      row({ requestedDay: "2026-10-01" }),
+    ]);
+
+    expect(ranges.map((r) => [r.from, r.to])).toEqual([["2026-09-30", "2026-10-01"]]);
   });
 });
 
 describe("bankHolidaysToRanges", () => {
-  const OCTOBER = { year: 2026, month: 10 };
-
   it("returns one range per run of consecutive holidays, carrying every name", () => {
-    const ranges = bankHolidaysToRanges(
-      [
-        { date: "2026-12-24", name: "Christmas Eve" },
-        { date: "2026-12-26", name: "St Stephen's Day" },
-        { date: "2026-12-25", name: "Christmas Day" },
-      ],
-      { year: 2026, month: 12 }
-    );
+    const ranges = bankHolidaysToRanges([
+      { date: "2026-12-24", name: "Christmas Eve" },
+      { date: "2026-12-26", name: "St Stephen's Day" },
+      { date: "2026-12-25", name: "Christmas Day" },
+    ]);
 
     expect(ranges).toHaveLength(1);
     expect(ranges[0]).toMatchObject({
       userId: null,
       type: "BANK_HOLIDAY",
-      from: 24,
-      to: 26,
+      from: "2026-12-24",
+      to: "2026-12-26",
       names: ["Christmas Eve", "Christmas Day", "St Stephen's Day"],
     });
   });
 
   it("returns one range for the same date in two countries, each name once", () => {
-    const ranges = bankHolidaysToRanges(
-      [
-        { date: "2026-10-28", name: "Independence Day" },
-        { date: "2026-10-28", name: "Independence Day" },
-        { date: "2026-10-28", name: "Ochi Day" },
-      ],
-      OCTOBER
-    );
+    const ranges = bankHolidaysToRanges([
+      { date: "2026-10-28", name: "Independence Day" },
+      { date: "2026-10-28", name: "Independence Day" },
+      { date: "2026-10-28", name: "Ochi Day" },
+    ]);
 
     expect(ranges).toHaveLength(1);
     expect(ranges[0].names).toEqual(["Independence Day", "Ochi Day"]);
   });
 
-  it("returns separate ranges across a gap and leaves out other months", () => {
-    const ranges = bankHolidaysToRanges(
-      [
-        { date: "2026-09-28", name: "Statehood Day" },
-        { date: "2026-10-01", name: "First" },
-        { date: "2026-10-28", name: "Independence Day" },
-      ],
-      OCTOBER
-    );
+  it("returns separate ranges across a gap, each placed by its date", () => {
+    const ranges = bankHolidaysToRanges([
+      { date: "2026-09-28", name: "Statehood Day" },
+      { date: "2026-10-01", name: "First" },
+      { date: "2026-10-28", name: "Independence Day" },
+    ]);
 
     expect(ranges.map((r) => [r.from, r.to])).toEqual([
-      [1, 1],
-      [28, 28],
+      ["2026-09-28", "2026-09-28"],
+      ["2026-10-01", "2026-10-01"],
+      ["2026-10-28", "2026-10-28"],
     ]);
+  });
+
+  it("returns one range for consecutive holidays across a month boundary", () => {
+    const ranges = bankHolidaysToRanges([
+      { date: "2026-12-31", name: "New Year's Eve" },
+      { date: "2027-01-01", name: "New Year's Day" },
+    ]);
+
+    expect(ranges.map((r) => [r.from, r.to])).toEqual([["2026-12-31", "2027-01-01"]]);
   });
 });
 
 describe("placeWeek", () => {
-  // 12-18 October 2026, Monday to Sunday.
-  const WEEK: Week = [12, 13, 14, 15, 16, 17, 18];
+  const [SEPT_28_TO_OCT_4, , OCT_12_TO_18, , OCT_26_TO_NOV_1] = monthWeeks({
+    year: 2026,
+    month: 10,
+  });
+  const WEEK = OCT_12_TO_18;
   const VIEWER = "me";
 
-  function bar(id: string, from: number, to: number, userId = id): CalendarRange {
+  function bar(id: string, from: string, to: string, userId = id): CalendarRange {
     return {
       id,
       userId,
@@ -248,15 +230,18 @@ describe("placeWeek", () => {
     };
   }
 
-  function holiday(day: number): CalendarRange {
-    return { ...bar(`bank-${day}`, day, day, ""), userId: null, type: "BANK_HOLIDAY" };
+  function holiday(date: string): CalendarRange {
+    return { ...bar(`bank-${date}`, date, date, ""), userId: null, type: "BANK_HOLIDAY" };
   }
 
   const place = (ranges: CalendarRange[], week = WEEK) =>
     placeWeek(week, ranges, { maxLanes: 2, viewerId: VIEWER });
 
   it("returns a bar's columns, flagging the edges it runs past", () => {
-    const { shown } = place([bar("a", 9, 14), bar("b", 16, 23)]);
+    const { shown } = place([
+      bar("a", "2026-10-09", "2026-10-14"),
+      bar("b", "2026-10-16", "2026-10-23"),
+    ]);
 
     expect(
       shown.map((b) => [b.range.id, b.startColumn, b.endColumn, b.continuesLeft, b.continuesRight])
@@ -267,13 +252,20 @@ describe("placeWeek", () => {
   });
 
   it("returns bars that do not overlap in one lane", () => {
-    const { shown } = place([bar("a", 12, 13), bar("b", 14, 16)]);
+    const { shown } = place([
+      bar("a", "2026-10-12", "2026-10-13"),
+      bar("b", "2026-10-14", "2026-10-16"),
+    ]);
 
     expect(shown.map((b) => b.lane)).toEqual([0, 0]);
   });
 
   it("returns the bars past two lanes as hidden, per day they cover", () => {
-    const { shown, hidden } = place([bar("a", 12, 16), bar("b", 13, 14), bar("c", 14, 15)]);
+    const { shown, hidden } = place([
+      bar("a", "2026-10-12", "2026-10-16"),
+      bar("b", "2026-10-13", "2026-10-14"),
+      bar("c", "2026-10-14", "2026-10-15"),
+    ]);
 
     expect(shown.map((b) => [b.range.id, b.lane])).toEqual([
       ["a", 0],
@@ -287,10 +279,10 @@ describe("placeWeek", () => {
 
   it("returns the bank holidays on one lane of the budget, however many there are", () => {
     const { bank, shown, hidden, bankRows } = place([
-      holiday(12),
-      holiday(15),
-      bar("a", 12, 13),
-      bar("b", 12, 12),
+      holiday("2026-10-12"),
+      holiday("2026-10-15"),
+      bar("a", "2026-10-12", "2026-10-13"),
+      bar("b", "2026-10-12", "2026-10-12"),
     ]);
 
     expect(bankRows).toBe(1);
@@ -301,9 +293,9 @@ describe("placeWeek", () => {
 
   it("returns the viewer's own bars first, so they never hide behind +N", () => {
     const { shown, hidden } = place([
-      bar("a", 12, 16),
-      bar("b", 12, 16),
-      bar("mine", 14, 14, VIEWER),
+      bar("a", "2026-10-12", "2026-10-16"),
+      bar("b", "2026-10-12", "2026-10-16"),
+      bar("mine", "2026-10-14", "2026-10-14", VIEWER),
     ]);
 
     expect(shown.map((b) => [b.range.id, b.lane])).toEqual([
@@ -314,15 +306,43 @@ describe("placeWeek", () => {
   });
 
   it("returns the viewer's bar on the lane a bank holiday leaves", () => {
-    const { shown } = place([holiday(12), bar("a", 12, 16), bar("mine", 15, 16, VIEWER)]);
+    const { shown } = place([
+      holiday("2026-10-12"),
+      bar("a", "2026-10-12", "2026-10-16"),
+      bar("mine", "2026-10-15", "2026-10-16", VIEWER),
+    ]);
 
     expect(shown.map((b) => b.range.id)).toEqual(["mine"]);
   });
 
-  it("returns nothing for ranges outside the week and for the padding of a short week", () => {
-    const firstWeek: Week = [null, null, null, 1, 2, 3, 4];
-    const { shown } = place([bar("a", 1, 2), bar("b", 5, 9)], firstWeek);
+  it("returns nothing for ranges outside the week", () => {
+    const { shown, bank } = place([
+      bar("a", "2026-10-05", "2026-10-11"),
+      bar("b", "2026-10-19", "2026-10-20"),
+      holiday("2026-10-11"),
+    ]);
 
-    expect(shown.map((b) => [b.range.id, b.startColumn, b.endColumn])).toEqual([["a", 3, 5]]);
+    expect(shown).toEqual([]);
+    expect(bank).toEqual([]);
+  });
+
+  it("returns a bar and a holiday on the padding days of a short week by their dates", () => {
+    const { shown, bank } = place(
+      [bar("a", "2026-09-25", "2026-10-01"), holiday("2026-09-28")],
+      SEPT_28_TO_OCT_4
+    );
+
+    expect(
+      shown.map((b) => [b.range.id, b.startColumn, b.endColumn, b.continuesLeft, b.continuesRight])
+    ).toEqual([["a", 0, 4, true, false]]);
+    expect(bank.map((b) => [b.startColumn, b.endColumn])).toEqual([[0, 1]]);
+  });
+
+  it("returns a bar that runs into the next month's padding days as one bar", () => {
+    const { shown } = place([bar("a", "2026-10-30", "2026-11-03")], OCT_26_TO_NOV_1);
+
+    expect(
+      shown.map((b) => [b.startColumn, b.endColumn, b.continuesLeft, b.continuesRight])
+    ).toEqual([[4, 7, false, true]]);
   });
 });

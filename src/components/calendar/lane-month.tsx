@@ -5,7 +5,8 @@ import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
-import { buildWeeks, placeWeek, type CalendarRange, type PlacedBar } from "@/lib/calendar/lanes";
+import { placeWeek, type CalendarRange, type PlacedBar } from "@/lib/calendar/lanes";
+import { monthWeeks } from "@/lib/calendar/month-grid";
 import { cn } from "@/lib/cn";
 import { isoDay, type YearMonth } from "@/lib/requests/months";
 import { firstName } from "@/lib/viewer/viewer";
@@ -159,7 +160,7 @@ export function LaneMonth({
 }: LaneMonthProps) {
   const { t } = useTranslation();
   const cellWidth = (width - CALENDAR_GUTTER * 2 - 2) / 7;
-  const weeks = buildWeeks(month);
+  const weeks = monthWeeks(month);
 
   const labelOf = (range: CalendarRange) => {
     const name =
@@ -195,30 +196,27 @@ export function LaneMonth({
           });
           return (
             <View
-              key={week.find((day) => day !== null)}
+              key={week[0].date}
               style={{ height: ROW_H }}
               className={cn("flex-row", weekIndex < weeks.length - 1 && "border-b border-border")}
             >
-              {week.map((day, column) => {
-                const iso = day === null ? null : isoDay(month, day);
-                const isToday = iso === today;
+              {week.map(({ date, day, inMonth }, column) => {
+                const isToday = date === today;
                 return (
                   <Pressable
-                    // Seven fixed columns that never reorder: the column is the cell.
-                    // eslint-disable-next-line @eslint-react/no-array-index-key
-                    key={column}
-                    testID={iso ? `calendar-day-${iso}` : undefined}
-                    disabled={iso === null}
-                    onPress={() => iso && onDay(iso)}
-                    accessibilityRole={iso ? "button" : undefined}
+                    key={date}
+                    testID={inMonth ? `calendar-day-${date}` : undefined}
+                    disabled={!inMonth}
+                    onPress={() => onDay(date)}
+                    accessibilityRole={inMonth ? "button" : undefined}
                     style={{ width: cellWidth }}
                     className={cn(
                       "px-1 pt-1.5 active:bg-muted",
                       column < 6 && "border-r border-border",
-                      (iso === null || column >= 5) && "bg-tint"
+                      (!inMonth || column >= 5) && "bg-tint"
                     )}
                   >
-                    {day !== null ? (
+                    {inMonth ? (
                       <View
                         className={cn(
                           "h-[22px] min-w-[22px] items-center justify-center self-start rounded-full px-1",
@@ -243,7 +241,7 @@ export function LaneMonth({
                 );
               })}
               {bank.map((bar) => {
-                const iso = isoDay(month, week[bar.startColumn]!);
+                const iso = week[bar.startColumn].date;
                 return (
                   <BankPill
                     key={bar.range.id}
@@ -265,7 +263,7 @@ export function LaneMonth({
                 />
               ))}
               {[...hidden].map(([column, list]) => {
-                const iso = isoDay(month, week[column]!);
+                const iso = week[column].date;
                 return (
                   <Pressable
                     key={column}

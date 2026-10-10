@@ -21,14 +21,12 @@ export function useMonthRanges(
   const range = monthRange(month);
   const rows = useCalendarVacations({ range, scope });
   const holidays = useCalendarBankHolidays({ range, scope });
-  const { year, month: monthNumber } = month;
 
   return useMemo(
     () =>
-      [
-        ...groupConsecutiveByRunKey(rows),
-        ...bankHolidaysToRanges(holidays, { year, month: monthNumber }),
-      ].filter((bar) => filter.has(bar.type)),
-    [rows, holidays, year, monthNumber, filter]
+      [...groupConsecutiveByRunKey(rows), ...bankHolidaysToRanges(holidays)].filter((bar) =>
+        filter.has(bar.type)
+      ),
+    [rows, holidays, filter]
   );
 }
