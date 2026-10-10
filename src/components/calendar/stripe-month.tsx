@@ -1,11 +1,17 @@
 import { Pressable, View } from "react-native";
 
+import {
+  ADJACENT_NUMBER_OPACITY,
+  fadesNumber,
+  MonthSeam,
+  monthShortName,
+} from "@/components/calendar/adjacent-days";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
 import type { CalendarRange } from "@/lib/calendar/lanes";
-import { monthWeeks } from "@/lib/calendar/month-grid";
+import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { placeStripeWeek } from "@/lib/calendar/stripes";
 import { cn } from "@/lib/cn";
 import { isoDay, type YearMonth } from "@/lib/requests/months";
@@ -85,6 +91,7 @@ export function StripeMonth({
       </View>
       {weeks.map((week) => {
         const { stripes, more, holidays } = placeStripeWeek(week, ranges, { viewerId });
+        const labelColumn = monthLabelColumn(week);
         return (
           <View
             key={week[0].date}
@@ -92,14 +99,14 @@ export function StripeMonth({
             className="flex-row border-t border-border"
           >
             {week.map(({ date: iso, day, inMonth }, column) => {
-              if (!inMonth) return <View key={iso} style={{ width: cellWidth }} />;
               const isToday = iso === today;
               const isSelected = iso === selected;
               const holiday = holidays.has(column);
+              const faded = fadesNumber({ inMonth, highlighted: isToday || isSelected });
               return (
                 <Pressable
                   key={iso}
-                  testID={`calendar-day-${iso}`}
+                  testID={inMonth ? `calendar-day-${iso}` : `calendar-adjacent-day-${iso}`}
                   onPress={() => onDay(iso)}
                   accessibilityRole="button"
                   accessibilityLabel={dayLabel(iso)}
@@ -111,6 +118,11 @@ export function StripeMonth({
                     <View className="absolute inset-x-[3px] top-[3px] bottom-[3px] overflow-hidden rounded-[12px]">
                       <View className="absolute inset-0 bg-leave-bank" style={{ opacity: 0.18 }} />
                     </View>
+                  ) : null}
+                  {column === labelColumn ? (
+                    <Text className="absolute top-0 left-[2px] text-[8.5px] font-bold tracking-[0.2px] text-muted-foreground uppercase">
+                      {monthShortName(t, iso)}
+                    </Text>
                   ) : null}
                   <View
                     style={{ height: DAY_H, width: DAY_H }}
@@ -128,12 +140,15 @@ export function StripeMonth({
                             : "font-bold text-background"
                           : isToday
                             ? "font-bold text-primary"
-                            : holiday
-                              ? "font-semibold text-leave-bank"
-                              : column >= 5
-                                ? "text-faint"
-                                : "font-medium text-foreground"
+                            : !inMonth
+                              ? "text-faint"
+                              : holiday
+                                ? "font-semibold text-leave-bank"
+                                : column >= 5
+                                  ? "text-faint"
+                                  : "font-medium text-foreground"
                       )}
+                      style={faded ? { opacity: ADJACENT_NUMBER_OPACITY } : undefined}
                     >
                       {day}
                     </Text>
@@ -141,6 +156,7 @@ export function StripeMonth({
                 </Pressable>
               );
             })}
+            <MonthSeam week={week} cellWidth={cellWidth} />
             {stripes.map((placed) => {
               const inset = 5;
               const left = placed.startColumn * cellWidth + (placed.continuesLeft ? 0 : inset);

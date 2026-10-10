@@ -5,20 +5,21 @@ import {
   groupConsecutiveByRunKey,
   type CalendarRange,
 } from "@/lib/calendar/lanes";
+import { gridRange } from "@/lib/calendar/month-grid";
 import {
   useCalendarBankHolidays,
   useCalendarVacations,
   type CalendarRecordType,
   type RequestListScope,
 } from "@/lib/local-store";
-import { monthRange, type YearMonth } from "@/lib/requests/months";
+import type { YearMonth } from "@/lib/requests/months";
 
 export function useMonthRanges(
   month: YearMonth,
   scope: RequestListScope,
   filter: ReadonlySet<CalendarRecordType>
 ): CalendarRange[] {
-  const range = monthRange(month);
+  const range = gridRange(month);
   const rows = useCalendarVacations({ range, scope });
   const holidays = useCalendarBankHolidays({ range, scope });
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen, within } from "@testing-library/react-native";
 
 import { StripeMonth, stripeMonthHeight } from "@/components/calendar/stripe-month";
 import { TranslationProvider } from "@/i18n/use-translation";
@@ -32,12 +32,12 @@ const holiday = (day: number, name: string): CalendarRange => ({
   vacationIds: [],
 });
 
-async function renderMonth(ranges: CalendarRange[], selected = "2026-10-14") {
+async function renderMonth(ranges: CalendarRange[], selected = "2026-10-14", month = OCTOBER) {
   const onDay = jest.fn();
   await render(
     <TranslationProvider>
       <StripeMonth
-        month={OCTOBER}
+        month={month}
         ranges={ranges}
         width={390}
         viewerId={VIEWER}
@@ -58,10 +58,76 @@ describe("StripeMonth", () => {
     expect(screen.getByTestId("calendar-day-2026-10-01")).toBeOnTheScreen();
     expect(screen.getByTestId("calendar-day-2026-10-31")).toBeOnTheScreen();
     expect(screen.queryByTestId("calendar-day-2026-09-30")).toBeNull();
-    expect(screen.queryByTestId("calendar-day-2026-11-01")).toBeNull();
     await fireEvent.press(screen.getByTestId("calendar-day-2026-10-20"));
 
     expect(onDay).toHaveBeenCalledWith("2026-10-20");
+  });
+
+  it("renders the adjacent months' days with faded numbers, their month captioned on the first", async () => {
+    await renderMonth([]);
+
+    const first = screen.getByTestId("calendar-adjacent-day-2026-09-28");
+    expect(first).toHaveTextContent("Sep28");
+    expect(within(first).getByText("28")).toHaveStyle({ opacity: 0.55 });
+    expect(screen.getByTestId("calendar-adjacent-day-2026-09-29")).toHaveTextContent("29", {
+      exact: true,
+    });
+    expect(screen.getByTestId("calendar-adjacent-day-2026-11-01")).toHaveTextContent("Nov1");
+    expect(screen.getByTestId("calendar-adjacent-day-2026-11-01")).toHaveAccessibleName(
+      "Sun 1 Nov"
+    );
+  });
+
+  it("renders the December days before January of last year as numbers, tappable", async () => {
+    const onDay = await renderMonth([], "2025-01-01", { year: 2025, month: 1 });
+
+    expect(screen.getByTestId("calendar-adjacent-day-2024-12-30")).toHaveTextContent("Dec30");
+    expect(screen.getByTestId("calendar-adjacent-day-2024-12-31")).toHaveTextContent("31", {
+      exact: true,
+    });
+
+    await fireEvent.press(screen.getByTestId("calendar-adjacent-day-2024-12-31"));
+    expect(onDay).toHaveBeenCalledWith("2024-12-31");
+  });
+
+  it("draws a seam where the month changes mid-week", async () => {
+    await renderMonth([]);
+
+    expect(screen.getByTestId("calendar-seam-2026-10-01")).toBeOnTheScreen();
+    expect(screen.getByTestId("calendar-seam-2026-11-01")).toBeOnTheScreen();
+  });
+
+  it("selects a tapped adjacent day and shows it at full strength", async () => {
+    const onDay = await renderMonth([], "2026-11-01");
+
+    const selected = screen.getByTestId("calendar-adjacent-day-2026-11-01");
+    expect(selected).toBeSelected();
+    expect(within(selected).getByText("1")).not.toHaveStyle({ opacity: 0.55 });
+
+    await fireEvent.press(screen.getByTestId("calendar-adjacent-day-2026-09-30"));
+    expect(onDay).toHaveBeenCalledWith("2026-09-30");
+  });
+
+  it("draws a stripe on adjacent days at full strength, one stripe across the month boundary", async () => {
+    await renderMonth([{ ...stripe("eva", 1, 2), from: "2026-09-29" }]);
+
+    expect(screen.getAllByTestId("calendar-stripe-eva-1")).toHaveLength(1);
+    expect(screen.getByTestId("calendar-stripe-eva-1")).toHaveStyle({ opacity: 1 });
+  });
+
+  it("draws a pending stripe on an adjacent day the way it draws one in the month", async () => {
+    await renderMonth([
+      stripe("eva", 5, 5, { status: "pending" }),
+      stripe("tom", 1, 1, {
+        status: "pending",
+        from: "2026-11-01",
+        to: "2026-11-01",
+        vacationIds: ["tom-nov"],
+      }),
+    ]);
+
+    expect(screen.getByTestId("calendar-stripe-tom-nov")).toHaveStyle({ opacity: 0.4 });
+    expect(screen.getByTestId("calendar-stripe-eva-5")).toHaveStyle({ opacity: 0.4 });
   });
 
   it("marks the selected day", async () => {
