@@ -8,12 +8,16 @@ import { FilterSheet } from "@/components/calendar/filter-sheet";
 import { LaneMonth, laneMonthHeight } from "@/components/calendar/lane-month";
 import { Legend } from "@/components/calendar/legend";
 import { MonthPager } from "@/components/calendar/month-pager";
+import { ProtoLaneMonth } from "@/components/calendar/prototype-adjacent-lane-month";
+import { useProtoMonthRanges } from "@/components/calendar/prototype-adjacent-ranges";
+import { ProtoStripeMonth } from "@/components/calendar/prototype-adjacent-stripe-month";
 import { ScopeRow } from "@/components/calendar/scope-row";
 import { StripeMonth, stripeMonthHeight } from "@/components/calendar/stripe-month";
 import { useMonthRanges } from "@/components/calendar/use-month-ranges";
 import { LEAVE_TYPE_ORDER } from "@/components/ui/leave-classes";
 import { openingDay } from "@/lib/calendar/day";
 import { buildWeeks } from "@/lib/calendar/lanes";
+import { useProtoState, type ProtoVariant } from "@/lib/calendar/prototype-adjacent";
 import { dashboardScope } from "@/lib/calendar/scope";
 import { calendarView, type CalendarView } from "@/lib/calendar/view";
 import {
@@ -25,6 +29,7 @@ import { dayOfDate } from "@/lib/days";
 import { useMySettings } from "@/lib/query";
 import {
   currentMonth,
+  isoDay,
   monthOffset,
   monthsWithin,
   requestMonthBounds,
@@ -43,7 +48,43 @@ type PageProps = {
   today: string;
   onDay: (day: string) => void;
   onBar?: (vacationId: string) => void;
+  proto: { variant: ProtoVariant; syncedFrom: string } | null;
 };
+
+// PROTOTYPE (T-265): adjacent-month days, switched by the dev-only pill on the dashboard.
+function ProtoMonthPage({
+  month,
+  view,
+  selected,
+  scope,
+  filter,
+  onDay,
+  onBar,
+  proto,
+  ...props
+}: PageProps & { month: YearMonth; proto: { variant: ProtoVariant; syncedFrom: string } }) {
+  const ranges = useProtoMonthRanges(month, scope, filter, proto.syncedFrom);
+  return view === "stripes" ? (
+    <ProtoStripeMonth
+      month={month}
+      ranges={ranges}
+      selected={selected}
+      onDay={onDay}
+      {...proto}
+      {...props}
+    />
+  ) : (
+    <ProtoLaneMonth
+      month={month}
+      ranges={ranges}
+      onDay={onDay}
+      onMore={onDay}
+      onBar={onBar}
+      {...proto}
+      {...props}
+    />
+  );
+}
 
 function MonthPage({
   month,
@@ -53,8 +94,48 @@ function MonthPage({
   filter,
   onDay,
   onBar,
+  proto,
   ...props
 }: PageProps & { month: YearMonth }) {
+  if (proto) {
+    return (
+      <ProtoMonthPage
+        month={month}
+        view={view}
+        selected={selected}
+        scope={scope}
+        filter={filter}
+        onDay={onDay}
+        onBar={onBar}
+        proto={proto}
+        {...props}
+      />
+    );
+  }
+  return (
+    <RealMonthPage
+      month={month}
+      view={view}
+      selected={selected}
+      scope={scope}
+      filter={filter}
+      onDay={onDay}
+      onBar={onBar}
+      {...props}
+    />
+  );
+}
+
+function RealMonthPage({
+  month,
+  view,
+  selected,
+  scope,
+  filter,
+  onDay,
+  onBar,
+  ...props
+}: Omit<PageProps, "proto"> & { month: YearMonth }) {
   const ranges = useMonthRanges(month, scope, filter);
   return view === "stripes" ? (
     <StripeMonth month={month} ranges={ranges} selected={selected} onDay={onDay} {...props} />
@@ -109,7 +190,11 @@ export function DashboardCalendar({
   useEffect(() => onYear?.(month.year), [onYear, month.year]);
 
   const settings = useMySettings().data;
-  const view = calendarView(settings);
+  const protoState = useProtoState();
+  const view = __DEV__ ? protoState.view : calendarView(settings);
+  const proto = __DEV__
+    ? { variant: protoState.variant, syncedFrom: isoDay(bounds.first, 1) }
+    : null;
   const selectedDay = pickedDay ?? openingDay(month, today);
   const groups = useRequestScopeGroups();
   const { scope, groupId } = dashboardScope({ settings, scopeChoice, groupChoice, groups });
@@ -173,7 +258,7 @@ export function DashboardCalendar({
             ? stripeMonthHeight(buildWeeks(month).length)
             : laneMonthHeight(buildWeeks(month).length)
         }
-        extraData={[view, selectedDay, scope, filter, viewerId, today]}
+        extraData={[view, selectedDay, scope, filter, viewerId, today, proto?.variant]}
         renderMonth={(page) => (
           <MonthPage
             month={page}
@@ -186,6 +271,7 @@ export function DashboardCalendar({
             today={today}
             onDay={view === "stripes" ? setPickedDay : setSheetDay}
             onBar={onOpenRequest}
+            proto={proto}
           />
         )}
       />
