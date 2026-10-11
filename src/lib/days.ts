@@ -11,8 +11,19 @@ export function addDays(iso: string, days: number): string {
 
 /** A day's place in a Monday-first week: 0 for Monday, 6 for Sunday. */
 export function mondayIndex(iso: string): number {
-  // Day 0 of the epoch was a Thursday.
-  return (((dayNumber(iso) + 3) % 7) + 7) % 7;
+  return mondayIndexOf(dayNumber(iso));
+}
+
+// Day 0 of the epoch was a Thursday.
+const mondayIndexOf = (day: number) => (((day + 3) % 7) + 7) % 7;
+
+/** Monday to Friday inside an inclusive range, the backend's `countBusinessDaysInclusive`. */
+export function businessDaysBetween(from: string, to: string): number {
+  let count = 0;
+  for (let day = dayNumber(from); day <= dayNumber(to); day += 1) {
+    if (mondayIndexOf(day) < 5) count += 1;
+  }
+  return count;
 }
 
 /** `Date.getDay()` numbering, 0 for Sunday, which is how the backend stores working days. */

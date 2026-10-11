@@ -1,6 +1,9 @@
 import { useCallback } from "react";
 
+import type { RequestRun } from "@/lib/requests/runs";
+
 import type { StoreDatabase } from "./adapter";
+import { myAwaitingRequests } from "./awaiting-requests";
 import type { StoreChannel } from "./events";
 import { MERGED_VACATION_CHANNELS } from "./queries";
 import {
@@ -60,5 +63,11 @@ export function useStoredRequest(vacationId: string): StoredRequest | null {
     (db: StoreDatabase) => storedRequest(db, changes, vacationId),
     [changes, vacationId]
   );
+  return useStoreQuery(build, LIST_CHANNELS);
+}
+
+export function useMyAwaitingRequests(): RequestRun[] {
+  const changes = useStoreOverlay();
+  const build = useCallback((db: StoreDatabase) => myAwaitingRequests(db, changes), [changes]);
   return useStoreQuery(build, LIST_CHANNELS);
 }

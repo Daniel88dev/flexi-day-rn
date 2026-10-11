@@ -92,6 +92,11 @@ export const en = {
       meta: (type: string, range: string, days: string) => `${type} · ${range} · ${days}`,
       approve: "Approve",
       decline: "Decline",
+      waitingOnYou: "Waiting on you",
+      yourRequests: "Your requests",
+      noPendingRequests: "None of your requests is waiting on approval.",
+      span: (range: string, days: string) => `${range} · ${days}`,
+      waitingIn: (group: string) => `Waiting on approval in ${group}`,
     },
     balance: {
       title: (year: number) => `My balance ${year}`,

@@ -4,7 +4,19 @@ import { Alert, type AlertButton } from "react-native";
 import { ApprovalsCard } from "@/components/dashboard/approvals-card";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
+import { applyPage } from "@/lib/local-store/apply";
+import type { SyncEnvelope } from "@/lib/local-store/envelope";
+import { activePendingChanges } from "@/lib/local-store/pending";
+import type { StoreRuntime } from "@/lib/local-store/runtime";
+import {
+  groupRow,
+  groupUserRow,
+  syncPage,
+  vacationRow,
+} from "@/lib/local-store/test-support/sync-fixtures";
+import { openTestStore } from "@/lib/local-store/test-support/test-store";
 import { useApprovalDecisions, useMyApprovals, type PendingApproval } from "@/lib/query";
+import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
 jest.mock("expo-haptics", () => ({
@@ -14,6 +26,7 @@ jest.mock("expo-haptics", () => ({
   ImpactFeedbackStyle: { Medium: "medium" },
 }));
 jest.mock("@/lib/query", () => ({ useMyApprovals: jest.fn(), useApprovalDecisions: jest.fn() }));
+jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
 
 const approvals = useMyApprovals as jest.Mock;
 const decisions = useApprovalDecisions as jest.Mock;
@@ -25,7 +38,8 @@ jest.spyOn(Alert, "prompt").mockImplementation((_title, _message, buttons) => {
   prompt = buttons as AlertButton[];
 });
 
-const YEAR = new Date().getFullYear();
+const YEAR = 2026;
+const VIEWER = "user-1";
 
 const ITEM: PendingApproval = {
   vacationIds: ["vacation-1", "vacation-2"],
@@ -46,21 +60,45 @@ function read({ data, isError = false, isPending = false }: Read) {
   approvals.mockReturnValue({ data, isError, isPending, isFetching: false, refetch: jest.fn() });
 }
 
-function renderCard(onOpen = jest.fn()) {
+function renderCard({ onOpen = jest.fn(), approver = true } = {}) {
   return render(
     <TranslationProvider>
-      <ApprovalsCard onOpen={onOpen} />
+      <ApprovalsCard approver={approver} onOpen={onOpen} />
     </TranslationProvider>
   );
 }
 
-beforeEach(() => {
+let store: StoreRuntime;
+
+async function pullIn(page: Partial<SyncEnvelope>) {
+  await act(async () => {
+    store.write((transaction) => applyPage(transaction, syncPage(page), 1));
+  });
+}
+
+beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
+
+beforeEach(async () => {
+  jest.useFakeTimers({
+    now: new Date(YEAR, 9, 1, 10),
+    doNotFake: ["setImmediate", "nextTick", "queueMicrotask"],
+  });
+  store = await openTestStore(VIEWER);
+  await pullIn({
+    groups: [groupRow({ id: "group-1", groupName: "Engineering", managerUserId: "boss" })],
+    groupUsers: [groupUserRow({ groupId: "group-1", userId: VIEWER })],
+  });
   jest.clearAllMocks();
   prompt = [];
   approve.mockResolvedValue(true);
   decline.mockResolvedValue(true);
   decisions.mockReturnValue({ deciding: null, approve, decline });
   read({ data: [ITEM] });
+});
+
+afterEach(async () => {
+  await store.lifecycle.closeStore();
+  jest.useRealTimers();
 });
 
 describe("ApprovalsCard", () => {
@@ -133,7 +171,7 @@ describe("ApprovalsCard", () => {
 
   it("opens the request's detail from the item", async () => {
     const onOpen = jest.fn();
-    await renderCard(onOpen);
+    await renderCard({ onOpen });
 
     await fireEvent.press(screen.getByTestId("approval-vacation-1-open"));
 
@@ -172,5 +210,106 @@ describe("ApprovalsCard", () => {
     await renderCard();
 
     expect(screen.getByTestId(`approval-user-2-${YEAR}-10-05-approve`)).toBeDisabled();
+  });
+});
+
+describe("ApprovalsCard, Your requests", () => {
+  const own = (id: string, requestedDay: string) =>
+    vacationRow({ id, userId: VIEWER, groupId: "group-1", requestedDay });
+
+  it("renders only Your requests to a viewer who approves nowhere, read-only, opening on tap", async () => {
+    await pullIn({ vacations: [own("fri", `${YEAR}-10-09`), own("mon", `${YEAR}-10-12`)] });
+    const onOpen = jest.fn();
+
+    await renderCard({ onOpen, approver: false });
+
+    expect(screen.queryByText(en.dashboard.approvals.waitingOnYou)).toBeNull();
+    expect(screen.queryByText("Eva Horáková")).toBeNull();
+    expect(screen.queryByText(en.dashboard.approvals.toReview(1))).toBeNull();
+    expect(screen.getByText(en.dashboard.approvals.yourRequests)).toBeTruthy();
+    expect(screen.getByTestId("awaiting-request-fri")).toHaveTextContent(
+      "Vacation9 Oct · 1 dayWaiting on approval in Engineering"
+    );
+    expect(screen.getByTestId("awaiting-request-mon")).toBeTruthy();
+    expect(screen.queryByText(en.dashboard.approvals.approve)).toBeNull();
+    expect(screen.queryByText(en.dashboard.approvals.decline)).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("awaiting-request-fri"));
+
+    expect(onOpen).toHaveBeenCalledWith("fri");
+  });
+
+  it("renders one row per date range with its business days", async () => {
+    await pullIn({
+      vacations: [
+        own("tue", `${YEAR}-10-06`),
+        own("wed", `${YEAR}-10-07`),
+        own("thu", `${YEAR}-10-08`),
+      ],
+    });
+
+    await renderCard({ approver: false });
+
+    expect(screen.getByTestId("awaiting-request-tue")).toHaveTextContent(
+      "Vacation6-8 Oct · 3 daysWaiting on approval in Engineering"
+    );
+    expect(screen.queryByTestId("awaiting-request-wed")).toBeNull();
+  });
+
+  it("renders a nothing-pending state when none of the viewer's requests is waiting", async () => {
+    await pullIn({
+      vacations: [vacationRow({ id: "approved", userId: VIEWER, approvedAt: `${YEAR}-09-30` })],
+    });
+
+    await renderCard({ approver: false });
+
+    expect(screen.getByText(en.dashboard.approvals.noPendingRequests)).toBeTruthy();
+    expect(screen.queryByText(en.dashboard.approvals.allCaughtUp)).toBeNull();
+  });
+
+  it("renders an approver's own request they may decide only under Waiting on you", async () => {
+    await pullIn({
+      groupUsers: [groupUserRow({ groupId: "group-1", userId: VIEWER, approverAccess: true })],
+      vacations: [own("vacation-1", `${YEAR}-10-05`), own("vacation-2", `${YEAR}-10-06`)],
+    });
+    read({ data: [{ ...ITEM, user: { ...ITEM.user, id: VIEWER, name: "Dana Holt" } }] });
+
+    await renderCard();
+
+    expect(screen.getByText(en.dashboard.approvals.waitingOnYou)).toBeTruthy();
+    expect(screen.getByTestId("approval-vacation-1-approve")).toBeTruthy();
+    expect(screen.queryByTestId("awaiting-request-vacation-1")).toBeNull();
+    expect(screen.getByText(en.dashboard.approvals.noPendingRequests)).toBeTruthy();
+  });
+
+  it("renders an approver's own request in a group where they cannot decide it under Your requests", async () => {
+    await pullIn({ vacations: [own("mine", `${YEAR}-10-05`)] });
+    read({ data: [] });
+
+    await renderCard();
+
+    expect(screen.getByText(en.dashboard.approvals.allCaughtUp)).toBeTruthy();
+    expect(screen.getByTestId("awaiting-request-mine")).toBeTruthy();
+  });
+
+  it("renders a booking still in flight at once, waiting and not yet openable", async () => {
+    const onOpen = jest.fn();
+    await renderCard({ onOpen, approver: false });
+    expect(screen.getByText(en.dashboard.approvals.noPendingRequests)).toBeTruthy();
+
+    await act(async () => {
+      activePendingChanges().add({
+        kind: "create",
+        draft: { groupId: "group-1", from: `${YEAR}-10-12`, to: `${YEAR}-10-13` },
+      });
+    });
+
+    const row = screen.getByTestId(/^awaiting-request-/);
+    expect(row).toHaveTextContent(
+      `Vacation12-13 Oct · 2 days${en.requests.sending}Waiting on approval in Engineering`
+    );
+    expect(row).toBeDisabled();
+    await fireEvent.press(row);
+    expect(onOpen).not.toHaveBeenCalled();
   });
 });

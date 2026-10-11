@@ -173,6 +173,14 @@ describe("useMyApprovals", () => {
     await waitFor(() => expect(result.current.data).toEqual([APPROVAL]));
     expect(reads("/api/users/me/approvals")).toHaveLength(1);
   });
+
+  it("returns nothing and asks nothing for a viewer who approves nowhere", async () => {
+    const { result } = await renderHook(() => useMyApprovals({ enabled: false }), { wrapper });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(result.current.data).toBeUndefined();
+    expect(reads("/api/users/me/approvals")).toHaveLength(0);
+  });
 });
 
 describe("useApprovalDecisions", () => {
