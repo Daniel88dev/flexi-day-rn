@@ -17,7 +17,7 @@ approval before starting any non-trivial implementation.
 
 Every request goes to `flexi-day-be`. This repo holds no server code and no business rules the
 backend already enforces. The local store is a projection of the server, never a source of truth,
-and writes need connectivity. `CONTEXT.md` defines the words for that (local store, sync pull,
+and writes need connectivity. `GLOSSARY.md` defines the words for that (local store, sync pull,
 sync cursor, tombstone, sync reset, pending change, provisional row); use them, not synonyms.
 
 ## Continuous native generation
@@ -276,15 +276,16 @@ not permission to merge it, and one merge the user asked for does not carry to t
 
 ### Issue tracker
 
-Issues live in this repo's GitHub Issues, reached with the `gh` CLI. See
-[`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+Agent work lives in fenro tasks (`T-12`) through the `fenro-prod` MCP server, each task's
+`repository` naming its repo. GitHub Issues stay for external reports and are attached to a task
+as its source. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
 
 ### Triage labels
 
-The five canonical triage roles, each label string equal to its name. See
-[`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
+The five canonical roles as fenro labels, each paired with a status so only `ready-for-agent`
+tasks reach the ready queue. See [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See
 [`docs/agents/domain.md`](docs/agents/domain.md).
