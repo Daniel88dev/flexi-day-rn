@@ -7,6 +7,7 @@ import { ApprovalsCard } from "@/components/dashboard/approvals-card";
 import { BalanceCard } from "@/components/dashboard/balance-card";
 import { DashboardCalendar } from "@/components/dashboard/dashboard-calendar";
 import { DevelopmentCard } from "@/components/dashboard/development-card";
+import { GroupEventsProto, ProtoLayer } from "@/components/dashboard/group-events.prototype";
 import { EmptyDashboard } from "@/components/dashboard/empty-dashboard";
 import { Greeting } from "@/components/dashboard/greeting";
 import { LastSynced } from "@/components/dashboard/last-synced";
@@ -48,65 +49,70 @@ export default function DashboardScreen() {
   const noGroups = hasCursor && !standing.member;
 
   return (
-    <ScrollView
-      testID="dashboard"
-      className="flex-1 bg-background pt-safe"
-      contentContainerStyle={{ paddingBottom: 24 }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          tintColor={primary}
-          onRefresh={() => {
-            refresh();
-            rereadDashboard();
-          }}
-        />
-      }
-    >
-      <View className="gap-5 px-4 pt-3">
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1">
-            <Greeting viewer={viewer} />
+    <GroupEventsProto>
+      <View className="flex-1">
+        <ScrollView
+          testID="dashboard"
+          className="flex-1 bg-background pt-safe"
+          contentContainerStyle={{ paddingBottom: 24 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              tintColor={primary}
+              onRefresh={() => {
+                refresh();
+                rereadDashboard();
+              }}
+            />
+          }
+        >
+          <View className="gap-5 px-4 pt-3">
+            <View className="flex-row items-start justify-between gap-3">
+              <View className="flex-1">
+                <Greeting viewer={viewer} />
+              </View>
+              <View className="mt-1 flex-row items-center gap-2">
+                <NotificationBell />
+                <Pressable
+                  testID="dashboard-new-request"
+                  onPress={() => newRequest()}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.dashboard.newRequest}
+                  className="h-11 w-11 items-center justify-center rounded-full bg-primary active:opacity-90"
+                >
+                  <Icon icon={PlusIcon} tone="onPrimary" size={20} weight="bold" />
+                </Pressable>
+              </View>
+            </View>
+            <LastSynced />
+            <StatStrip
+              tiles={statTiles(summary, { approver: standing.approver })}
+              onViewRequests={openRequests}
+            />
+            {noGroups ? (
+              <NoGroupsCard />
+            ) : (
+              empty && (inFlight ? <SyncingDashboard /> : <EmptyDashboard />)
+            )}
           </View>
-          <View className="mt-1 flex-row items-center gap-2">
-            <NotificationBell />
-            <Pressable
-              testID="dashboard-new-request"
-              onPress={() => newRequest()}
-              accessibilityRole="button"
-              accessibilityLabel={t.dashboard.newRequest}
-              className="h-11 w-11 items-center justify-center rounded-full bg-primary active:opacity-90"
-            >
-              <Icon icon={PlusIcon} tone="onPrimary" size={20} weight="bold" />
-            </Pressable>
+          {empty || noGroups ? null : (
+            <View className="mt-5">
+              <DashboardCalendar
+                viewerId={viewer?.id ?? null}
+                onOpenRequest={openRequest}
+                onBook={newRequest}
+                onYear={setYear}
+              />
+            </View>
+          )}
+          <View className="mt-6 gap-4 px-4">
+            <ApprovalsCard approver={standing.approver} onOpen={openRequest} />
+            {standing.member ? <BalanceCard year={year} /> : null}
+            <DevelopmentCard />
           </View>
-        </View>
-        <LastSynced />
-        <StatStrip
-          tiles={statTiles(summary, { approver: standing.approver })}
-          onViewRequests={openRequests}
-        />
-        {noGroups ? (
-          <NoGroupsCard />
-        ) : (
-          empty && (inFlight ? <SyncingDashboard /> : <EmptyDashboard />)
-        )}
+        </ScrollView>
+        <ProtoLayer />
       </View>
-      {empty || noGroups ? null : (
-        <View className="mt-5">
-          <DashboardCalendar
-            viewerId={viewer?.id ?? null}
-            onOpenRequest={openRequest}
-            onBook={newRequest}
-            onYear={setYear}
-          />
-        </View>
-      )}
-      <View className="mt-6 gap-4 px-4">
-        <ApprovalsCard approver={standing.approver} onOpen={openRequest} />
-        {standing.member ? <BalanceCard year={year} /> : null}
-        <DevelopmentCard />
-      </View>
-    </ScrollView>
+    </GroupEventsProto>
   );
 }

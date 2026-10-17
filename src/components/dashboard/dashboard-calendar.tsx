@@ -12,6 +12,11 @@ import { ScopeRow } from "@/components/calendar/scope-row";
 import { StripeMonth, stripeMonthHeight } from "@/components/calendar/stripe-month";
 import { useMonthRanges } from "@/components/calendar/use-month-ranges";
 import { LEAVE_TYPE_ORDER } from "@/components/ui/leave-classes";
+import {
+  BAND_H,
+  ProtoAgenda,
+  useGroupEventsProto,
+} from "@/components/dashboard/group-events.prototype";
 import { openingDay } from "@/lib/calendar/day";
 import { monthWeeks } from "@/lib/calendar/month-grid";
 import { dashboardScope } from "@/lib/calendar/scope";
@@ -25,6 +30,7 @@ import { dayOfDate } from "@/lib/days";
 import { useMySettings } from "@/lib/query";
 import {
   currentMonth,
+  isoDay,
   monthOffset,
   monthsWithin,
   requestMonthBounds,
@@ -114,6 +120,9 @@ export function DashboardCalendar({
   const groups = useRequestScopeGroups();
   const { scope, groupId } = dashboardScope({ settings, scopeChoice, groupChoice, groups });
   const ranges = useMonthRanges(month, scope, filter);
+  const proto = useGroupEventsProto();
+  proto.closeDaySheet.current = () => setSheetDay(null);
+  const band = proto.variant === "B" ? BAND_H : 0;
 
   // A day picked on one month does not follow the calendar to another.
   const showMonth = (next: YearMonth) => {
@@ -171,9 +180,9 @@ export function DashboardCalendar({
         height={
           view === "stripes"
             ? stripeMonthHeight(monthWeeks(month).length)
-            : laneMonthHeight(monthWeeks(month).length)
+            : laneMonthHeight(monthWeeks(month).length) + monthWeeks(month).length * band
         }
-        extraData={[view, selectedDay, scope, filter, viewerId, today]}
+        extraData={[view, selectedDay, scope, filter, viewerId, today, proto]}
         renderMonth={(page) => (
           <MonthPage
             month={page}
@@ -192,6 +201,7 @@ export function DashboardCalendar({
       <View className="px-4">
         <Legend ranges={ranges} />
       </View>
+      <ProtoAgenda monthStart={isoDay(month, 1)} />
       {view === "stripes" ? (
         <DayCard
           day={selectedDay}

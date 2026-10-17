@@ -6,6 +6,11 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
+import {
+  ProtoDayPress,
+  StripeDayMark,
+  StripeWeekOverlay,
+} from "@/components/dashboard/group-events.prototype";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -104,13 +109,12 @@ export function StripeMonth({
               const holiday = holidays.has(column);
               const faded = fadesNumber({ inMonth, highlighted: isToday || isSelected });
               return (
-                <Pressable
+                <ProtoDayPress
                   key={iso}
+                  date={iso}
                   testID={inMonth ? `calendar-day-${iso}` : `calendar-adjacent-day-${iso}`}
                   onPress={() => onDay(iso)}
-                  accessibilityRole="button"
                   accessibilityLabel={dayLabel(iso)}
-                  accessibilityState={{ selected: isSelected }}
                   style={{ width: cellWidth }}
                   className="items-center pt-1"
                 >
@@ -153,10 +157,12 @@ export function StripeMonth({
                       {day}
                     </Text>
                   </View>
-                </Pressable>
+                  <StripeDayMark date={iso} />
+                </ProtoDayPress>
               );
             })}
             <MonthSeam week={week} cellWidth={cellWidth} />
+            <StripeWeekOverlay week={week} cellWidth={cellWidth} top={STRIPES_TOP - 5} />
             {stripes.map((placed) => {
               const inset = 5;
               const left = placed.startColumn * cellWidth + (placed.continuesLeft ? 0 : inset);

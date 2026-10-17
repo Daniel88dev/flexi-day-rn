@@ -7,6 +7,13 @@ import {
   monthShortName,
 } from "@/components/calendar/adjacent-days";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
+import {
+  BAND_H,
+  LaneDayMark,
+  LaneWeekOverlay,
+  ProtoDayPress,
+  useGroupEventsProto,
+} from "@/components/dashboard/group-events.prototype";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -121,11 +128,13 @@ function LaneBar({
 function BankPill({
   bar,
   cellWidth,
+  top,
   testID,
   onPress,
 }: {
   bar: PlacedBar;
   cellWidth: number;
+  top: number;
   testID: string;
   onPress: () => void;
 }) {
@@ -140,7 +149,7 @@ function BankPill({
         position: "absolute",
         left: bar.startColumn * cellWidth + 2,
         width: (bar.endColumn - bar.startColumn) * cellWidth - 4,
-        top: BARS_TOP,
+        top,
         height: BAR_H,
         borderStyle: "dashed",
       }}
@@ -167,6 +176,7 @@ export function LaneMonth({
   const { t } = useTranslation();
   const cellWidth = (width - CALENDAR_GUTTER * 2 - 2) / 7;
   const weeks = monthWeeks(month);
+  const band = useGroupEventsProto().variant === "B" ? BAND_H : 0;
 
   const labelOf = (range: CalendarRange) => {
     const name =
@@ -204,18 +214,18 @@ export function LaneMonth({
           return (
             <View
               key={week[0].date}
-              style={{ height: ROW_H }}
+              style={{ height: ROW_H + band }}
               className={cn("flex-row", weekIndex < weeks.length - 1 && "border-b border-border")}
             >
               {week.map(({ date, day, inMonth }, column) => {
                 const isToday = date === today;
                 const label = column === labelColumn ? monthShortName(t, date) : null;
                 return (
-                  <Pressable
+                  <ProtoDayPress
                     key={date}
+                    date={date}
                     testID={inMonth ? `calendar-day-${date}` : `calendar-adjacent-day-${date}`}
                     onPress={() => onDay(date)}
-                    accessibilityRole="button"
                     style={{ width: cellWidth }}
                     className={cn(
                       "px-1 pt-1.5 active:bg-muted",
@@ -253,11 +263,13 @@ export function LaneMonth({
                           {label}
                         </Text>
                       ) : null}
+                      <LaneDayMark date={date} />
                     </View>
-                  </Pressable>
+                  </ProtoDayPress>
                 );
               })}
               <MonthSeam week={week} cellWidth={cellWidth} />
+              <LaneWeekOverlay week={week} cellWidth={cellWidth} top={BARS_TOP} />
               {bank.map((bar) => {
                 const iso = week[bar.startColumn].date;
                 return (
@@ -265,6 +277,7 @@ export function LaneMonth({
                     key={bar.range.id}
                     bar={bar}
                     cellWidth={cellWidth}
+                    top={BARS_TOP + band}
                     testID={`calendar-holiday-${iso}`}
                     onPress={() => onMore(iso)}
                   />
@@ -275,7 +288,7 @@ export function LaneMonth({
                   key={bar.range.id}
                   bar={bar}
                   cellWidth={cellWidth}
-                  top={BARS_TOP + (bankRows + bar.lane) * (BAR_H + LANE_GAP)}
+                  top={BARS_TOP + band + (bankRows + bar.lane) * (BAR_H + LANE_GAP)}
                   label={labelOf(bar.range)}
                   onBar={onBar}
                 />

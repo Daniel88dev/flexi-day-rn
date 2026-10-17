@@ -1,7 +1,14 @@
 import { PlusIcon } from "phosphor-react-native";
+import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { PersonAvatar } from "@/components/calendar/person-avatar";
+import {
+  ProtoDayEvents,
+  ProtoDayTabs,
+  ProtoNewEventButton,
+  useGroupEventsProto,
+} from "@/components/dashboard/group-events.prototype";
 import { SendingBadge, StatusBadge } from "@/components/requests/badges";
 import { Icon } from "@/components/ui/icon";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
@@ -80,6 +87,8 @@ export function DayList({
   const labels = t.dashboard.calendar;
   const { weekday, date } = dayParts(day);
   const title = t.calendar.dayTitle(weekday, date);
+  const [tab, setTab] = useState<"away" | "events">("away");
+  const hideAway = useGroupEventsProto().variant === "B" && tab === "events";
 
   return (
     <View testID="day-list" className="shrink">
@@ -89,8 +98,10 @@ export function DayList({
           {entries.length === 0 ? labels.nobodyAway : labels.awayCount(entries.length)}
         </Text>
       </View>
+      <ProtoDayTabs day={day} tab={tab} onTab={setTab} away={entries.length} />
       <ScrollView className="shrink px-3">
-        {holidays.map((name) => (
+        <ProtoDayEvents day={day} tab={tab} />
+        {(hideAway ? [] : holidays).map((name) => (
           <View
             key={name}
             className="mb-1 flex-row items-center gap-3 overflow-hidden rounded-[16px] px-3 py-3"
@@ -100,7 +111,7 @@ export function DayList({
             <Text className="flex-1 text-[15px] font-semibold text-leave-bank">{name}</Text>
           </View>
         ))}
-        {entries.map((entry) => (
+        {(hideAway ? [] : entries).map((entry) => (
           <EntryRow key={entry.vacationId} entry={entry} viewerId={viewerId} onOpen={onOpen} />
         ))}
       </ScrollView>
@@ -116,6 +127,7 @@ export function DayList({
             {labels.book(title)}
           </Text>
         </Pressable>
+        <ProtoNewEventButton day={day} />
       </View>
     </View>
   );
