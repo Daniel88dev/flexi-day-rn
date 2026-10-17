@@ -1,19 +1,15 @@
 import * as Notifications from "expo-notifications";
 import { SQLiteStorage } from "expo-sqlite/kv-store";
 
+import { notificationBehavior } from "@/lib/push/payload";
+
 import { createReminderScheduler, type Notifier } from "./apply";
 import { createPermissionSource, type PermissionApi } from "./permission";
 import { createReminderPrefs } from "./prefs";
 
-// A reminder that fires while the app is open still shows, since the person may be in it
-// without having clocked.
+// expo-notifications keeps one handler, for clock reminders and pushes alike.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => notificationBehavior(notification),
 });
 
 const notifier: Notifier = {

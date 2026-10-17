@@ -855,9 +855,11 @@ export const cs: Dictionary = {
       title: "Mějte svůj den pod kontrolou",
       body: "Flexi Day vám může posílat oznámení do tohoto iPhonu.",
       requests: "Novinky o žádostech",
-      requestsBody: "Když je vaše volno schváleno, zamítnuto nebo okomentováno.",
+      requestsBody:
+        "Když je vaše volno schváleno, zamítnuto nebo okomentováno a když na vaše schválení čeká žádost.",
       reminders: "Připomínky docházky",
-      remindersBody: "Připomínka příchodu ve zvolený čas a odchodu, jakmile máte hotovo.",
+      remindersBody:
+        "Připomínka příchodu ve zvolený čas a odchodu, jakmile máte hotovo. A upozornění, když se docházka, kterou jste nechali otevřenou, uzavře za vás.",
       continue: "Pokračovat",
       notNow: "Teď ne",
     },

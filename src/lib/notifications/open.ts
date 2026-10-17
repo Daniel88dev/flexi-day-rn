@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 
+import type { PushPayload } from "@/lib/push/payload";
 import type { AppNotification } from "@/lib/query";
 
 import { notificationRoute, type NotificationRoute } from "./route";
@@ -32,5 +33,35 @@ export function openNotification(
   if (notification.readAt === null) markRead(notification.id);
   const route = notificationRoute(notification.href);
   if (route.kind !== "list") follow(route);
+  return route;
+}
+
+/**
+ * Where a push tap goes. Unlike the list's follower, it can land on any screen: a request stacks
+ * over whatever is open, My attendance is a tab of the shell so whatever covers the shell goes
+ * first, and a link the phone has no screen for opens the notification list.
+ */
+export function followPushRoute(route: NotificationRoute): void {
+  if (route.kind === "request") {
+    router.push(route.href);
+  } else if (route.kind === "attendance") {
+    if (router.canDismiss()) router.dismissAll();
+    router.navigate(route.href);
+  } else {
+    router.navigate("/notifications");
+  }
+}
+
+/** A tap on a push: the notification it names is marked read, then its link is followed. */
+export function openPushTap(
+  push: PushPayload,
+  {
+    markRead,
+    follow = followPushRoute,
+  }: { markRead: (id: string) => void; follow?: (route: NotificationRoute) => void }
+): NotificationRoute {
+  if (push.notificationId) markRead(push.notificationId);
+  const route = notificationRoute(push.href);
+  follow(route);
   return route;
 }

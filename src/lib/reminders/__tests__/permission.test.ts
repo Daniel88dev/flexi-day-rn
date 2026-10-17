@@ -45,6 +45,18 @@ describe("createPermissionSource", () => {
     expect(source.read()).toBe("denied");
   });
 
+  it("tells answer listeners every answer, an unchanged one included", async () => {
+    const source = createPermissionSource(api("granted"));
+    const onAnswer = jest.fn();
+    source.onAnswer(onAnswer);
+
+    await source.refresh();
+    await source.refresh();
+    await source.request();
+
+    expect(onAnswer.mock.calls).toEqual([["granted"], ["granted"], ["granted"]]);
+  });
+
   it("keeps the last answer when iOS cannot be read", async () => {
     jest.spyOn(console, "warn").mockImplementation(() => undefined);
     const fake = api("granted");

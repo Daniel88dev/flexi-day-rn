@@ -46,10 +46,12 @@ function wrapper({ children }: { children: ReactNode }) {
 
 async function renderFlow(flow: TwoFactorFlow, auth = fakeAuth()) {
   const refreshSession = jest.fn(async () => undefined);
-  const hook = await renderHook(() => useTwoFactorFlow(flow, { auth, refreshSession }), {
-    wrapper,
-  });
-  return { ...hook, auth, refreshSession };
+  const resyncPush = jest.fn(async () => undefined);
+  const hook = await renderHook(
+    () => useTwoFactorFlow(flow, { auth, refreshSession, resyncPush }),
+    { wrapper }
+  );
+  return { ...hook, auth, refreshSession, resyncPush };
 }
 
 type Flow = { current: ReturnType<typeof useTwoFactorFlow> };
@@ -147,6 +149,29 @@ describe("useTwoFactorFlow", () => {
     expect(auth.disable).toHaveBeenCalledWith({ password: "my password" });
     expect(refreshSession).toHaveBeenCalledTimes(1);
     expect(result.current.state.step).toBe("done");
+  });
+
+  it("registers for push again once the session disable swapped is read back", async () => {
+    const { result, refreshSession, resyncPush } = await renderFlow("disable");
+
+    await enterPassword(result);
+
+    expect(resyncPush).toHaveBeenCalledTimes(1);
+    expect(refreshSession.mock.invocationCallOrder[0]).toBeLessThan(
+      resyncPush.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("registers for push again once the session enable-verify swapped is read back", async () => {
+    const { result, resyncPush } = await renderFlow("enable");
+
+    await enterPassword(result);
+    await run(result, (flow) => flow.saveCodes());
+    await run(result, (flow) => flow.chooseAuthenticator());
+    expect(resyncPush).not.toHaveBeenCalled();
+    await run(result, (flow) => flow.verify("123456"));
+
+    expect(resyncPush).toHaveBeenCalledTimes(1);
   });
 
   it("reads the session back after a 5xx from disable, which may have swapped it already", async () => {

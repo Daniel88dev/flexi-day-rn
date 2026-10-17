@@ -72,6 +72,11 @@ jest.mock("@/components/reminders/clock-reminders", () => {
   const React = jest.requireActual("react");
   return { ClockReminders: () => React.createElement(View, { testID: "clock-reminders" }) };
 });
+jest.mock("@/components/push/push-client", () => {
+  const { View } = jest.requireActual("react-native");
+  const React = jest.requireActual("react");
+  return { PushClient: () => React.createElement(View, { testID: "push-client" }) };
+});
 
 jest.mock("expo-network", () => ({
   addNetworkStateListener: () => ({ remove: () => undefined }),
@@ -171,6 +176,12 @@ describe("AppLayout", () => {
     await renderShell("signed-in");
 
     expect(await screen.findByTestId("clock-reminders")).toBeTruthy();
+  });
+
+  it("mounts the push client once the Local store is open", async () => {
+    await renderShell("signed-in");
+
+    expect(await screen.findByTestId("push-client")).toBeTruthy();
   });
 
   it("gives every tab bar button a testID named after its link", async () => {

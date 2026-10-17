@@ -836,10 +836,11 @@ export const en = {
       title: "Stay on top of your day",
       body: "Flexi Day can send notifications to this iPhone.",
       requests: "Request updates",
-      requestsBody: "When your time off is approved, declined or commented on.",
+      requestsBody:
+        "When your time off is approved, declined or commented on, and when a request waits for your approval.",
       reminders: "Clock reminders",
       remindersBody:
-        "A nudge to clock in at a time you pick, and to clock out once your day is done.",
+        "A nudge to clock in at a time you pick, and to clock out once your day is done. A notice too when a session you left open is closed for you.",
       continue: "Continue",
       notNow: "Not now",
     },

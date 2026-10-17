@@ -36,4 +36,9 @@ module.exports = {
   }),
   useLastNotificationResponse: jest.fn(() => null),
   clearLastNotificationResponse: jest.fn(),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getDevicePushTokenAsync: jest.fn(async () => ({ type: "ios", data: "ab".repeat(32) })),
+  unregisterForNotificationsAsync: jest.fn(async () => {}),
+  setBadgeCountAsync: jest.fn(async () => true),
+  dismissAllNotificationsAsync: jest.fn(async () => {}),
 };

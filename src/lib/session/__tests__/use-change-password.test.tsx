@@ -41,8 +41,11 @@ async function renderForm(answer: ChangePasswordAnswer | Error = { data: { token
     return answer;
   });
   const refreshSession = jest.fn(async () => undefined);
-  const hook = await renderHook(() => useChangePassword({ change, refreshSession }), { wrapper });
-  return { ...hook, change, refreshSession };
+  const resyncPush = jest.fn(async () => undefined);
+  const hook = await renderHook(() => useChangePassword({ change, refreshSession, resyncPush }), {
+    wrapper,
+  });
+  return { ...hook, change, refreshSession, resyncPush };
 }
 
 type Form = ReturnType<typeof useChangePassword>;
@@ -81,6 +84,18 @@ describe("useChangePassword", () => {
       "",
       "",
     ]);
+  });
+
+  it("registers for push again once the swapped session is read back", async () => {
+    const { result, refreshSession, resyncPush } = await renderForm();
+
+    await fillIn(result.current, "old password", "new password");
+    await submit(result);
+
+    expect(resyncPush).toHaveBeenCalledTimes(1);
+    expect(refreshSession.mock.invocationCallOrder[0]).toBeLessThan(
+      resyncPush.mock.invocationCallOrder[0]
+    );
   });
 
   it("returns canSubmit false until all three fields are filled in", async () => {
@@ -152,7 +167,7 @@ describe("useChangePassword", () => {
   });
 
   it("reads the session back after a 5xx too, since the password may have changed before it", async () => {
-    const { result, refreshSession } = await renderForm({
+    const { result, refreshSession, resyncPush } = await renderForm({
       error: { status: 500, message: "Failed to get session" },
     });
 
@@ -160,6 +175,7 @@ describe("useChangePassword", () => {
     await submit(result);
 
     expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(resyncPush).toHaveBeenCalledTimes(1);
     expect(result.current.errors).toEqual({ form: "Failed to get session" });
     expect(result.current.changed).toBe(false);
   });
