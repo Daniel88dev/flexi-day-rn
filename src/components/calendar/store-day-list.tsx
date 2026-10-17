@@ -2,8 +2,10 @@ import { useMemo } from "react";
 
 import { DayList } from "@/components/calendar/day-list";
 import { dayEntries, dayWindow } from "@/lib/calendar/day";
+import { addDays } from "@/lib/days";
 import {
   useCalendarBankHolidays,
+  useCalendarBirthdays,
   useCalendarVacations,
   type CalendarRecordType,
   type RequestListScope,
@@ -15,6 +17,7 @@ export type StoreDayListProps = {
   viewerId: string | null;
   onOpen?: (vacationId: string) => void;
   onBook: (day: string) => void;
+  onSettings?: () => void;
 };
 
 /** The day list over the Local store's rows for the scope and filter the calendar shows. */
@@ -25,10 +28,12 @@ export function StoreDayList({
   viewerId,
   onOpen,
   onBook,
+  onSettings,
 }: StoreDayListProps & { day: string }) {
   const range = dayWindow(day);
   const rows = useCalendarVacations({ range, scope });
   const holidays = useCalendarBankHolidays({ range, scope });
+  const birthdays = useCalendarBirthdays({ range: { from: day, until: addDays(day, 1) }, scope });
 
   const entries = useMemo(
     () =>
@@ -48,9 +53,11 @@ export function StoreDayList({
       day={day}
       entries={entries}
       holidays={[...new Set(names)]}
+      birthdays={birthdays}
       viewerId={viewerId}
       onOpen={onOpen}
       onBook={onBook}
+      onSettings={onSettings}
     />
   );
 }

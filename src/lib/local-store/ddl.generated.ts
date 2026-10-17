@@ -3,6 +3,8 @@
 export const STORE_DDL: readonly string[] = [
   "CREATE TABLE `bankHolidays` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`date` text NOT NULL,\n\t`name` text NOT NULL,\n\t`country` text NOT NULL,\n\t`region` text,\n\t`createdAt` text NOT NULL,\n\t`updatedAt` text NOT NULL,\n\t`generation` integer DEFAULT 0 NOT NULL\n);",
   "CREATE INDEX `bankHolidays_country_date_idx` ON `bankHolidays` (`country`,`date`);",
+  "CREATE TABLE `birthdays` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`userId` text NOT NULL,\n\t`month` integer,\n\t`day` integer,\n\t`year` integer,\n\t`shared` integer NOT NULL,\n\t`deletedAt` text,\n\t`createdAt` text NOT NULL,\n\t`updatedAt` text NOT NULL,\n\t`generation` integer DEFAULT 0 NOT NULL\n);",
+  "CREATE INDEX `birthdays_month_day_idx` ON `birthdays` (`month`,`day`);",
   "CREATE TABLE `groupMirrors` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`userId` text NOT NULL,\n\t`sourceGroupId` text NOT NULL,\n\t`targetGroupId` text NOT NULL,\n\t`organizationId` text NOT NULL,\n\t`deletedAt` text,\n\t`createdAt` text NOT NULL,\n\t`updatedAt` text NOT NULL,\n\t`generation` integer DEFAULT 0 NOT NULL\n);",
   "CREATE INDEX `groupMirrors_organizationId_idx` ON `groupMirrors` (`organizationId`);",
   "CREATE TABLE `groupUsers` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`groupId` text NOT NULL,\n\t`organizationId` text NOT NULL,\n\t`userId` text NOT NULL,\n\t`viewAccess` integer NOT NULL,\n\t`adminAccess` integer NOT NULL,\n\t`approverAccess` integer NOT NULL,\n\t`controlledUser` integer NOT NULL,\n\t`deletedAt` text,\n\t`createdAt` text NOT NULL,\n\t`updatedAt` text NOT NULL,\n\t`generation` integer DEFAULT 0 NOT NULL\n);",

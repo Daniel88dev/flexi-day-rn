@@ -218,6 +218,7 @@ describe("schema", () => {
     expect(indexes.sort()).toEqual(
       [
         "bankHolidays_country_date_idx",
+        "birthdays_month_day_idx",
         "groupMirrors_organizationId_idx",
         "groupUsers_groupId_idx",
         "groupUsers_organizationId_idx",

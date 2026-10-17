@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react-native
 
 import { LaneMonth } from "@/components/calendar/lane-month";
 import { TranslationProvider } from "@/i18n/use-translation";
+import type { DayMarks } from "@/lib/calendar/day-mark";
 import type { CalendarRange } from "@/lib/calendar/lanes";
 import { isoDay } from "@/lib/requests/months";
 
@@ -25,7 +26,12 @@ function bar(id: string, from: number, to: number, patch: Partial<CalendarRange>
   } satisfies CalendarRange;
 }
 
-async function renderMonth(ranges: CalendarRange[], width = 390, month = OCTOBER) {
+async function renderMonth(
+  ranges: CalendarRange[],
+  width = 390,
+  month = OCTOBER,
+  marks?: DayMarks
+) {
   const handlers = { onDay: jest.fn(), onBar: jest.fn(), onMore: jest.fn() };
   await render(
     <TranslationProvider>
@@ -35,6 +41,7 @@ async function renderMonth(ranges: CalendarRange[], width = 390, month = OCTOBER
         width={width}
         viewerId={VIEWER}
         today="2026-10-14"
+        marks={marks}
         {...handlers}
       />
     </TranslationProvider>
@@ -43,6 +50,41 @@ async function renderMonth(ranges: CalendarRange[], width = 390, month = OCTOBER
 }
 
 describe("LaneMonth", () => {
+  it("draws a cake right of the day number on a day with a birthday, and nothing elsewhere", async () => {
+    await renderMonth([], 402, OCTOBER, new Map([["2026-10-20", { birthdays: 2, events: 0 }]]));
+
+    const day = screen.getByTestId("calendar-day-2026-10-20");
+    expect(within(day).getByTestId("calendar-mark-2026-10-20-cake")).toBeOnTheScreen();
+    expect(within(day).queryByTestId("calendar-mark-2026-10-20-dot")).toBeNull();
+    expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+  });
+
+  it("caps a busy day at the cake and one dot in a 52 pt cell, and counts the events with room", async () => {
+    await renderMonth(
+      [],
+      402,
+      OCTOBER,
+      new Map([
+        ["2026-10-20", { birthdays: 1, events: 3 }],
+        ["2026-10-21", { birthdays: 0, events: 3 }],
+      ])
+    );
+
+    const busy = screen.getByTestId("calendar-mark-2026-10-20");
+    expect(within(busy).getByTestId("calendar-mark-2026-10-20-cake")).toBeOnTheScreen();
+    expect(within(busy).getByTestId("calendar-mark-2026-10-20-dot")).toBeOnTheScreen();
+    expect(busy).toHaveTextContent("", { exact: true });
+    expect(screen.getByTestId("calendar-mark-2026-10-21")).toHaveTextContent("3");
+  });
+
+  it("gives the month label's place to a day's mark", async () => {
+    await renderMonth([], 402, OCTOBER, new Map([["2026-09-28", { birthdays: 1, events: 0 }]]));
+
+    const first = screen.getByTestId("calendar-adjacent-day-2026-09-28");
+    expect(first).toHaveTextContent("28", { exact: true });
+    expect(within(first).getByTestId("calendar-mark-2026-09-28-cake")).toBeOnTheScreen();
+  });
+
   it("renders a cell for every day of the month, Monday first", async () => {
     await renderMonth([]);
 

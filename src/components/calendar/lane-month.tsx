@@ -6,11 +6,13 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
+import { DayMark } from "@/components/calendar/day-mark";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
+import { laneMarkRoom, type DayMarks } from "@/lib/calendar/day-mark";
 import { placeWeek, type CalendarRange, type PlacedBar } from "@/lib/calendar/lanes";
 import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { cn } from "@/lib/cn";
@@ -37,6 +39,8 @@ type LaneMonthProps = {
   width: number;
   viewerId: string | null;
   today: string;
+  /** Birthdays and group events per day; they take no lanes. */
+  marks?: DayMarks;
   onDay: (day: string) => void;
   onBar?: (vacationId: string) => void;
   onMore: (day: string) => void;
@@ -160,6 +164,7 @@ export function LaneMonth({
   width,
   viewerId,
   today,
+  marks,
   onDay,
   onBar,
   onMore,
@@ -209,7 +214,9 @@ export function LaneMonth({
             >
               {week.map(({ date, day, inMonth }, column) => {
                 const isToday = date === today;
-                const label = column === labelColumn ? monthShortName(t, date) : null;
+                const mark = marks?.get(date);
+                // A 52 pt cell holds the day number and either the month label or the mark.
+                const label = column === labelColumn && !mark ? monthShortName(t, date) : null;
                 return (
                   <Pressable
                     key={date}
@@ -252,6 +259,14 @@ export function LaneMonth({
                         <Text className="text-[9.5px] font-bold text-muted-foreground uppercase">
                           {label}
                         </Text>
+                      ) : null}
+                      {mark ? (
+                        <DayMark
+                          date={date}
+                          counts={mark}
+                          room={laneMarkRoom(cellWidth)}
+                          size="lane"
+                        />
                       ) : null}
                     </View>
                   </Pressable>

@@ -1,6 +1,7 @@
-import { PlusIcon } from "phosphor-react-native";
+import { CakeIcon, CaretRightIcon, PlusIcon } from "phosphor-react-native";
 import { Pressable, ScrollView, View } from "react-native";
 
+import { BIRTHDAY_PINK } from "@/components/calendar/day-mark";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { SendingBadge, StatusBadge } from "@/components/requests/badges";
 import { Icon } from "@/components/ui/icon";
@@ -9,7 +10,9 @@ import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts, type DayEntry } from "@/lib/calendar/day";
 import { cn } from "@/lib/cn";
+import type { CalendarBirthday } from "@/lib/local-store";
 import { runDatesLabel } from "@/lib/requests/format";
+import { firstName } from "@/lib/viewer/viewer";
 
 function EntryRow({
   entry,
@@ -60,21 +63,78 @@ function EntryRow({
   );
 }
 
+function BirthdayRow({
+  birthday,
+  onSettings,
+}: {
+  birthday: CalendarBirthday;
+  onSettings?: () => void;
+}) {
+  const { t } = useTranslation();
+  const labels = t.dashboard.calendar;
+  const name = firstName(birthday.userName ?? undefined, "?");
+  const label = birthday.own
+    ? birthday.age === null
+      ? labels.yourBirthday
+      : labels.yourBirthdayAge(birthday.age)
+    : birthday.age === null
+      ? labels.namesBirthday(name)
+      : labels.nameTurns(name, birthday.age);
+  const opensSettings = birthday.own && onSettings !== undefined;
+
+  return (
+    <Pressable
+      testID={`day-list-birthday-${birthday.userId}`}
+      onPress={opensSettings ? onSettings : undefined}
+      disabled={!opensSettings}
+      accessibilityRole={opensSettings ? "link" : "text"}
+      accessibilityLabel={label}
+      className="mb-1 flex-row items-center gap-3 overflow-hidden rounded-[16px] px-3 py-2.5 active:opacity-80"
+    >
+      <View
+        className="absolute inset-0"
+        style={{ backgroundColor: BIRTHDAY_PINK, opacity: 0.12 }}
+      />
+      <CakeIcon size={18} color={BIRTHDAY_PINK} weight="fill" />
+      <Text
+        className="flex-1 text-[15px] font-semibold"
+        style={{ color: BIRTHDAY_PINK }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      {opensSettings ? (
+        <View className="flex-row items-center gap-0.5">
+          <Text className="text-[12px] text-faint">{labels.birthdaySettings}</Text>
+          <Icon icon={CaretRightIcon} tone="faint" size={12} />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+const NO_BIRTHDAYS: readonly CalendarBirthday[] = [];
+
 /** The lanes calendar shows this list in a sheet; the stripes calendar shows it inline. */
 export function DayList({
   day,
   entries,
   holidays,
+  birthdays = NO_BIRTHDAYS,
   viewerId,
   onOpen,
   onBook,
+  onSettings,
 }: {
   day: string;
   entries: readonly DayEntry[];
   holidays: readonly string[];
+  birthdays?: readonly CalendarBirthday[];
   viewerId: string | null;
   onOpen?: (vacationId: string) => void;
   onBook: (day: string) => void;
+  /** Opens Settings from the viewer's own birthday. */
+  onSettings?: () => void;
 }) {
   const { t } = useTranslation();
   const labels = t.dashboard.calendar;
@@ -90,6 +150,9 @@ export function DayList({
         </Text>
       </View>
       <ScrollView className="shrink px-3">
+        {birthdays.map((birthday) => (
+          <BirthdayRow key={birthday.userId} birthday={birthday} onSettings={onSettings} />
+        ))}
         {holidays.map((name) => (
           <View
             key={name}

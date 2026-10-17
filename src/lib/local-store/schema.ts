@@ -176,6 +176,27 @@ export const vacations = sqliteTable(
   ]
 );
 
+/**
+ * Keyed by its owner: the pull sends `id` = `userId`. A birthday the viewer may no longer see
+ * arrives as a tombstone, so a row here is one the viewer saw at the last pull.
+ */
+export const birthdays = sqliteTable(
+  "birthdays",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    month: integer("month"),
+    day: integer("day"),
+    year: integer("year"),
+    shared: integer("shared", { mode: "boolean" }).notNull(),
+    deletedAt: text("deletedAt"),
+    createdAt: text("createdAt").notNull(),
+    updatedAt: text("updatedAt").notNull(),
+    generation: generation(),
+  },
+  (table) => [index("birthdays_month_day_idx").on(table.month, table.day)]
+);
+
 /** Store-internal, never part of a pull: the one row that says whose store this is and where it stopped. */
 export const syncState = sqliteTable(
   "syncState",
@@ -198,6 +219,7 @@ export const schema = {
   userYearQuotas,
   bankHolidays,
   vacations,
+  birthdays,
   syncState,
 };
 

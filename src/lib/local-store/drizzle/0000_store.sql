@@ -10,6 +10,20 @@ CREATE TABLE `bankHolidays` (
 );
 --> statement-breakpoint
 CREATE INDEX `bankHolidays_country_date_idx` ON `bankHolidays` (`country`,`date`);--> statement-breakpoint
+CREATE TABLE `birthdays` (
+	`id` text PRIMARY KEY NOT NULL,
+	`userId` text NOT NULL,
+	`month` integer,
+	`day` integer,
+	`year` integer,
+	`shared` integer NOT NULL,
+	`deletedAt` text,
+	`createdAt` text NOT NULL,
+	`updatedAt` text NOT NULL,
+	`generation` integer DEFAULT 0 NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX `birthdays_month_day_idx` ON `birthdays` (`month`,`day`);--> statement-breakpoint
 CREATE TABLE `groupMirrors` (
 	`id` text PRIMARY KEY NOT NULL,
 	`userId` text NOT NULL,

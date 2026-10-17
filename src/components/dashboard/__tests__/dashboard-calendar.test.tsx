@@ -8,6 +8,7 @@ import type { SyncEnvelope } from "@/lib/local-store/envelope";
 import type { StoreRuntime } from "@/lib/local-store/runtime";
 import {
   bankHolidayRow,
+  birthdayRow,
   groupRow,
   groupUserRow,
   syncPage,
@@ -107,7 +108,12 @@ afterEach(async () => {
 });
 
 async function renderCalendar({ withOpen = true } = {}) {
-  const handlers = { onOpenRequest: jest.fn(), onBook: jest.fn(), onYear: jest.fn() };
+  const handlers = {
+    onOpenRequest: jest.fn(),
+    onBook: jest.fn(),
+    onYear: jest.fn(),
+    onSettings: jest.fn(),
+  };
   await render(
     <TranslationProvider>
       <DashboardCalendar
@@ -115,6 +121,7 @@ async function renderCalendar({ withOpen = true } = {}) {
         onOpenRequest={withOpen ? handlers.onOpenRequest : undefined}
         onBook={handlers.onBook}
         onYear={handlers.onYear}
+        onSettings={handlers.onSettings}
       />
     </TranslationProvider>
   );
@@ -233,6 +240,55 @@ describe("DashboardCalendar", () => {
     expect(onBook).toHaveBeenCalledWith("2026-10-14");
     // The form opens as a sheet of its own, so the day list goes first.
     expect(screen.queryByTestId("day-list")).toBeNull();
+  });
+
+  describe("with birthdays pulled", () => {
+    beforeEach(() =>
+      pullIn({
+        birthdays: [
+          birthdayRow({ userId: VIEWER, month: 10, day: 20, year: 1988 }),
+          birthdayRow({ userId: "eva", month: 10, day: 20, year: 1992, shared: true }),
+          birthdayRow({ userId: "tom", month: 10, day: 21, year: null, shared: true }),
+        ],
+      })
+    );
+
+    it("marks only the viewer's own birthday in Mine", async () => {
+      await renderCalendar();
+
+      expect(screen.getByTestId("calendar-mark-2026-10-20-cake")).toBeOnTheScreen();
+      expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+    });
+
+    it("lists a birthday only on its own day", async () => {
+      await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-21"));
+
+      expect(await screen.findByTestId("day-list")).toHaveTextContent(/Wed 21 Oct/);
+      expect(screen.queryByTestId("day-list-birthday-me")).toBeNull();
+    });
+
+    it("lists the group's shared birthdays in the day list and keeps both lanes", async () => {
+      answerSettings({ dashboardScope: "GROUP", dashboardGroupId: "g-design" });
+      await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-20"));
+
+      expect(await screen.findByTestId("day-list-birthday-eva")).toHaveTextContent("Eva turns 34");
+      expect(screen.getByTestId("day-list-birthday-me")).toHaveTextContent(/Your birthday · 38/);
+      expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+    });
+
+    it("closes the day list and opens Settings from the viewer's own birthday", async () => {
+      const { onSettings } = await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-20"));
+      await fireEvent.press(await screen.findByTestId("day-list-birthday-me"));
+
+      expect(onSettings).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId("day-list")).toBeNull();
+    });
   });
 
   it("closes the day list and opens the request from a tapped row", async () => {

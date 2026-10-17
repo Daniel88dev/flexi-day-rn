@@ -27,6 +27,7 @@ export const qk = {
   notifications: (unreadOnly: boolean) => ["notifications", unreadOnly] as const,
   allNotifications: () => ["notifications"] as const,
   mySettings: () => ["my-settings"] as const,
+  myBirthday: () => ["my-birthday"] as const,
   /** The web keeps this one in `lib/auth/use-linked-accounts.ts`, outside its `qk`. */
   authAccounts: () => ["auth", "accounts"] as const,
   /** Not on the web yet: its Delete account card (T-128) should read under the same key. */

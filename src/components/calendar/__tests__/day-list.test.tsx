@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { DayList } from "@/components/calendar/day-list";
 import { TranslationProvider } from "@/i18n/use-translation";
 import type { DayEntry } from "@/lib/calendar/day";
+import type { CalendarBirthday } from "@/lib/local-store";
 
 const ENTRY: DayEntry = {
   vacationId: "v-eva",
@@ -16,15 +17,35 @@ const ENTRY: DayEntry = {
   pending: false,
 };
 
-async function renderList(entries: DayEntry[], holidays: string[] = []) {
-  const handlers = { onOpen: jest.fn(), onBook: jest.fn() };
+async function renderList(
+  entries: DayEntry[],
+  holidays: string[] = [],
+  birthdays: CalendarBirthday[] = []
+) {
+  const handlers = { onOpen: jest.fn(), onBook: jest.fn(), onSettings: jest.fn() };
   await render(
     <TranslationProvider>
-      <DayList day="2026-10-14" entries={entries} holidays={holidays} viewerId="me" {...handlers} />
+      <DayList
+        day="2026-10-14"
+        entries={entries}
+        holidays={holidays}
+        birthdays={birthdays}
+        viewerId="me"
+        {...handlers}
+      />
     </TranslationProvider>
   );
   return handlers;
 }
+
+const birthday = (patch: Partial<CalendarBirthday>): CalendarBirthday => ({
+  userId: "petra",
+  userName: "Petra Svoboda",
+  date: "2026-10-14",
+  age: 34,
+  own: false,
+  ...patch,
+});
 
 describe("DayList", () => {
   it("renders each person with their type, half day, span and a pending badge", async () => {
@@ -44,6 +65,37 @@ describe("DayList", () => {
     expect(row).toHaveTextContent(/You/);
     expect(row).not.toHaveTextContent(/Eva Novak/);
     expect(screen.getByText("Statehood")).toBeOnTheScreen();
+  });
+
+  it("renders the day's birthdays by first name, with the age turned that day", async () => {
+    await renderList(
+      [ENTRY],
+      [],
+      [
+        birthday({}),
+        birthday({ userId: "tomas", userName: "Tomáš Dvořák", age: null }),
+        birthday({ userId: "me", userName: "Dana Holt", age: 38, own: true }),
+      ]
+    );
+
+    expect(screen.getByTestId("day-list-birthday-petra")).toHaveTextContent("Petra turns 34");
+    expect(screen.getByTestId("day-list-birthday-tomas")).toHaveTextContent("Tomáš's birthday");
+    expect(screen.getByTestId("day-list-birthday-me")).toHaveTextContent(/Your birthday · 38/);
+    expect(screen.getByText("1 away or remote")).toBeOnTheScreen();
+  });
+
+  it("opens Settings from the viewer's own birthday, and from nobody else's", async () => {
+    const { onSettings } = await renderList(
+      [],
+      [],
+      [birthday({}), birthday({ userId: "me", userName: "Dana Holt", age: null, own: true })]
+    );
+
+    expect(screen.getByTestId("day-list-birthday-me")).toHaveTextContent(/^Your birthday/);
+    await fireEvent.press(screen.getByTestId("day-list-birthday-petra"));
+    expect(onSettings).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByTestId("day-list-birthday-me"));
+    expect(onSettings).toHaveBeenCalledTimes(1);
   });
 
   it("renders Nobody is away and still offers to book the day", async () => {

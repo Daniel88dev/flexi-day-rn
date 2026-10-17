@@ -6,10 +6,12 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
+import { DayMark } from "@/components/calendar/day-mark";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
+import { stripeMarkRoom, type DayMarks } from "@/lib/calendar/day-mark";
 import type { CalendarRange } from "@/lib/calendar/lanes";
 import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { placeStripeWeek } from "@/lib/calendar/stripes";
@@ -35,6 +37,7 @@ export function StripeMonth({
   viewerId,
   today,
   selected,
+  marks,
   onDay,
 }: {
   month: YearMonth;
@@ -43,6 +46,8 @@ export function StripeMonth({
   viewerId: string | null;
   today: string;
   selected: string;
+  /** Birthdays and group events per day, marked in the cell's corner. */
+  marks?: DayMarks;
   onDay: (day: string) => void;
 }) {
   const { t } = useTranslation();
@@ -59,11 +64,13 @@ export function StripeMonth({
     const holidays = ranges
       .filter((range) => range.type === "BANK_HOLIDAY" && range.from <= iso && range.to >= iso)
       .flatMap((range) => range.names);
+    const birthdays = marks?.get(iso)?.birthdays ?? 0;
     return [
       iso === today ? t.calendar.today : null,
       t.calendar.dayTitle(weekday, date),
       ...holidays,
       away > 0 ? t.dashboard.calendar.awayCount(away) : null,
+      birthdays > 0 ? t.dashboard.calendar.birthdayCount(birthdays) : null,
     ]
       .filter(Boolean)
       .join(", ");
@@ -103,6 +110,7 @@ export function StripeMonth({
               const isSelected = iso === selected;
               const holiday = holidays.has(column);
               const faded = fadesNumber({ inMonth, highlighted: isToday || isSelected });
+              const mark = marks?.get(iso);
               return (
                 <Pressable
                   key={iso}
@@ -153,6 +161,14 @@ export function StripeMonth({
                       {day}
                     </Text>
                   </View>
+                  {mark ? (
+                    <DayMark
+                      date={iso}
+                      counts={mark}
+                      room={stripeMarkRoom(cellWidth)}
+                      size="stripe"
+                    />
+                  ) : null}
                 </Pressable>
               );
             })}
