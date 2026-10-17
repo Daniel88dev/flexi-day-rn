@@ -1,6 +1,7 @@
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { act, renderHook } from "@testing-library/react-native";
 import { router } from "expo-router";
+import * as Notifications from "expo-notifications";
 import type { ReactNode } from "react";
 
 import { destroyStore } from "@/lib/local-store";
@@ -222,6 +223,27 @@ describe("signedOutWipe", () => {
       clockIn: { enabled: false, time: "08:00", weekdays: null },
       clockOut: { enabled: true },
     });
+  });
+
+  it("unregisters from push and clears the badge and the delivered notices", async () => {
+    await wipe();
+
+    expect(Notifications.unregisterForNotificationsAsync).toHaveBeenCalledTimes(1);
+    expect(Notifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
+    expect(Notifications.dismissAllNotificationsAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("lands on welcome even when the phone will not unregister from push", async () => {
+    const error = jest.spyOn(console, "error").mockImplementation(() => {});
+    const letGoOfPush = jest.fn().mockRejectedValue(new Error("no APNs"));
+
+    await wipe({ letGoOfPush });
+
+    expect(letGoOfPush).toHaveBeenCalledTimes(1);
+    expect(destroyLocalStore).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledWith("/welcome");
+    expect(error).toHaveBeenCalled();
+    error.mockRestore();
   });
 
   it("lands on welcome even when the Keychain refuses to answer", async () => {

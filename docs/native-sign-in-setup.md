@@ -65,8 +65,7 @@ The `.p8` key, the only secret, stayed with the user throughout.
 Steps you get one shot at:
 
 - The Apple `.p8` key downloads once. Section 3.3.
-- The first `eas build` after the capability must run interactively, and it also turns Push
-  Notifications off on the App ID unless told not to. Section 5.2.
+- The first `eas build` after the capability must run interactively. Section 5.2.
 
 Everything else can be re-read from a portal later.
 
@@ -410,10 +409,9 @@ invalid after section 3.1, and offers to replace it. `--non-interactive` neither
 nor replaces the profile, so a CI-style build fails until this one has run. `eas credentials -p ios`
 shows the profile and can remove it beforehand, which makes the build create a fresh one.
 
-The sync runs both ways. `plugins/without-push-entitlement.js` strips `aps-environment`, so this
-build also turns Push Notifications **off** on the App ID, unless it runs with
-`EXPO_NO_CAPABILITY_SYNC=1`, which skips the sync. Expected until the push client keeps the
-entitlement. [`releasing.md`](releasing.md) has the entitlement check for the built `.ipa`.
+The sync runs both ways, so it also turns off any capability the entitlements lack. Push
+Notifications was one until the push client kept `aps-environment`; "Push notifications" in
+[`releasing.md`](releasing.md) has its own first build and the entitlement check for the `.ipa`.
 
 ## 6. Local development
 
@@ -492,7 +490,7 @@ sign-in that the table below does not explain starts there.
 | Connect Apple from Settings fails with `EMAIL_DOES_NOT_MATCH` or `LINKING_DIFFERENT_EMAILS_NOT_ALLOWED`  | The user hid their email, so Apple reports a relay address that never equals the account's | Known consequence of the no-different-emails rule; the web shows a message of its own                   |
 | No mail reaches a `privaterelay.appleid.com` address                                                     | Email sources not registered, or the source fails Apple's check                            | Section 3.4; DKIM on `flexi-day.com` is what passes, SPF cannot                                         |
 | `eas build --non-interactive` fails on the profile after 3.1                                             | A capability change invalidated the App Store profile                                      | Run one interactive build (5.2)                                                                         |
-| Push Notifications turned off on the App ID after a build                                                | Capability sync mirrors the entitlements, and the push entitlement is stripped             | Expected until the push client lands; `EXPO_NO_CAPABILITY_SYNC=1` skips the sync                        |
+| Push Notifications turned off on the App ID after a build                                                | The build ran from a commit that still stripped `aps-environment`                          | Build from a commit with the push client, interactively once ("Push notifications" in `releasing.md`)   |
 | Microsoft sign-in blocked in a customer tenant                                                           | Conditional access requiring an approved app or app protection policy                      | Known limitation (2.5); Safari is blocked there too, Edge on the web works                              |
 
 ## Sources

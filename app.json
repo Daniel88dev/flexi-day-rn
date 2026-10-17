@@ -85,8 +85,7 @@
           "iosUrlScheme": "com.googleusercontent.apps.456983325414-tt5nktncl12ece3qjrtb043jlc4lia37"
         }
       ],
-      "expo-apple-authentication",
-      "./plugins/without-push-entitlement"
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true

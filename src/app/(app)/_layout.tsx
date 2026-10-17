@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
 
 import { ClockDisc } from "@/components/clock/clock-disc";
+import { PushClient } from "@/components/push/push-client";
 import { ClockReminders } from "@/components/reminders/clock-reminders";
 import { MoreSheet } from "@/components/shell/more-sheet";
 import { TabButton } from "@/components/shell/tab-button";
@@ -89,7 +90,12 @@ export default function AppLayout() {
 
   return (
     <QueryLayer onUnauthorized={onUnauthorized}>
-      {storeOpen ? <ClockReminders /> : null}
+      {storeOpen ? (
+        <>
+          <ClockReminders />
+          <PushClient />
+        </>
+      ) : null}
       <View className="flex-1 bg-background">
         <ShellLinks>
           {({ bar, sheet, hiddenTabs }) => (

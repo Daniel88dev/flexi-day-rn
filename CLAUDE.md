@@ -41,9 +41,9 @@ Expo drops `-allowProvisioningUpdates` whenever the project names a team, so it 
 empty profile store. The script passes the flags itself. `--configuration Release` embeds the bundle
 and reads the backend URL from `.env`; see "Production build" in the same doc.
 Prebuild runs `expo-notifications`' own config plugin whenever the package is installed, listed
-or not, and it writes the push entitlement (`aps-environment`). Local Clock reminders need none,
-so `plugins/without-push-entitlement.js` strips it again; keep it in `app.json` until the push
-client lands.
+or not, and it writes the push entitlement (`aps-environment`). The push client
+(`src/lib/push/`) needs it, and the first `eas build` after it landed has to run interactively; see
+"Push notifications" in [`docs/releasing.md`](docs/releasing.md).
 `ios.associatedDomains` makes invite links on `www.flexi-day.com/join/*` open the app. A new
 capability invalidates the App ID's profiles, and the refresh is the user's; see "Invite links
 open the app" in [`docs/device-testing.md`](docs/device-testing.md).
@@ -121,7 +121,9 @@ lookup and sign-out itself, and its request hook attaches the same client header
 `signedOutWipe()` in `src/lib/session/signed-out-wipe.ts` is the only way out. A 401 from the
 wrapper, a session lookup that answers with none, and sign-out all end there: the cookie jar, the
 session cache, the local store, the query cache, the scheduled clock reminders and their settings
-go, the Device id stays, and welcome says why. The Google SDK's own tokens go too.
+go, the Device id stays, and welcome says why. The Google SDK's own tokens go too, and the phone
+unregisters from push, so a sign-out the server never heard still stops the pushes; the badge and
+the delivered notices go with it.
 `signOut()` is the one path that tells the server first, and it wipes whatever the server answers.
 Deleting the account (`useAccountDeletion`) runs the wipe directly, not `signOut()`, because the
 204 already ended the server session; welcome then says the account was deleted.

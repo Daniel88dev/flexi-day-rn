@@ -4,8 +4,9 @@ The everyday loop is the iOS Simulator. A real iPhone matters for the Keychain, 
 prompt, push and anything else the simulator fakes. Both go through Xcode; TestFlight builds are
 in [`releasing.md`](releasing.md).
 
-The signing sections below still describe the free personal team and its seven-day profiles. The
-app now signs with the paid team in `app.json`, and fenro task T-68 (the push client) rewrites them.
+The app signs with the paid team `S6FC47MMXJ` in `app.json`. Its development profiles carry the
+App ID's capabilities, Push Notifications included, so a dev client on the phone registers with
+the APNs sandbox; see [Push on a dev client](#push-on-a-dev-client).
 
 ## Mac prerequisites
 
@@ -16,8 +17,8 @@ app now signs with the paid team in `app.json`, and fenro task T-68 (the push cl
   `Unicode Normalization not appropriate for ASCII-8BIT`. Terminal.app sets `LANG` by default; a
   shell that does not needs `export LANG=en_US.UTF-8`; `npm run ios:device` sets it for the
   commands it runs.
-- The Apple ID added under Xcode › Settings › Accounts. Xcode creates the personal team and an
-  "Apple Development" certificate the first time it signs. The team id lives in `app.json` as
+- The Apple ID added under Xcode › Settings › Accounts, as a member of the paid team. Xcode creates
+  an "Apple Development" certificate the first time it signs. The team id lives in `app.json` as
   `ios.appleTeamId`, so `expo prebuild` stamps it into the generated project and
   `npm run ios:device` passes it to `xcodebuild`; nothing has to be clicked in Xcode after a
   regeneration. The id is the `OU` of the certificate subject, not the value in
@@ -57,7 +58,7 @@ starts Metro. `npm start` alone is enough once the dev client is installed.
    generates `ios/` first if it is missing, and reruns `pod install` when `package-lock.json` is
    newer than `ios/Pods/Manifest.lock`, which is when a dependency change can add or bump a native
    module. A change to `app.json` or a config plugin still needs `npm run prebuild` first. It
-   then signs with the team from `app.json` and registers the device on the free account. The default
+   then signs with the team from `app.json` and registers the device with it. The default
    is a Debug dev client, which loads its JavaScript from Metro, so keep `npm start` running.
    The launch needs the phone unlocked; if it was locked, the install still lands and the script
    prints the `devicectl` command that launches it.
@@ -112,14 +113,13 @@ generate a profile.
 Keep `appleTeamId` in `app.json`: it makes prebuild produce the same signed project on every
 machine.
 
-## Every seven days
+## When the profile changes
 
-Free provisioning expires after seven days; the app then refuses to open, and Xcode eventually
-drops the expired profile from `~/Library/Developer/Xcode/UserData/Provisioning Profiles/`. Run
-`npm run ios:device` again, with the same `--configuration` as the build on the phone. The script
-lets Xcode create a new profile whether the store is empty or not; no Xcode UI needed. A new
-profile has to be trusted again on the phone (step 5 above) before the app opens.
-Other free-account limits: at most ten app ids per week and three signed apps per device at once.
+A development profile on the paid team lasts a year, and a capability added to the App ID makes it
+stale before then. Either way, run `npm run ios:device` again, with the same `--configuration` as
+the build on the phone. The script lets Xcode create a new profile whether the store is empty or
+not; no Xcode UI needed. A new profile may have to be trusted again on the phone (step 5 above)
+before the app opens.
 
 ## Production build
 
@@ -147,9 +147,8 @@ backend:
 4. Put `.env` back the way step 1 found it: restore the old contents, or delete the file if step 1
    created it. Otherwise every later Debug build and `npm start` targets production too.
 
-`plugins/without-push-entitlement` was verified on a free-team Release device build on
-2026-09-28: the signed app carries no `aps-environment` entitlement and the personal team signs
-it.
+A Release build is still signed with a development profile, so its push token is a sandbox one,
+whatever `__DEV__` says.
 
 ## Reaching the backend
 
@@ -215,8 +214,8 @@ Check what a Debug build is signed with. A Release build lands in
 codesign -d --entitlements - --xml ios/build/Build/Products/Debug-iphoneos/FlexiDay.app
 ```
 
-The output lists `com.apple.developer.associated-domains` with `applinks:www.flexi-day.com`, and no
-`aps-environment`.
+The output lists `com.apple.developer.associated-domains` with `applinks:www.flexi-day.com`, and
+`aps-environment` as `development`.
 
 Expo Router turns both link forms into the same route. The `https` link's path becomes the route
 (`/join/`), and in `flexiday://join?token=` the host `join` does. Both arrive with `token` as a
@@ -277,6 +276,37 @@ iOS 27 simulator without one, the Apple button raises "Sign in to your Apple Acc
 system, and Close there comes back as `ERR_REQUEST_UNKNOWN`, so the screen shows the generic
 "could not be completed" notice rather than "cancelled". A full Apple sign-in is checked on the
 phone, against the local backend over the LAN.
+
+## Push on a dev client
+
+Prebuild writes `aps-environment` `development` through the `expo-notifications` config plugin, so
+the dev client registers with the APNs sandbox and reports `sandbox` with its token
+(`PUT /api/users/me/push-registration`). The backend sends real pushes only with the `APNS_*`
+variables set; without them it logs each push instead.
+
+**Simulator.** It registers with the sandbox too, but nothing from APNs reaches it, so pushes are
+injected with `xcrun simctl push`. The payload is what the backend sends:
+
+```bash
+cat > /tmp/push.json <<'JSON'
+{
+  "Simulator Target Bundle": "com.flexiday.app",
+  "aps": { "alert": { "title": "Request approved", "body": "14 Sep to 18 Sep" }, "badge": 1, "sound": "default" },
+  "notificationId": "<id from GET /api/notifications>",
+  "href": "https://flexi-day.com/requests/?vacationId=<id>"
+}
+JSON
+xcrun simctl push <udid> com.flexiday.app /tmp/push.json
+```
+
+With the app in the foreground the push shows as a banner and the app pulls and reads its
+notifications again. Tapping it, with the app in the background or killed, marks it read and opens
+the request; an `href` the phone has no screen for opens the notification list.
+
+**Phone.** A real push needs the dev client on the phone and the local backend on the Mac with the
+`APNS_*` variables in its `.env`, taken from 1Password. Approve a request from the web as someone
+else, then check the banner, the tap, the badge, that a sign-out stops the pushes and that signing
+back in brings them back.
 
 ## Known state (2026-10-03)
 

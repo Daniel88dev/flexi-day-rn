@@ -59,8 +59,9 @@ Connect API key, all created on the first `eas build` and `eas submit`. `eas cre
 shows and rotates them. Later builds ask no Apple questions.
 
 The APNs key (`.p8`) is not an EAS credential and EAS should not create one: the backend sends push
-straight to APNs with its own key, which lives in 1Password. Answer "no" if EAS offers to set up
-push notifications.
+straight to APNs with its own key, which lives in 1Password. `cli.promptToConfigurePushNotifications`
+is `false` in `eas.json`, so `eas build` never offers to set up push notifications. Never accept an
+EAS push key, and leave the push key actions in `eas credentials` alone.
 
 ## Associated Domains
 
@@ -70,16 +71,38 @@ App ID makes the App Store profile EAS holds invalid, so the first build after i
 
 `eas build` syncs the App ID's capabilities with the entitlements in the introspected config
 (`npx expo config --type introspect`), then checks the profile against the App ID. Run that first
-build interactively, without `--non-interactive`, and sign in to Apple when it asks.
-`--non-interactive` neither syncs capabilities nor replaces the profile. EAS enables Associated
-Domains if the portal step was skipped, and offers to replace the invalid profile.
+build interactively, without `--non-interactive`, and sign in to Apple when it asks. EAS enables
+Associated Domains if the portal step was skipped, and offers to replace the invalid profile.
 `eas credentials -p ios` shows the profile and can remove it before the build, which then creates
 a new one.
 
+`--non-interactive` never syncs capabilities, because the sync needs an Apple sign-in. Since
+eas-cli 24.10 it does try the App Store Connect API key EAS stores for submissions and can repair
+the profile with it, but a profile repaired that way carries only the capabilities the App ID
+already has. A capability the build has to turn on still needs the interactive build.
+
 The sync runs both ways, so it also turns off capabilities the entitlements lack.
-`plugins/without-push-entitlement.js` strips `aps-environment`, so every `eas build` turns Push
-Notifications off on the App ID until the push client keeps the entitlement, unless the build runs
-with `EXPO_NO_CAPABILITY_SYNC=1`.
+
+## Push notifications
+
+Prebuild runs the `expo-notifications` config plugin, which writes `aps-environment` as
+`development`; its `mode` option stays unset. Signing with the App Store profile turns it into
+`production` in the `.ipa`, so a TestFlight install registers with production APNs and an Xcode dev
+client with the sandbox. The app reads which one from the embedded profile
+(`src/lib/push/environment.ts`), never from `__DEV__`.
+
+Until the push client landed, a plugin stripped the entitlement, and every interactive `eas build`
+turned Push Notifications off on the App ID. The first build with the entitlement turns it back on,
+which makes the App Store profile invalid. Run that build interactively, the same step as
+[section 5.2 of the sign-in runbook](native-sign-in-setup.md#52-the-first-eas-build-once):
+
+1. `eas build --platform ios --profile production --auto-submit`, without `--non-interactive`.
+2. Sign in to Apple when it asks. The sync enables Push Notifications on `com.flexiday.app`.
+3. Accept when EAS offers to repair or replace the invalid profile.
+4. If EAS offers to create a push key, decline. `eas.json` should stop it asking.
+
+Later builds find nothing to change and ask nothing. Check the first one's `.ipa` with the commands
+below: the output has to list `aps-environment` as `production`.
 
 Check the entitlements of the `.ipa` EAS built (download it from the build page):
 
@@ -91,8 +114,8 @@ codesign -d --entitlements - --xml /tmp/ipa/Payload/FlexiDay.app
 ## Sign in with Apple
 
 Sign in with Apple is a second capability on the App ID. It invalidates the App Store profile the
-same way and needs the same interactive build once. That step, with the Push Notifications caveat
-and the order it runs in after the portal work, is section 5.2 of the sign-in runbook,
+same way and needs the same interactive build once. That step, and the order it runs in after the
+portal work, is section 5.2 of the sign-in runbook,
 [The first `eas build`, once](native-sign-in-setup.md#52-the-first-eas-build-once).
 
 ## When Apple rejects an upload
