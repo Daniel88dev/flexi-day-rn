@@ -15,6 +15,11 @@ import { Linking, Pressable, ScrollView, View } from "react-native";
 
 import { StackScreen } from "@/components/shell/stack-screen";
 import {
+  BirthdayPrototypePill,
+  BirthdaySectionPrototype,
+  useBirthdayPrototype,
+} from "@/components/settings/birthday-section.prototype";
+import {
   ClockRemindersSection,
   NotificationPermissionRow,
 } from "@/components/settings/clock-reminders-section";
@@ -69,6 +74,7 @@ export function SettingsScreen() {
   const groups = useRequestScopeGroups();
   const offersPasswordChange = useOffersPasswordChange();
   const permission = useNotificationPermission();
+  const birthday = useBirthdayPrototype();
 
   return (
     <StackScreen title={t.nav.settings}>
@@ -78,6 +84,8 @@ export function SettingsScreen() {
         contentContainerStyle={{ gap: 28, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32 }}
       >
         {viewer ? <AccountHeader viewer={viewer} /> : null}
+
+        <BirthdaySectionPrototype p={birthday} />
 
         {loaded.isError && !settings ? (
           <View className="gap-2">
@@ -191,6 +199,7 @@ export function SettingsScreen() {
           />
         </Section>
       </ScrollView>
+      <BirthdayPrototypePill p={birthday} />
     </StackScreen>
   );
 }
