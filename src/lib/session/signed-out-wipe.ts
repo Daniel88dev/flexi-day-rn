@@ -4,7 +4,7 @@ import { useCallback } from "react";
 
 import { signOutGoogle as signOutGoogleSdk } from "@/lib/auth/providers/google";
 import { destroyStore } from "@/lib/local-store";
-import { pushClient } from "@/lib/push/device";
+import { pushRegistrar } from "@/lib/push/device";
 import { queryClient } from "@/lib/query/runtime";
 import { clearClockReminders } from "@/lib/reminders/device";
 
@@ -28,7 +28,7 @@ export type SignedOutWipeOptions = {
   destroyLocalStore?: () => Promise<void>;
   clearReminders?: () => Promise<void>;
   signOutGoogle?: () => Promise<void>;
-  letGoOfPush?: () => Promise<void>;
+  unregisterPush?: () => Promise<void>;
   clearSession?: () => void;
   showNotice?: () => void;
   replace?: (href: string) => void;
@@ -42,11 +42,9 @@ let running: Promise<void> | null = null;
 
 /**
  * What the app does when the server stops trusting the phone, and what signing out does after
- * the server has been told: the cookie jar, the session cache, the Local store, the query cache,
- * the scheduled clock reminders and their settings go, the Device id stays, and welcome says
- * why. The Google SDK's own tokens go too, and the phone unregisters from push with its badge
- * and delivered notices, so a sign-out the server never heard still stops the pushes. It never
- * signs out on its own.
+ * the server has been told: everything the phone holds for the user goes but the Device id, and
+ * welcome says why. Push is let go of on the phone rather than the server, so a sign-out the
+ * server never heard still stops the pushes. It never signs out on its own.
  */
 export function signedOutWipe(options: SignedOutWipeOptions): Promise<void> {
   running ??= wipe(options).finally(() => {
@@ -61,7 +59,7 @@ async function wipe({
   destroyLocalStore = destroyStore,
   clearReminders = clearClockReminders,
   signOutGoogle = signOutGoogleSdk,
-  letGoOfPush = pushClient.letGo,
+  unregisterPush = pushRegistrar.unregister,
   clearSession = clearClientSession,
   showNotice = showSignedOutNotice,
   replace = (href) => router.replace(href as "/welcome"),
@@ -73,7 +71,7 @@ async function wipe({
       destroyLocalStore(),
       clearReminders(),
       bestEffort(signOutGoogle, "The Google SDK did not sign out."),
-      bestEffort(letGoOfPush, "The phone did not unregister from push."),
+      bestEffort(unregisterPush, "The phone did not unregister from push."),
     ]);
   } catch (cause: unknown) {
     // Whatever the phone could not let go of, staying on a signed-in screen is worse.

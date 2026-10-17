@@ -2,16 +2,17 @@ import * as Application from "expo-application";
 import * as Notifications from "expo-notifications";
 
 import { apiRequest } from "@/lib/query/runtime";
+import { notificationPermission } from "@/lib/reminders/device";
 
-import { createPushClient } from "./client";
+import { createPushRegistrar } from "./client";
 import { detectPushEnvironment } from "./environment";
 
 const PATH = "/api/users/me/push-registration";
 
-export const pushClient = createPushClient({
+export const pushRegistrar = createPushRegistrar({
   api: {
-    register: (registration) => apiRequest(PATH, { method: "PUT", body: registration }),
-    unregister: () => apiRequest(PATH, { method: "DELETE" }),
+    upsert: (registration) => apiRequest(PATH, { method: "PUT", body: registration }),
+    remove: () => apiRequest(PATH, { method: "DELETE" }),
   },
   device: {
     token: async () => String((await Notifications.getDevicePushTokenAsync()).data),
@@ -22,7 +23,7 @@ export const pushClient = createPushClient({
           (await Application.getIosApplicationReleaseTypeAsync()) ===
           Application.ApplicationReleaseType.SIMULATOR,
       }),
-    async letGo() {
+    async unregister() {
       Notifications.clearLastNotificationResponse();
       await Promise.all([
         Notifications.unregisterForNotificationsAsync(),
@@ -30,9 +31,11 @@ export const pushClient = createPushClient({
         Notifications.dismissAllNotificationsAsync(),
       ]);
     },
+    async setBadge(count) {
+      await Notifications.setBadgeCountAsync(count);
+    },
   },
 });
 
-export async function setAppBadge(count: number): Promise<void> {
-  await Notifications.setBadgeCountAsync(count);
-}
+/** A session swap drops the server's registration, and no foreground follows it. */
+export const resyncPush = (): Promise<void> => pushRegistrar.sync(notificationPermission.read());

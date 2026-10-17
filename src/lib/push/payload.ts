@@ -22,15 +22,22 @@ export function pushPayload(notification: Notification): PushPayload | null {
 
 /**
  * How a notification shows while the app is open. A clock reminder still shows, since the person
- * may be in the app without having clocked; a push takes the unread count APNs sent as the badge.
+ * may be in the app without having clocked; a push takes the unread count APNs sent as the badge,
+ * and plays a sound only when it carries one, as a passive push does not.
  */
 export function notificationBehavior(notification: Notification): NotificationBehavior {
+  const push = pushPayload(notification) !== null;
   return {
     shouldShowBanner: true,
     shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: pushPayload(notification) !== null,
+    shouldPlaySound: !push || apsSound(notification) != null,
+    shouldSetBadge: push,
   };
+}
+
+function apsSound(notification: Notification): unknown {
+  const trigger = notification.request.trigger as { payload?: { aps?: { sound?: unknown } } };
+  return trigger.payload?.aps?.sound;
 }
 
 export function unreadCount(list: readonly { readAt: string | null }[]): number {

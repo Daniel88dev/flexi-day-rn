@@ -58,11 +58,22 @@ describe("pushPayload", () => {
 });
 
 describe("notificationBehavior", () => {
-  it("returns a banner with the badge APNs sent for a push in the foreground", () => {
-    expect(notificationBehavior(push({ aps: { badge: 2 } }))).toEqual({
+  it("returns a banner with the badge and sound APNs sent for a push in the foreground", () => {
+    expect(notificationBehavior(push({ aps: { badge: 2, sound: "default" } }))).toEqual({
       shouldShowBanner: true,
       shouldShowList: true,
       shouldPlaySound: true,
+      shouldSetBadge: true,
+    });
+  });
+
+  it("returns a silent banner for a passive push, which carries no sound", () => {
+    const passive = push({ aps: { badge: 2, "interruption-level": "passive" } });
+
+    expect(notificationBehavior(passive)).toEqual({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
       shouldSetBadge: true,
     });
   });

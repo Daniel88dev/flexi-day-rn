@@ -235,11 +235,11 @@ describe("signedOutWipe", () => {
 
   it("lands on welcome even when the phone will not unregister from push", async () => {
     const error = jest.spyOn(console, "error").mockImplementation(() => {});
-    const letGoOfPush = jest.fn().mockRejectedValue(new Error("no APNs"));
+    const unregisterPush = jest.fn().mockRejectedValue(new Error("no APNs"));
 
-    await wipe({ letGoOfPush });
+    await wipe({ unregisterPush });
 
-    expect(letGoOfPush).toHaveBeenCalledTimes(1);
+    expect(unregisterPush).toHaveBeenCalledTimes(1);
     expect(destroyLocalStore).toHaveBeenCalledTimes(1);
     expect(replace).toHaveBeenCalledWith("/welcome");
     expect(error).toHaveBeenCalled();

@@ -5,8 +5,10 @@ import * as Notifications from "expo-notifications";
 
 import { PushClient } from "@/components/push/push-client";
 import { TranslationProvider } from "@/i18n/use-translation";
+import { deviceAppState } from "@/lib/app-state";
 import { pull } from "@/lib/local-store";
 import { queryClient } from "@/lib/query";
+import type { FakeAppState } from "@/test-support/fake-app-state";
 
 const mockFetch = jest.fn();
 
@@ -31,6 +33,11 @@ jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => (
 jest.mock("@/lib/local-store", () => ({ pull: jest.fn(async () => ({ ok: true })) }));
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
+jest.mock("@/lib/app-state", () => ({
+  deviceAppState: jest.requireActual("@/test-support/fake-app-state").createFakeAppState(),
+}));
+
+const appState = deviceAppState as FakeAppState;
 
 const notifications = jest.requireActual("expo-notifications") as {
   getPermissionsAsync: jest.Mock;
@@ -118,6 +125,18 @@ describe("PushClient", () => {
       token: TOKEN,
       environment: "sandbox",
     });
+  });
+
+  it("reads the permission once on a foreground and registers again", async () => {
+    const view = await renderClient();
+    await waitFor(() => expect(calls("PUT", REGISTRATION)).toHaveLength(1));
+    notifications.getPermissionsAsync.mockClear();
+
+    await act(async () => appState.becomeActive());
+
+    await waitFor(() => expect(calls("PUT", REGISTRATION)).toHaveLength(2));
+    expect(notifications.getPermissionsAsync).toHaveBeenCalledTimes(1);
+    view.unmount();
   });
 
   it("deletes the registration when iOS reports permission revoked", async () => {

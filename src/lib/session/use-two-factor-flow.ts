@@ -2,6 +2,7 @@ import { useCallback, useReducer, useState } from "react";
 
 import { useTranslation } from "@/i18n/use-translation";
 import { haptic } from "@/lib/haptics";
+import { resyncPush as resyncThroughRegistrar } from "@/lib/push/device";
 
 import { authClient } from "./auth-client";
 import { readsSessionBack, useRefreshSession } from "./revalidate-session";
@@ -60,6 +61,7 @@ type PasswordAnswer = {
 export type UseTwoFactorFlowOptions = {
   auth?: TwoFactorSettingsAuth;
   refreshSession?: () => Promise<void>;
+  resyncPush?: () => Promise<void>;
 };
 
 /**
@@ -68,7 +70,11 @@ export type UseTwoFactorFlowOptions = {
  */
 export function useTwoFactorFlow(
   flow: TwoFactorFlow,
-  { auth = throughAuthClient, refreshSession }: UseTwoFactorFlowOptions = {}
+  {
+    auth = throughAuthClient,
+    refreshSession,
+    resyncPush = resyncThroughRegistrar,
+  }: UseTwoFactorFlowOptions = {}
 ) {
   const { t } = useTranslation();
   const copy = t.settings.twoFactor;
@@ -107,7 +113,10 @@ export function useTwoFactorFlow(
       haptic("error");
       const refusal = twoFactorSettingsRefusal(stage, answer);
       const sessionLost = refusal.field === "session";
-      if (readsSessionBack({ sessionLost, status: answer.status, swapping })) await refresh();
+      if (readsSessionBack({ sessionLost, status: answer.status, swapping })) {
+        await refresh();
+        if (!sessionLost) void resyncPush();
+      }
       if (sessionLost) return;
       if (refusal.field === "password") setPasswordError(copy.errors.wrongPassword);
       else if (refusal.field === "code") {
@@ -121,7 +130,7 @@ export function useTwoFactorFlow(
       else if (refusal.key === "rateLimited") setError(t.auth.twoFactor.errors.rateLimited);
       else setError(copy.errors[refusal.key]);
     },
-    [copy, refresh, t]
+    [copy, refresh, resyncPush, t]
   );
 
   const attempt = useCallback(
@@ -159,7 +168,10 @@ export function useTwoFactorFlow(
           setError(copy.errors.actionFailed);
           return;
         }
-        if (swapping) await refresh();
+        if (swapping) {
+          await refresh();
+          void resyncPush();
+        }
         haptic(flow === "disable" ? "success" : "selection");
         setPassword("");
         dispatch({
@@ -168,7 +180,7 @@ export function useTwoFactorFlow(
           totpURI: data.totpURI,
         });
       }),
-    [attempt, auth, copy, flow, password, refresh, refuse, state]
+    [attempt, auth, copy, flow, password, refresh, refuse, resyncPush, state]
   );
 
   const sendEmailCode = useCallback(
@@ -194,12 +206,15 @@ export function useTwoFactorFlow(
             ? await auth.verifyTotp({ code: value })
             : await auth.verifyOtp({ code: value });
         if (answer.error) return refuse("code", answer.error, swapping);
-        if (swapping) await refresh();
+        if (swapping) {
+          await refresh();
+          void resyncPush();
+        }
         haptic("success");
         setCode("");
         dispatch({ type: "verified" });
       }),
-    [attempt, auth, code, refresh, refuse, state]
+    [attempt, auth, code, refresh, refuse, resyncPush, state]
   );
 
   const saveCodes = useCallback(() => {

@@ -405,9 +405,12 @@ eas build --platform ios --profile production
 
 Run it **without** `--non-interactive` and sign in to Apple when it asks. `eas build` syncs the App
 ID's capabilities with the entitlements of the introspected config, finds the App Store profile
-invalid after section 3.1, and offers to replace it. `--non-interactive` neither syncs capabilities
-nor replaces the profile, so a CI-style build fails until this one has run. `eas credentials -p ios`
-shows the profile and can remove it beforehand, which makes the build create a fresh one.
+invalid after section 3.1, and offers to replace it. `--non-interactive` never syncs capabilities,
+because the sync needs an Apple sign-in. Since eas-cli 24.10 it tries the App Store Connect API key
+EAS stores and can repair the profile with it, but only with the capabilities the App ID already
+has, so it cannot turn on Sign in with Apple or Push Notifications. A CI-style build fails until
+this one has run. `eas credentials -p ios` shows the profile and can remove it beforehand, which
+makes the build create a fresh one.
 
 The sync runs both ways, so it also turns off any capability the entitlements lack. Push
 Notifications was one until the push client kept `aps-environment`; "Push notifications" in

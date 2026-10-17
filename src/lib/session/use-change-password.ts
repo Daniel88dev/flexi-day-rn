@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 
 import { useTranslation } from "@/i18n/use-translation";
 import { haptic } from "@/lib/haptics";
+import { resyncPush as resyncThroughRegistrar } from "@/lib/push/device";
 
 import { authClient } from "./auth-client";
 import { changePasswordRefusal, newPasswordProblem } from "./change-password";
@@ -30,6 +31,7 @@ const changeThroughAuthClient: ChangePassword = (body) => authClient.changePassw
 export type UseChangePasswordOptions = {
   change?: ChangePassword;
   refreshSession?: () => Promise<void>;
+  resyncPush?: () => Promise<void>;
 };
 
 // `revokeOtherSessions` deletes this phone's Native session too; the answer carries its
@@ -37,6 +39,7 @@ export type UseChangePasswordOptions = {
 export function useChangePassword({
   change = changeThroughAuthClient,
   refreshSession,
+  resyncPush = resyncThroughRegistrar,
 }: UseChangePasswordOptions = {}) {
   const { t } = useTranslation();
   const refreshThroughAuthClient = useRefreshSession();
@@ -82,6 +85,7 @@ export function useChangePassword({
       if (!answer.error) {
         haptic("success");
         await refresh();
+        void resyncPush();
         setCurrent("");
         setNext("");
         setConfirm("");
@@ -94,6 +98,7 @@ export function useChangePassword({
       // The change always swaps the session, whether or not the rest of it landed.
       if (readsSessionBack({ sessionLost: status === UNAUTHORIZED, status, swapping: true })) {
         await refresh();
+        if (status !== UNAUTHORIZED) void resyncPush();
       }
       if (status !== UNAUTHORIZED) {
         const refusal = changePasswordRefusal(answer.error.code);
@@ -111,7 +116,7 @@ export function useChangePassword({
       setErrors({ form: t.sync.unreachable });
     }
     setLoading(false);
-  }, [change, confirm, current, filledIn, loading, next, refresh, t]);
+  }, [change, confirm, current, filledIn, loading, next, refresh, resyncPush, t]);
 
   return {
     current,

@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 
+import type { PushPayload } from "@/lib/push/payload";
 import type { AppNotification } from "@/lib/query";
 
 import { notificationRoute, type NotificationRoute } from "./route";
@@ -53,7 +54,7 @@ export function followPushRoute(route: NotificationRoute): void {
 
 /** A tap on a push: the notification it names is marked read, then its link is followed. */
 export function openPushTap(
-  push: { notificationId: string | null; href: string | null },
+  push: PushPayload,
   {
     markRead,
     follow = followPushRoute,
