@@ -1,8 +1,16 @@
 import { render, screen } from "@testing-library/react-native";
 
 import { SendingBadge, StatusBadge, TypeBadge } from "@/components/requests/badges";
+import { cs } from "@/i18n/cs";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
+
+let mockLanguage = "en";
+jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: mockLanguage }] }));
+
+beforeEach(() => {
+  mockLanguage = "en";
+});
 
 describe("StatusBadge", () => {
   it("renders the status in words", async () => {
@@ -25,6 +33,31 @@ describe("TypeBadge", () => {
     );
 
     expect(screen.getByText(en.recordTypes.HOME_OFFICE)).toBeTruthy();
+  });
+
+  it("renders a teammate's Away in words, never the raw value or Sick", async () => {
+    await render(
+      <TranslationProvider>
+        <TypeBadge type="AWAY" />
+      </TranslationProvider>
+    );
+
+    expect(screen.getByText("Away")).toBeTruthy();
+    expect(screen.queryByText("AWAY")).toBeNull();
+    expect(screen.queryByText(en.recordTypes.SICK)).toBeNull();
+  });
+
+  it("renders Away in Czech", async () => {
+    mockLanguage = "cs";
+
+    await render(
+      <TranslationProvider>
+        <TypeBadge type="AWAY" />
+      </TranslationProvider>
+    );
+
+    expect(screen.getByText("Pryč")).toBeTruthy();
+    expect(screen.queryByText(cs.recordTypes.SICK)).toBeNull();
   });
 });
 

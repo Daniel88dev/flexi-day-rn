@@ -1,10 +1,9 @@
-import type { CalendarRecordType } from "@/lib/local-store";
+import type { WireRecordType } from "@/lib/local-store";
+
+type LeaveClasses = { fill: string; text: string; border: string };
 
 /** Literal class names per record type: NativeWind only compiles what it finds verbatim. */
-export const LEAVE_CLASSES: Record<
-  CalendarRecordType,
-  { fill: string; text: string; border: string }
-> = {
+export const LEAVE_CLASSES: Record<WireRecordType, LeaveClasses> = {
   VACATION: {
     fill: "bg-leave-vacation",
     text: "text-leave-vacation",
@@ -26,10 +25,14 @@ export const LEAVE_CLASSES: Record<
   STUDY_LEAVE: { fill: "bg-leave-study", text: "text-leave-study", border: "border-leave-study" },
   BANK_HOLIDAY: { fill: "bg-leave-bank", text: "text-leave-bank", border: "border-leave-bank" },
   OTHER: { fill: "bg-leave-other", text: "text-leave-other", border: "border-leave-other" },
+  AWAY: { fill: "bg-leave-away", text: "text-leave-away", border: "border-leave-away" },
 };
 
-/** The order the web's filter and legend list the types in. */
-export const LEAVE_TYPE_ORDER: readonly CalendarRecordType[] = [
+/**
+ * The order the web's filter and legend list the types in. Away has a chip of its own: riding with
+ * Sick would tell which Away rows are sick leave.
+ */
+export const LEAVE_TYPE_ORDER: readonly WireRecordType[] = [
   "VACATION",
   "HOME_OFFICE",
   "SICK",
@@ -39,4 +42,5 @@ export const LEAVE_TYPE_ORDER: readonly CalendarRecordType[] = [
   "NON_PAID_LEAVE",
   "STUDY_LEAVE",
   "OTHER",
+  "AWAY",
 ];

@@ -547,3 +547,79 @@ describe("RequestDetail route", () => {
     expect(router.back).toHaveBeenCalled();
   });
 });
+
+describe("RequestDetail route, for a teammate's request", () => {
+  // The redacted shape flexi-day-be documents in `docs/invariants.md` ("Private details and Away"):
+  // Sick arrives as AWAY, private fields null, `history: []`, and `canReadPrivateDetails` false.
+  const teammate = (patch: Partial<VacationDetail> = {}): Partial<VacationDetail> => ({
+    vacationType: "AWAY",
+    note: null,
+    history: [],
+    canReadPrivateDetails: false,
+    ...patch,
+  });
+
+  it("labels a teammate's Sick as Away, with the pending marker", async () => {
+    await renderLoaded(teammate());
+
+    expect(screen.getByText("Away")).toBeOnTheScreen();
+    expect(screen.queryByText(en.recordTypes.SICK)).toBeNull();
+    expect(screen.getByText(en.status.pending)).toBeOnTheScreen();
+  });
+
+  it("shows no note, no timeline and no comment box to a viewer who may not read private details", async () => {
+    await renderLoaded(teammate({ vacationType: "VACATION" }));
+
+    expect(screen.queryByTestId("request-detail-note")).toBeNull();
+    expect(screen.queryByTestId("request-timeline")).toBeNull();
+    expect(screen.queryByText(en.requestDetail.history)).toBeNull();
+    expect(screen.queryByTestId("request-comment-input")).toBeNull();
+    expect(screen.queryByTestId("request-comment-send")).toBeNull();
+  });
+
+  it("still offers the timeline and the comment box to a viewer who may read private details", async () => {
+    await renderLoaded({ canReadPrivateDetails: true });
+
+    expect(screen.getByTestId("request-timeline")).toBeOnTheScreen();
+    expect(screen.getByTestId("request-comment-input")).toBeOnTheScreen();
+  });
+
+  it("offers no timeline and no comment box when the answer carries no private-details flag", async () => {
+    await renderLoaded({ canReadPrivateDetails: undefined });
+
+    expect(screen.queryByTestId("request-timeline")).toBeNull();
+    expect(screen.queryByText(en.requestDetail.history)).toBeNull();
+    expect(screen.queryByTestId("request-comment-input")).toBeNull();
+  });
+
+  it("renders the phone's own copy of a teammate's Away row with no note when the server cannot be reached", async () => {
+    mockFetch.mockRejectedValue(new TypeError("Network request failed"));
+    storedRequest.mockReturnValue({
+      id: "vacation-1",
+      userId: "user-2",
+      userName: "Eva Horáková",
+      groupId: "group-1",
+      groupName: "Engineering",
+      vacationType: "AWAY",
+      status: "approved",
+      from: "2026-09-21",
+      to: "2026-09-22",
+      startTime: null,
+      endTime: null,
+      halfDay: false,
+      vacationIds: ["vacation-1", "vacation-2"],
+      dayCount: 2,
+      pending: false,
+      note: null,
+    });
+
+    await renderDetail();
+
+    expect(
+      await screen.findByText(en.requestDetail.offlineBody, {}, { timeout: 5000 })
+    ).toBeOnTheScreen();
+    expect(screen.getByText("Away")).toBeOnTheScreen();
+    expect(screen.queryByText(en.recordTypes.SICK)).toBeNull();
+    expect(screen.queryByTestId("request-detail-note")).toBeNull();
+  });
+});

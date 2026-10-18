@@ -5,19 +5,19 @@ import { useShownGroupEvents } from "@/components/calendar/use-shown-group-event
 import { dayEntries, dayWindow } from "@/lib/calendar/day";
 import { addDays } from "@/lib/days";
 import {
+  type CalendarGroupEvent,
+  type RequestListScope,
   useCalendarBankHolidays,
   useCalendarBirthdays,
   useCalendarGroupEvents,
   useCalendarVacations,
-  type CalendarGroupEvent,
-  type CalendarRecordType,
-  type RequestListScope,
+  type WireRecordType,
 } from "@/lib/local-store";
 import { monthOf } from "@/lib/requests/months";
 
 export type StoreDayListProps = {
   scope: RequestListScope;
-  filter: ReadonlySet<CalendarRecordType>;
+  filter: ReadonlySet<WireRecordType>;
   viewerId: string | null;
   onOpen?: (vacationId: string) => void;
   onBook: (day: string) => void;

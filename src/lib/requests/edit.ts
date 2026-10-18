@@ -15,7 +15,10 @@ const toMinute = (time: string | null) => (time ? time.slice(0, 5) : "");
 
 export function editValuesOf(detail: VacationDetail): EditValues {
   return {
-    vacationType: detail.vacationType === "BANK_HOLIDAY" ? null : detail.vacationType,
+    vacationType:
+      detail.vacationType === "BANK_HOLIDAY" || detail.vacationType === "AWAY"
+        ? null
+        : detail.vacationType,
     startTime: toMinute(detail.startTime),
     endTime: toMinute(detail.endTime),
     halfDay: detail.halfDay,

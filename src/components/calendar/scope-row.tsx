@@ -7,7 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
-import type { CalendarRecordType, RequestListScope, RequestScopeGroup } from "@/lib/local-store";
+import type { RequestListScope, RequestScopeGroup, WireRecordType } from "@/lib/local-store";
 
 /** Mine | Group shows only when the viewer sees some group in full, the picker only for two or more. */
 export function ScopeRow({
@@ -21,7 +21,7 @@ export function ScopeRow({
   scope: RequestListScope;
   groupId: string | null;
   groups: readonly RequestScopeGroup[];
-  filter: ReadonlySet<CalendarRecordType>;
+  filter: ReadonlySet<WireRecordType>;
   onScope: (scope: RequestListScope) => void;
   onFilter: () => void;
 }) {

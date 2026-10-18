@@ -167,6 +167,7 @@ export function balanceBuckets(
   const range = { from: `${year}-01-01`, until: `${year + 1}-01-01` };
   for (const row of mergedVacations(db, changes, range)) {
     if (row.userId !== viewerId || !inGroups.has(row.groupId) || row.deletedAt != null) continue;
+    if (row.vacationType === "AWAY") continue;
     const weight = row.halfDay ? HALF_DAY_WEIGHT : 1;
     if (row.approvedAt != null) ensure(row.vacationType).used += weight;
     else if (row.rejectedAt == null) ensure(row.vacationType).pending += weight;

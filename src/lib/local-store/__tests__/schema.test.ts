@@ -5,7 +5,7 @@ import { STORE_DDL } from "../ddl.generated";
 import { createBetterSqlite3Adapter } from "../test-support/better-sqlite3-adapter";
 import {
   CALENDAR_RECORD_TYPES,
-  type CalendarRecordType,
+  type WireRecordType,
   bankHolidays,
   groupMirrors,
   groupUsers,
@@ -149,7 +149,7 @@ function openInMemory(): StoreConnection {
   return connection;
 }
 
-function vacationRow(id: string, vacationType: CalendarRecordType) {
+function vacationRow(id: string, vacationType: WireRecordType) {
   return {
     id,
     userId: "user-1",
@@ -171,8 +171,8 @@ describe("schema", () => {
     expect(storedColumns(table)).toEqual({ ...row, generation: "integer" });
   });
 
-  it("types a vacation with exactly the nine calendar record types", () => {
-    expect(vacations.vacationType.enumValues).toEqual(CALENDAR_RECORD_TYPES);
+  it("types a vacation with the nine calendar record types and Away", () => {
+    expect(vacations.vacationType.enumValues).toEqual([...CALENDAR_RECORD_TYPES, "AWAY"]);
     expect(CALENDAR_RECORD_TYPES).toEqual([
       "VACATION",
       "HOME_OFFICE",
@@ -186,23 +186,22 @@ describe("schema", () => {
     ]);
   });
 
-  it("stores every calendar record type and refuses anything else", () => {
+  it("stores every calendar record type and Away, and refuses anything else", () => {
     const connection = openInMemory();
     try {
-      for (const [index, type] of CALENDAR_RECORD_TYPES.entries()) {
+      const types: WireRecordType[] = [...CALENDAR_RECORD_TYPES, "AWAY"];
+      for (const [index, type] of types.entries()) {
         connection.db
           .insert(vacations)
           .values(vacationRow(`ok-${index}`, type))
           .run();
       }
-      expect(connection.db.select().from(vacations).all()).toHaveLength(
-        CALENDAR_RECORD_TYPES.length
-      );
+      expect(connection.db.select().from(vacations).all()).toHaveLength(types.length);
 
       expect(() =>
         connection.db
           .insert(vacations)
-          .values(vacationRow("bad", "HOLIDAY" as CalendarRecordType))
+          .values(vacationRow("bad", "HOLIDAY" as WireRecordType))
           .run()
       ).toThrow(/vacations_vacationType_chk/);
     } finally {

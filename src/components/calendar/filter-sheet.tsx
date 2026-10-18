@@ -7,7 +7,7 @@ import { LEAVE_CLASSES, LEAVE_TYPE_ORDER } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
-import type { CalendarRecordType } from "@/lib/local-store";
+import type { WireRecordType } from "@/lib/local-store";
 
 export function FilterSheet({
   open,
@@ -17,14 +17,14 @@ export function FilterSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  filter: ReadonlySet<CalendarRecordType>;
-  onChange: (filter: Set<CalendarRecordType>) => void;
+  filter: ReadonlySet<WireRecordType>;
+  onChange: (filter: Set<WireRecordType>) => void;
 }) {
   const { t } = useTranslation();
   const labels = t.dashboard.calendar;
   const all = filter.size === LEAVE_TYPE_ORDER.length;
 
-  const toggle = (type: CalendarRecordType) => {
+  const toggle = (type: WireRecordType) => {
     const next = new Set(filter);
     if (next.has(type)) next.delete(type);
     else next.add(type);

@@ -20,10 +20,10 @@ import { monthWeeks } from "@/lib/calendar/month-grid";
 import { dashboardScope } from "@/lib/calendar/scope";
 import { calendarView, type CalendarView } from "@/lib/calendar/view";
 import {
-  useRequestScopeGroups,
   type CalendarGroupEvent,
-  type CalendarRecordType,
   type RequestListScope,
+  useRequestScopeGroups,
+  type WireRecordType,
 } from "@/lib/local-store";
 import { dayOfDate } from "@/lib/days";
 import { useMySettings } from "@/lib/query";
@@ -42,7 +42,7 @@ type PageProps = {
   view: CalendarView;
   selected: string;
   scope: RequestListScope;
-  filter: ReadonlySet<CalendarRecordType>;
+  filter: ReadonlySet<WireRecordType>;
   width: number;
   viewerId: string | null;
   today: string;
@@ -116,7 +116,7 @@ export function DashboardCalendar({
   const [picked, setPicked] = useState<YearMonth>(thisMonth);
   const [scopeChoice, setScopeChoice] = useState<RequestListScope["kind"] | null>(null);
   const [groupChoice, setGroupChoice] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Set<CalendarRecordType>>(() => new Set(LEAVE_TYPE_ORDER));
+  const [filter, setFilter] = useState<Set<WireRecordType>>(() => new Set(LEAVE_TYPE_ORDER));
   const [filterOpen, setFilterOpen] = useState(false);
   const [sheetDay, setSheetDay] = useState<string | null>(null);
   const [pickedDay, setPickedDay] = useState<string | null>(null);

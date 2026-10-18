@@ -3,14 +3,14 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { ScopeRow } from "@/components/calendar/scope-row";
 import { LEAVE_TYPE_ORDER } from "@/components/ui/leave-classes";
 import { TranslationProvider } from "@/i18n/use-translation";
-import type { CalendarRecordType, RequestListScope } from "@/lib/local-store";
+import type { RequestListScope, WireRecordType } from "@/lib/local-store";
 
 const GROUPS = [{ groupId: "g-1", groupName: "Design" }];
 
 async function renderRow({
   scope = { kind: "mine" } as RequestListScope,
   groups = GROUPS,
-  filter = new Set<CalendarRecordType>(LEAVE_TYPE_ORDER),
+  filter = new Set<WireRecordType>(LEAVE_TYPE_ORDER),
 } = {}) {
   const handlers = { onScope: jest.fn(), onFilter: jest.fn() };
   await render(
@@ -54,7 +54,7 @@ describe("ScopeRow", () => {
   });
 
   it("renders how many types the filter keeps", async () => {
-    await renderRow({ filter: new Set<CalendarRecordType>(["SICK"]) });
+    await renderRow({ filter: new Set<WireRecordType>(["SICK"]) });
 
     expect(screen.getByTestId("calendar-filter")).toHaveTextContent("1 type");
   });

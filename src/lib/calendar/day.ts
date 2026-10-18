@@ -1,19 +1,14 @@
 import type { DayMonth } from "@/i18n/en";
 import { addDays, mondayIndex } from "@/lib/days";
 import { isoDay, type YearMonth } from "@/lib/requests/months";
-import type {
-  CalendarRecordType,
-  DayRange,
-  ListedVacation,
-  VacationStatus,
-} from "@/lib/local-store";
+import type { DayRange, ListedVacation, VacationStatus, WireRecordType } from "@/lib/local-store";
 
 /** `from` and `to` span the request the day belongs to. */
 export type DayEntry = {
   vacationId: string;
   userId: string;
   userName: string | null;
-  type: CalendarRecordType;
+  type: WireRecordType;
   status: VacationStatus;
   halfDay: boolean;
   from: string;

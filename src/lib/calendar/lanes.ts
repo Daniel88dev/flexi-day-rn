@@ -2,9 +2,9 @@ import type { Week } from "@/lib/calendar/month-grid";
 import { dayNumber } from "@/lib/days";
 import type {
   CalendarBankHoliday,
-  CalendarRecordType,
   ListedVacation,
   VacationStatus,
+  WireRecordType,
 } from "@/lib/local-store";
 import { runKey } from "@/lib/requests/runs";
 
@@ -28,7 +28,7 @@ export type CalendarRange = {
   id: string;
   userId: string | null;
   userName: string | null;
-  type: CalendarRecordType;
+  type: WireRecordType;
   status: VacationStatus;
   halfDay: boolean;
   from: string;

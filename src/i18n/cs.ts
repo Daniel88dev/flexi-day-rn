@@ -843,6 +843,7 @@ export const cs: Dictionary = {
     STUDY_LEAVE: "Studijní volno",
     BANK_HOLIDAY: "Státní svátek",
     OTHER: "Ostatní",
+    AWAY: "Pryč",
   },
   calendar: {
     today: "Dnes",

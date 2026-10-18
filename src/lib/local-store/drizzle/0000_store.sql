@@ -164,7 +164,7 @@ CREATE TABLE `vacations` (
 	`createdAt` text NOT NULL,
 	`updatedAt` text NOT NULL,
 	`generation` integer DEFAULT 0 NOT NULL,
-	CONSTRAINT "vacations_vacationType_chk" CHECK("vacations"."vacationType" in ('VACATION', 'HOME_OFFICE', 'SICK', 'SICK_DAY', 'PAID_TIME_OFF', 'NON_PAID_LEAVE', 'STUDY_LEAVE', 'BANK_HOLIDAY', 'OTHER'))
+	CONSTRAINT "vacations_vacationType_chk" CHECK("vacations"."vacationType" in ('VACATION', 'HOME_OFFICE', 'SICK', 'SICK_DAY', 'PAID_TIME_OFF', 'NON_PAID_LEAVE', 'STUDY_LEAVE', 'BANK_HOLIDAY', 'OTHER', 'AWAY'))
 );
 --> statement-breakpoint
 CREATE INDEX `vacations_groupId_requestedDay_idx` ON `vacations` (`groupId`,`requestedDay`);--> statement-breakpoint

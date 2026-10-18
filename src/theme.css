@@ -46,6 +46,7 @@
   --color-leave-study: var(--c-study);
   --color-leave-other: var(--c-other);
   --color-leave-sickday: var(--c-sickday);
+  --color-leave-away: var(--c-away);
   --radius-sm: 9.6px;
   --radius-md: 12.8px;
   --radius-lg: 16px;
@@ -69,6 +70,7 @@
   --c-study: oklch(0.66 0.14 110);
   --c-other: oklch(0.55 0.03 270);
   --c-sickday: oklch(0.62 0.14 350);
+  --c-away: oklch(0.58 0.02 60);
 
   /* Surfaces & text (light = warm paper) */
   --bg: oklch(0.985 0.008 78);
@@ -146,6 +148,7 @@
     --c-study: oklch(0.75 0.14 110);
     --c-other: oklch(0.72 0.04 270);
     --c-sickday: oklch(0.72 0.14 350);
+    --c-away: oklch(0.74 0.02 60);
 
     --background: var(--bg);
     --foreground: var(--text);

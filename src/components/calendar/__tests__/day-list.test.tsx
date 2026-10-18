@@ -263,3 +263,14 @@ describe("DayList", () => {
     });
   });
 });
+
+describe("DayList, for a teammate's redacted row", () => {
+  it("labels a teammate's Sick as Away with the pending badge, never the raw value", async () => {
+    await renderList([{ ...ENTRY, type: "AWAY" }]);
+
+    const row = screen.getByTestId("day-list-row-v-eva");
+    expect(row).toHaveTextContent(/Away · Half day · 13-15 Oct/);
+    expect(row).toHaveTextContent(/Pending/);
+    expect(row).not.toHaveTextContent(/AWAY|Sick/);
+  });
+});
