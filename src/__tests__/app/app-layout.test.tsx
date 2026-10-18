@@ -47,7 +47,9 @@ jest.mock("expo-router/ui", () => {
     Tabs: passthrough("tabs"),
     TabList: passthrough("tab-list"),
     TabSlot: passthrough("tab-slot"),
-    TabTrigger: passthrough("tab-trigger"),
+    // Keeps its route on the element, so a test can read which tab a bar button switches to.
+    TabTrigger: ({ children, href }: { children?: React.ReactNode; href: string }) =>
+      React.createElement(View, { testID: "tab-trigger", href }, children),
   };
 });
 
@@ -314,6 +316,49 @@ describe("AppLayout, the My attendance link", () => {
     await act(async () => fireEvent.press(screen.getByText("More")));
     expect(screen.getAllByText("Report")).toHaveLength(1);
     expect(screen.queryByText("My attendance")).toBeNull();
+  });
+
+  it("switches to the Report tab from the bar rather than pushing the Report page", async () => {
+    await renderShell("signed-in");
+
+    const button = await screen.findByTestId("tab-report");
+    const trigger = screen
+      .getAllByTestId("tab-trigger")
+      .find((element) => within(element).queryByTestId("tab-report"));
+    expect(trigger).toHaveProp("href", "/report-tab");
+    await act(async () => fireEvent.press(button));
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("pushes the Report page from the More sheet while My attendance holds the slot", async () => {
+    answer(attendance({ active: true }));
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(barLabels()).toContain("My attendance"));
+    await act(async () => fireEvent.press(screen.getByText("More")));
+    await act(async () => fireEvent.press(screen.getByText("Report")));
+    expect(router.push).toHaveBeenCalledWith("/report");
+  });
+
+  it("keeps the Report tab registered when My attendance takes the slot back", async () => {
+    await renderShell("signed-in");
+    await waitFor(() => expect(barLabels()).toContain("Report"));
+
+    answer(attendance({ active: true }));
+    await act(async () => queryClient.invalidateQueries());
+
+    await waitFor(() => expect(barLabels()).toContain("My attendance"));
+    const routes = screen.getAllByTestId("tab-trigger").map((element) => element.props.href);
+    expect(routes).toContain("/report-tab");
+  });
+
+  it("keeps the Report tab registered while My attendance holds the slot", async () => {
+    answer(attendance({ active: true }));
+    await renderShell("signed-in");
+
+    await waitFor(() => expect(barLabels()).toContain("My attendance"));
+    const routes = screen.getAllByTestId("tab-trigger").map((element) => element.props.href);
+    expect(routes).toContain("/report-tab");
   });
 });
 

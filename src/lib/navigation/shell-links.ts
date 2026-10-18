@@ -18,6 +18,8 @@ export type NavLink = {
   href: string;
   /** A route inside the tab layout, which stays registered even while the bar leaves it off. */
   tab?: true;
+  /** The tab route a link pushed over the shell becomes while the bar carries it. */
+  tabHref?: string;
   /** Kept off the bar and the sheet, and still reachable by a link. */
   hidden?: boolean;
 };
@@ -66,7 +68,13 @@ export function buildSections(
           href: "/requests",
           tab: true,
         },
-        { key: "report", label: t.nav.report, icon: ChartBarIcon, href: "/report" },
+        {
+          key: "report",
+          label: t.nav.report,
+          icon: ChartBarIcon,
+          href: "/report",
+          tabHref: "/report-tab",
+        },
         { key: "groups", label: t.nav.groups, icon: UsersIcon, href: "/groups" },
       ],
     },
@@ -95,7 +103,8 @@ export function buildUtilityLinks(t: Dictionary): NavLink[] {
 /**
  * Which links the tab bar carries and which stay behind More. The bar takes the first two Time
  * off links and then the first Attendance link, the same split the web's bottom bar takes; the
- * centre slot belongs to the clock and is not a link. `hiddenTabs` are the tab routes the bar
+ * centre slot belongs to the clock and is not a link. A link with a `tabHref` goes on the bar as
+ * that tab and stays in the sheet as the page it pushes. `hiddenTabs` are the tab routes the bar
  * leaves off, which the layout still registers.
  */
 export function splitForTabBar(sections: NavSection[]): {
@@ -107,9 +116,8 @@ export function splitForTabBar(sections: NavSection[]): {
     sections.find((section) => section.id === id)?.links.filter((link) => !link.hidden) ?? [];
   const timeOff = shown("timeOff");
   const attendance = shown("attendance");
-  const bar = timeOff.slice(0, 2);
   const third = attendance[0] ?? timeOff[2];
-  if (third) bar.push(third);
+  const bar = [...timeOff.slice(0, 2), ...(third ? [third] : [])].map(asTab);
   const onBar = new Set(bar.map((link) => link.key));
   const sheet = sections
     .map((section) => ({
@@ -119,6 +127,11 @@ export function splitForTabBar(sections: NavSection[]): {
     .filter((section) => section.links.length > 0);
   const hiddenTabs = sections
     .flatMap((section) => section.links)
+    .map(asTab)
     .filter((link) => link.tab && !onBar.has(link.key));
   return { bar, sheet, hiddenTabs };
+}
+
+function asTab(link: NavLink): NavLink {
+  return link.tabHref ? { ...link, href: link.tabHref, tab: true } : link;
 }
