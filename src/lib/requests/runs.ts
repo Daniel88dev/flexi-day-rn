@@ -1,5 +1,5 @@
 import { dayNumber } from "@/lib/days";
-import type { CalendarRecordType, ListedVacation, VacationStatus } from "@/lib/local-store";
+import type { ListedVacation, VacationStatus, WireRecordType } from "@/lib/local-store";
 
 /**
  * One card of the Requests list: contiguous days of one person, group, type, status, times and
@@ -14,7 +14,7 @@ export type RequestRun = {
   userName: string | null;
   groupId: string;
   groupName: string | null;
-  vacationType: CalendarRecordType;
+  vacationType: WireRecordType;
   status: VacationStatus;
   from: string;
   to: string;

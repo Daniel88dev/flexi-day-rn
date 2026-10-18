@@ -670,3 +670,155 @@ describe("pull", () => {
     expect(controller.status().inFlight).toBe(false);
   });
 });
+
+describe("pull, for a teammate's redacted row", () => {
+  // `openTestStore()` signs the store in as user-1; Bob is a teammate.
+  const BOB = "user-2";
+
+  function storedVacation(id: string) {
+    return store
+      .getDatabase()
+      .select()
+      .from(schema.vacations)
+      .all()
+      .find((row) => row.id === id);
+  }
+
+  it("stores a teammate's Away row with no note, and moves the cursor", async () => {
+    seed(syncPage(), 1, "old");
+    const { controller } = pullWith([
+      reply.page(
+        syncPage({
+          cursor: "page-1",
+          vacations: [
+            vacationRow({
+              id: "bob-sick",
+              userId: BOB,
+              createdByUserId: BOB,
+              vacationType: "AWAY",
+            }),
+          ],
+        })
+      ),
+    ]);
+
+    await controller.pull("foreground");
+
+    expect(controller.status().lastError).toBeNull();
+    expect(storedVacation("bob-sick")).toMatchObject({ vacationType: "AWAY", note: null });
+    expect(storedSyncState()?.cursor).toBe("page-1");
+  });
+
+  it("replaces a teammate's stored Sick, note and rejection reason when a sync reset re-sends the row redacted", async () => {
+    seed(
+      syncPage({
+        vacations: [
+          vacationRow({
+            id: "bob-sick",
+            userId: BOB,
+            vacationType: "SICK",
+            note: "flu, doctor's note attached",
+          }),
+          vacationRow({
+            id: "bob-rejected",
+            userId: BOB,
+            requestedDay: "2026-09-24",
+            rejectedAt: TOMBSTONED,
+            rejectedBy: "user-9",
+            rejectionReason: "too many people out",
+          }),
+        ],
+      }),
+      1,
+      "old"
+    );
+    const { controller } = pullWith([
+      reply.page(
+        syncPage({
+          reset: true,
+          cursor: "page-1",
+          vacations: [vacationRow({ id: "bob-sick", userId: BOB, vacationType: "AWAY" })],
+        })
+      ),
+    ]);
+
+    await controller.pull("foreground");
+
+    expect(controller.status().lastError).toBeNull();
+    expect(storedVacation("bob-sick")).toMatchObject({
+      vacationType: "AWAY",
+      note: null,
+      rejectionReason: null,
+    });
+    expect(storedVacation("bob-rejected")).toBeUndefined();
+    expect(storedSyncState()).toMatchObject({ cursor: "page-1", generation: 2 });
+  });
+
+  it("drops another person's content-nulled tombstone, and keeps full tombstones and the viewer's own", async () => {
+    const own = { userId: "user-1", requestedDay: "2026-09-22" };
+    seed(
+      syncPage({
+        vacations: [
+          vacationRow({ id: "bob-redacted", userId: BOB }),
+          vacationRow({ id: "bob-cancelled", userId: BOB, requestedDay: "2026-09-23" }),
+          vacationRow({ id: "bob-rejected", userId: BOB, requestedDay: "2026-09-24" }),
+          vacationRow({ id: "own-booking", ...own }),
+        ],
+      }),
+      1,
+      "old"
+    );
+    const { controller } = pullWith([
+      reply.page(
+        syncPage({
+          cursor: "page-1",
+          vacations: [
+            vacationRow({ id: "bob-redacted", userId: BOB, deletedAt: TOMBSTONED }),
+            vacationRow({
+              id: "bob-cancelled",
+              userId: BOB,
+              requestedDay: "2026-09-23",
+              deletedAt: TOMBSTONED,
+              deletedByUserId: BOB,
+            }),
+            vacationRow({
+              id: "bob-rejected",
+              userId: BOB,
+              requestedDay: "2026-09-24",
+              rejectedAt: TOMBSTONED,
+              rejectedBy: "user-9",
+              deletedAt: TOMBSTONED,
+            }),
+            vacationRow({ id: "own-booking", ...own, deletedAt: TOMBSTONED }),
+          ],
+        })
+      ),
+    ]);
+
+    await controller.pull("foreground");
+
+    expect(storedVacation("bob-redacted")).toBeUndefined();
+    expect(storedVacation("bob-cancelled")).toMatchObject({
+      deletedAt: TOMBSTONED,
+      deletedByUserId: BOB,
+    });
+    expect(storedVacation("bob-rejected")).toMatchObject({ rejectedBy: "user-9" });
+    expect(storedVacation("own-booking")).toMatchObject({ deletedAt: TOMBSTONED });
+  });
+});
+
+describe("pull, telling the backend what it can store", () => {
+  it("sends the Away capability on every page of the pull", async () => {
+    const { sync, controller } = pullWith([
+      reply.page(syncPage({ reset: true, hasMore: true, cursor: "page-1" })),
+      reply.page(syncPage({ reset: true, cursor: "page-2" })),
+    ]);
+
+    await controller.pull("foreground");
+
+    expect(sync.requests).toHaveLength(2);
+    for (const request of sync.requests) {
+      expect(request.init.headers).toMatchObject({ "x-client-sync-accepts": "away" });
+    }
+  });
+});

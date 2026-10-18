@@ -12,6 +12,12 @@ export const SYNC_PULL_PATH = "/api/sync/pull";
 
 export const PAGE_TIMEOUT_MS = 30_000;
 
+/**
+ * Tells the backend this store takes `AWAY` rows. A build without it would fail the type CHECK on
+ * one and never move its cursor again, so the backend leaves other people's Sick out for it.
+ */
+const SYNC_ACCEPTS_HEADERS = { "x-client-sync-accepts": "away" };
+
 export type PullStatus = {
   inFlight: boolean;
   lastError: string | null;
@@ -100,7 +106,10 @@ export function createPullController({
     const request = new AbortController();
     const cancelTimeout = clock.setTimeout(() => request.abort(), PAGE_TIMEOUT_MS);
     try {
-      const response = await apiFetch(pullPath(cursor), { signal: request.signal });
+      const response = await apiFetch(pullPath(cursor), {
+        signal: request.signal,
+        headers: SYNC_ACCEPTS_HEADERS,
+      });
       if (response.status === 401) throw new UnauthorizedError("The sync pull was not authorized.");
       if (response.status !== 200) {
         throw new SyncPullError(

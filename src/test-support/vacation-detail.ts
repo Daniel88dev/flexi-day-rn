@@ -2,7 +2,10 @@ import type { VacationDetail } from "@/lib/query/vacation-detail";
 
 const EVA = { id: "user-2", name: "Eva Horáková", initials: "EH", avatarColor: "hsl(20 60% 50%)" };
 
-/** A pending one-day request of Eva's, as `GET /api/vacation/:id` answers it. */
+/**
+ * A pending one-day request of Eva's, as `GET /api/vacation/:id` answers it to a viewer who may read
+ * its private details.
+ */
 export function vacationDetail(patch: Partial<VacationDetail> = {}): VacationDetail {
   return {
     id: "vacation-1",
@@ -32,6 +35,7 @@ export function vacationDetail(patch: Partial<VacationDetail> = {}): VacationDet
     canApprove: false,
     canCancel: false,
     canEdit: false,
+    canReadPrivateDetails: true,
     history: [
       {
         id: "event-1",

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
-import type { CalendarRecordType } from "@/lib/local-store";
+import type { WireRecordType } from "@/lib/local-store";
 import { processingPollInterval } from "@/lib/requests/attachments";
 
 import { qk } from "./keys";
@@ -49,7 +49,7 @@ export type VacationDetail = {
   rangeStart: string;
   rangeEnd: string;
   vacationIds: string[];
-  vacationType: CalendarRecordType;
+  vacationType: WireRecordType;
   startTime: string | null;
   endTime: string | null;
   halfDay: boolean;
@@ -73,6 +73,8 @@ export type VacationDetail = {
   /** Standing, plan, the five-file cap and retention together, as the backend reckons them. */
   canAttach?: boolean;
   canDeleteAnyAttachment?: boolean;
+  /** Whether the history and the comment box show. A backend that predates it leaves it out: false. */
+  canReadPrivateDetails?: boolean;
 };
 
 const vacationPath = (vacationId: string) => `/api/vacation/${encodeURIComponent(vacationId)}`;

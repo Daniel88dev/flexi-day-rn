@@ -395,6 +395,7 @@ function DetailBody({
   const canDecide = !readOnly && detail.canApprove;
   const canCancel = !readOnly && detail.canCancel;
   const canEdit = !readOnly && detail.canEdit;
+  const readsPrivateDetails = detail.canReadPrivateDetails === true;
 
   const openEdit = () => {
     setEditOpenings((count) => count + 1);
@@ -471,11 +472,13 @@ function DetailBody({
           />
           {detail.note ? <NoteCard note={detail.note} /> : null}
           <AttachmentSection detail={detail} readOnly={readOnly} />
-          <View>
-            <SectionLabel>{labels.history}</SectionLabel>
-            <DetailTimeline entries={mergeTimeline(detail)} />
-          </View>
-          {readOnly ? null : <CommentComposer vacationId={detail.id} />}
+          {readsPrivateDetails ? (
+            <View>
+              <SectionLabel>{labels.history}</SectionLabel>
+              <DetailTimeline entries={mergeTimeline(detail)} />
+            </View>
+          ) : null}
+          {readsPrivateDetails && !readOnly ? <CommentComposer vacationId={detail.id} /> : null}
         </ScrollView>
         {canDecide ? (
           <View

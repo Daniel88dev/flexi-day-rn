@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-/** The backend's nine calendar record types, the values `vacations.vacationType` holds. */
+/** The backend's nine stored calendar record types. */
 export const CALENDAR_RECORD_TYPES = [
   "VACATION",
   "HOME_OFFICE",
@@ -16,7 +16,12 @@ export const CALENDAR_RECORD_TYPES = [
 
 export type CalendarRecordType = (typeof CALENDAR_RECORD_TYPES)[number];
 
-const CALENDAR_RECORD_TYPE_LIST = CALENDAR_RECORD_TYPES.map((type) => `'${type}'`).join(", ");
+/** The stored types plus `AWAY`, what another person's Sick arrives as. Never sent on a write. */
+export const WIRE_RECORD_TYPES = [...CALENDAR_RECORD_TYPES, "AWAY"] as const;
+
+export type WireRecordType = (typeof WIRE_RECORD_TYPES)[number];
+
+const WIRE_RECORD_TYPE_LIST = WIRE_RECORD_TYPES.map((type) => `'${type}'`).join(", ");
 
 /** Stamped on every row a pull writes, so the sweep after a snapshot can drop what it did not re-send. */
 const generation = () => integer("generation").notNull().default(0);
@@ -149,7 +154,7 @@ export const vacations = sqliteTable(
     requestedDay: text("requestedDay").notNull(),
     startTime: text("startTime"),
     endTime: text("endTime"),
-    vacationType: text("vacationType", { enum: CALENDAR_RECORD_TYPES }).notNull(),
+    vacationType: text("vacationType", { enum: WIRE_RECORD_TYPES }).notNull(),
     halfDay: integer("halfDay", { mode: "boolean" }).notNull(),
     approvedAt: text("approvedAt"),
     approvedBy: text("approvedBy"),
@@ -171,7 +176,7 @@ export const vacations = sqliteTable(
     index("vacations_organizationId_idx").on(table.organizationId),
     check(
       "vacations_vacationType_chk",
-      sql`${table.vacationType} in (${sql.raw(CALENDAR_RECORD_TYPE_LIST)})`
+      sql`${table.vacationType} in (${sql.raw(WIRE_RECORD_TYPE_LIST)})`
     ),
   ]
 );

@@ -666,7 +666,7 @@ describe("DashboardCalendar", () => {
     await fireEvent.press(await screen.findByTestId("filter-sheet-VACATION"));
 
     expect(screen.queryByTestId("calendar-bar-mine-14")).toBeNull();
-    expect(screen.getByTestId("calendar-filter")).toHaveTextContent("8 types");
+    expect(screen.getByTestId("calendar-filter")).toHaveTextContent("9 types");
   });
 
   it("shows lanes, with no stripes and no day card, while the settings have not answered", async () => {

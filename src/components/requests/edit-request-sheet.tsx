@@ -44,7 +44,7 @@ export function EditRequestSheet({
   const patch = editPatch(detail, values);
   const changed = Object.keys(patch).length > 0;
   const saveable = canSaveEdit(values) && changed && !saving;
-  const current = detail.vacationType === "BANK_HOLIDAY" ? undefined : detail.vacationType;
+  const current = editValuesOf(detail).vacationType ?? undefined;
 
   const save = async () => {
     if (await onSave(patch)) onClose();

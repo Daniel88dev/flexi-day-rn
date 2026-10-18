@@ -4,7 +4,7 @@ import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
-import type { CalendarRecordType, VacationStatus } from "@/lib/local-store";
+import type { VacationStatus, WireRecordType } from "@/lib/local-store";
 
 const STATUS_CLASSES: Record<VacationStatus, { badge: string; text: string }> = {
   pending: { badge: "bg-warm-soft", text: "text-warm" },
@@ -23,7 +23,7 @@ export function StatusBadge({ status }: { status: VacationStatus }) {
   );
 }
 
-export function TypeBadge({ type }: { type: CalendarRecordType }) {
+export function TypeBadge({ type }: { type: WireRecordType }) {
   const { t } = useTranslation();
   const classes = LEAVE_CLASSES[type];
   return (

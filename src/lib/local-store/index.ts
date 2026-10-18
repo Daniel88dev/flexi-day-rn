@@ -46,7 +46,7 @@ export type {
   RequestScopeGroup,
   StoredRequest,
 } from "./requests";
-export type { CalendarRecordType, StoreTableName } from "./schema";
+export type { CalendarRecordType, StoreTableName, WireRecordType } from "./schema";
 export type { GroupStanding } from "./standing";
 export type { OpenStoreOptions } from "./store";
 export type {

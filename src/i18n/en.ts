@@ -820,6 +820,7 @@ export const en = {
     STUDY_LEAVE: "Study Leave",
     BANK_HOLIDAY: "Bank Holiday",
     OTHER: "Other",
+    AWAY: "Away",
   },
   calendar: {
     today: "Today",

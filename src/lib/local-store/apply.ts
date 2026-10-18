@@ -37,11 +37,21 @@ const MAX_BOUND_PARAMETERS = 900;
 
 const SYNC_STATE_ID = 1;
 
-/** What applying a row needs of it: its key, and the tombstone marker where the table has one. */
-type SyncRowKey = { id: string; deletedAt?: string | null };
+/** What applying a row needs of it: its key, and the tombstone fields where the table has them. */
+type SyncRowKey = {
+  id: string;
+  deletedAt?: string | null;
+  userId?: string | null;
+  deletedByUserId?: string | null;
+  rejectedBy?: string | null;
+};
 
-/** What a page's tombstone means for the table it arrives in. */
-type TombstonePolicy = "delete" | "keep";
+/**
+ * What a page's tombstone means for the table it arrives in. `dropRedacted` keeps tombstones as
+ * history, except another person's that arrives with its content nulled: a teammate's cancelled or
+ * rejected row. A full cancelled or rejected row always names who cancelled or rejected it.
+ */
+type TombstonePolicy = "delete" | "keep" | "dropRedacted";
 
 type SyncedTable = SQLiteTable & { id: SQLiteColumn; generation: SQLiteColumn };
 
@@ -55,7 +65,7 @@ const SYNC_TABLES: {
   groupMirrors: { table: groupMirrors, tombstones: "delete" },
   userYearQuotas: { table: userYearQuotas, tombstones: "keep" },
   bankHolidays: { table: bankHolidays, tombstones: "keep" },
-  vacations: { table: vacations, tombstones: "keep" },
+  vacations: { table: vacations, tombstones: "dropRedacted" },
   groupEvents: { table: groupEvents, tombstones: "delete" },
   birthdays: { table: birthdays, tombstones: "delete" },
 };
@@ -83,12 +93,20 @@ function applyRows<TTable extends SyncedTable>(
   table: TTable,
   rows: (InferInsertModel<TTable> & SyncRowKey)[],
   generation: number,
-  tombstones: TombstonePolicy
+  tombstones: TombstonePolicy,
+  viewerId: string | null
 ): void {
   if (rows.length === 0) return;
 
-  const tombstoned = tombstones === "delete" ? rows.filter((row) => row.deletedAt != null) : [];
-  const upserted = tombstoned.length === 0 ? rows : rows.filter((row) => row.deletedAt == null);
+  const deletes = (row: SyncRowKey) =>
+    row.deletedAt != null &&
+    (tombstones === "delete" ||
+      (tombstones === "dropRedacted" &&
+        row.userId !== viewerId &&
+        row.deletedByUserId == null &&
+        row.rejectedBy == null));
+  const tombstoned = tombstones === "keep" ? [] : rows.filter(deletes);
+  const upserted = tombstoned.length === 0 ? rows : rows.filter((row) => !deletes(row));
   const columnCount = Object.keys(getTableColumns(table)).length;
 
   for (const chunk of chunks(
@@ -120,17 +138,19 @@ function applyRows<TTable extends SyncedTable>(
 
 /**
  * Applies one page of the sync pull, tables in the envelope's order, every row stamped with the
- * generation. A cancelled booking upserts like any other row, so the phone keeps it as history.
+ * generation. A cancelled booking upserts like any other row, so the phone keeps it as history,
+ * unless it is another person's sent with its content nulled.
  */
 export function applyPage(
   transaction: StoreTransaction,
   page: SyncEnvelope,
   generation: number
 ): void {
+  const viewerId = readSyncState(transaction.db)?.userId ?? null;
   for (const name of SYNC_TABLE_NAMES) {
     const { table, tombstones } = SYNC_TABLES[name];
     // The backend deploys on its own, so a table it does not send yet reads as empty.
-    applyRows(transaction, name, table, page[name] ?? [], generation, tombstones);
+    applyRows(transaction, name, table, page[name] ?? [], generation, tombstones, viewerId);
   }
 }
 
@@ -140,7 +160,7 @@ export function applyPage(
  */
 function applyWrittenVacations(transaction: StoreTransaction, rows: SyncVacationRow[]): void {
   const generation = readSyncState(transaction.db)?.generation ?? 0;
-  applyRows(transaction, "vacations", vacations, rows, generation, "keep");
+  applyRows(transaction, "vacations", vacations, rows, generation, "keep", null);
 }
 
 /** The row a write's answer carries: the table's columns, minus the organization. */

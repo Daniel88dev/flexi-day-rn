@@ -74,3 +74,12 @@ describe("RequestCard", () => {
     expect(screen.getByTestId("request-run-vacation-1")).toHaveStyle({ opacity: 0.55 });
   });
 });
+
+describe("RequestCard, for a teammate's redacted row", () => {
+  it("labels a teammate's Sick as Away, never the raw value", async () => {
+    await renderCard({ ...RUN, vacationType: "AWAY" });
+
+    expect(screen.getByText("Away")).toBeTruthy();
+    expect(screen.queryByText("AWAY")).toBeNull();
+  });
+});
