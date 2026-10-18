@@ -5,6 +5,8 @@
 # Expo Router's Link.Menu mounts each day cell inside a zero-size native view, which keeps the cells
 # out of the accessibility tree XCUITest walks, so the days and the menu rows are tapped by point.
 # The points fit the October page with the dashboard scrolled by the second swipe below.
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
 appId: com.flexiday.app
 ---
 # A cold start reads the create rights again.
@@ -19,6 +21,9 @@ appId: com.flexiday.app
     end: 50%, 75%
     duration: 800
 - waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
 - swipe:
     start: 50%, 70%
     end: 50%, 45%

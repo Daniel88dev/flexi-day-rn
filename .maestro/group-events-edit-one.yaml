@@ -2,6 +2,8 @@
 # "This event", and see only that date change. Runs after group-events-create.yaml, on
 # 18 October 2026 on an iPhone 17 Pro, signed in as owner@dev.local (lanes view, Mine scope).
 # Day cells are tapped by point, as in group-events-create.yaml.
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
 appId: com.flexiday.app
 ---
 - launchApp:
@@ -11,6 +13,9 @@ appId: com.flexiday.app
     end: 50%, 75%
     duration: 800
 - waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
 - swipe:
     start: 50%, 70%
     end: 50%, 45%

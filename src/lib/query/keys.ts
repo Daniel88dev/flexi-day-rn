@@ -28,6 +28,9 @@ export const qk = {
   allNotifications: () => ["notifications"] as const,
   mySettings: () => ["my-settings"] as const,
   myBirthday: () => ["my-birthday"] as const,
+  groupEvents: (year: number, month: number, groupId?: string | null) =>
+    ["group-events", year, month, groupId ?? "mine"] as const,
+  allGroupEvents: () => ["group-events"] as const,
   groupEventGroups: () => ["group-events", "groups"] as const,
   /** The web keeps this one in `lib/auth/use-linked-accounts.ts`, outside its `qk`. */
   authAccounts: () => ["auth", "accounts"] as const,

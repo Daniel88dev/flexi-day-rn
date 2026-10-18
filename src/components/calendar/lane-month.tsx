@@ -47,7 +47,6 @@ type LaneMonthProps = {
   marks?: DayMarks;
   /** Group event occurrences; a multi-day one draws a ribbon along the days it covers. */
   eventSpans?: readonly EventSpan[];
-  /** Each day's group events and birthdays, for its long-press menu. */
   dayItems?: ReadonlyMap<string, DayItems>;
   onDay: (day: string) => void;
   onBar?: (vacationId: string) => void;
@@ -290,11 +289,7 @@ export function LaneMonth({
                           </Text>
                         ) : null}
                         {mark ? (
-                          <DayMark
-                            counts={mark}
-                            room={laneMarkRoom(cellWidth)}
-                            size="lane"
-                          />
+                          <DayMark counts={mark} room={laneMarkRoom(cellWidth)} size="lane" />
                         ) : null}
                       </View>
                     </Pressable>

@@ -1,10 +1,13 @@
-import { useRef } from "react";
-
 import { BottomSheet } from "@/components/calendar/bottom-sheet";
 import { GroupEventDetail } from "@/components/calendar/group-event-detail";
 import { StoreDayList, type StoreDayListProps } from "@/components/calendar/store-day-list";
+import { useAfterDismiss } from "@/components/calendar/use-after-dismiss";
+import { useShownGroupEvents } from "@/components/calendar/use-shown-group-events";
 import { useTranslation } from "@/i18n/use-translation";
 import type { CalendarGroupEvent } from "@/lib/local-store";
+import { monthOf } from "@/lib/requests/months";
+
+const NONE: readonly CalendarGroupEvent[] = [];
 
 /**
  * The lanes' day list in a sheet. A group event's detail takes the sheet's place rather than
@@ -22,24 +25,17 @@ export function DaySheet({
   ...props
 }: StoreDayListProps & {
   day: string | null;
-  /** The group event whose detail the sheet shows instead of the day list. */
   detail: CalendarGroupEvent | null;
   onDetail: (event: CalendarGroupEvent | null) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const afterCloseRef = useRef<(() => void) | null>(null);
-
-  const closeThen = (run: () => void) => {
-    afterCloseRef.current = run;
-    onClose();
-  };
-
-  const dismissed = () => {
-    const run = afterCloseRef.current;
-    afterCloseRef.current = null;
-    run?.();
-  };
+  const { closeThen, onDismiss } = useAfterDismiss(onClose);
+  const [shown] = useShownGroupEvents(
+    detail ? [detail] : NONE,
+    detail && day ? monthOf(day) : null,
+    props.scope
+  );
 
   const newEvent = onNewEvent && ((date: string) => closeThen(() => onNewEvent(date)));
   const edit = onEditEvent && ((event: CalendarGroupEvent) => closeThen(() => onEditEvent(event)));
@@ -54,13 +50,13 @@ export function DaySheet({
     <BottomSheet
       open={day !== null}
       onClose={onClose}
-      onDismiss={dismissed}
+      onDismiss={onDismiss}
       closeLabel={t.account.cancel}
       testID="day-sheet"
     >
-      {day === null ? null : detail ? (
+      {day === null ? null : shown ? (
         <GroupEventDetail
-          event={detail}
+          event={shown}
           viewerId={props.viewerId}
           onBack={() => onDetail(null)}
           onEdit={edit}

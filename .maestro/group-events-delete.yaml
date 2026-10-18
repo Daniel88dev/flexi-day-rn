@@ -1,6 +1,8 @@
 # Group events, delete (T-363): Delete on a recurring group event asks which dates go; "All events"
 # removes the rule and the date changed on its own. Runs after group-events-edit-one.yaml and
 # leaves the dev data as dev:scenario seeded it. Same device, account and points as the others.
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
 appId: com.flexiday.app
 ---
 - launchApp:
@@ -10,6 +12,9 @@ appId: com.flexiday.app
     end: 50%, 75%
     duration: 800
 - waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
 - swipe:
     start: 50%, 70%
     end: 50%, 45%

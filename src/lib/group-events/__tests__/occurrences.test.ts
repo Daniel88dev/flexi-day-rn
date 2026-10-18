@@ -19,7 +19,7 @@ const recurring = (
 const dates = (source: OccurrenceSource, from: string, to: string) =>
   occurrences(source, from, to).map((occurrence) => occurrence.startDate);
 
-// Spec section 6.4: the table every copy of `occurrences` (backend, web, phone) passes.
+// The table every copy of `occurrences` (backend, web, phone) passes.
 describe("occurrences, shared vectors", () => {
   it("returns 5, 7, 12, 14 Oct for weekly ×1 Mon,Wed from Mon 5 Oct 2026", () => {
     const source = recurring("2026-10-05", rule({ freq: "weekly", weekdays: [0, 2] }));
@@ -157,6 +157,10 @@ describe("repeatRuleOf", () => {
 
   it("returns null for a one-off", () => {
     expect(repeatRuleOf(none)).toBeNull();
+  });
+
+  it("returns null for a frequency without an interval, as the backend reads it", () => {
+    expect(repeatRuleOf({ ...none, repeatFreq: "DAILY" })).toBeNull();
   });
 
   it("returns the lowercase rule for the envelope's weekly columns", () => {

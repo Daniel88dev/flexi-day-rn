@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
-import { ActionSheetIOS, Alert, type AlertButton } from "react-native";
+import { AccessibilityInfo, ActionSheetIOS, Alert, type AlertButton } from "react-native";
 
 import { MENU_DISMISS_MS } from "@/components/calendar/day-menu";
 
@@ -19,7 +19,12 @@ import {
   vacationRow,
 } from "@/lib/local-store/test-support/sync-fixtures";
 import { openTestStore } from "@/lib/local-store/test-support/test-store";
-import { useGroupEventGroups, useMySettings, type MySettings } from "@/lib/query";
+import {
+  useGroupEventGroups,
+  useGroupEventRights,
+  useMySettings,
+  type MySettings,
+} from "@/lib/query";
 import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockWrites = {
@@ -33,6 +38,7 @@ const mockWrites = {
 jest.mock("@/lib/query", () => ({
   useMySettings: jest.fn(),
   useGroupEventGroups: jest.fn(),
+  useGroupEventRights: jest.fn(),
   canCreateGroupEvent: jest.requireActual("@/lib/query/group-events").canCreateGroupEvent,
   useGroupEventWrites: () => mockWrites,
   useWriteFailure: () => jest.fn(),
@@ -53,6 +59,12 @@ const APPROVED = "2026-10-01T08:00:00.000Z";
 
 const settingsQuery = useMySettings as jest.MockedFunction<typeof useMySettings>;
 const groupsQuery = useGroupEventGroups as jest.MockedFunction<typeof useGroupEventGroups>;
+const rightsQuery = useGroupEventRights as jest.MockedFunction<typeof useGroupEventRights>;
+
+const RIGHTS = new Map([
+  ["standup", { canEdit: false, createdBy: { id: "eva", name: "Eva Novak" } }],
+  ["offsite", { canEdit: true, createdBy: { id: VIEWER, name: "Dana Holt" } }],
+]);
 
 function answerGroups(canCreate: boolean) {
   groupsQuery.mockReturnValue({
@@ -99,6 +111,7 @@ beforeEach(async () => {
   jest.clearAllMocks();
   answerSettings(undefined);
   answerGroups(true);
+  rightsQuery.mockReturnValue(RIGHTS);
   store = await openTestStore(VIEWER);
   await pullIn({
     users: [
@@ -380,10 +393,12 @@ describe("DashboardCalendar", () => {
       await renderCalendar();
 
       for (const day of weeks) {
-        expect(screen.getByTestId(`calendar-mark-${day}-dot`)).toBeOnTheScreen();
+        expect(screen.getByTestId(`calendar-day-${day}`)).toHaveAccessibleName(/1 group event/);
       }
-      expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
-      expect(screen.queryByTestId("calendar-mark-2026-09-30")).toBeNull();
+      expect(screen.getByTestId("calendar-day-2026-10-21")).not.toHaveAccessibleName(/group event/);
+      expect(screen.getByTestId("calendar-adjacent-day-2026-09-30")).not.toHaveAccessibleName(
+        /group event/
+      );
       expect(screen.getByTestId("calendar-ribbon-offsite-2026-10-22-2026-10-19")).toBeOnTheScreen();
     });
 
@@ -392,18 +407,17 @@ describe("DashboardCalendar", () => {
       await renderCalendar();
 
       for (const day of weeks) {
-        expect(screen.getByTestId(`calendar-mark-${day}-dot`)).toBeOnTheScreen();
         expect(screen.getByTestId(`calendar-day-${day}`)).toHaveAccessibleName(/1 group event/);
       }
-      expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+      expect(screen.getByTestId("calendar-day-2026-10-21")).not.toHaveAccessibleName(/group event/);
     });
 
     it("follows the scope: Group shows only that group's events", async () => {
       answerSettings({ dashboardScope: "GROUP", dashboardGroupId: "g-platform" });
       await renderCalendar();
 
-      expect(screen.queryByTestId("calendar-mark-2026-10-14")).toBeNull();
-      expect(screen.getByTestId("calendar-mark-2026-10-22-dot")).toBeOnTheScreen();
+      expect(screen.getByTestId("calendar-day-2026-10-14")).not.toHaveAccessibleName(/group event/);
+      expect(screen.getByTestId("calendar-day-2026-10-22")).toHaveAccessibleName(/1 group event/);
     });
 
     it("lists the day's event above Away with the lock line, and opens its detail in the sheet", async () => {
@@ -463,6 +477,16 @@ describe("DashboardCalendar", () => {
         })
       );
       expect(screen.queryByTestId("group-event-editor")).toBeNull();
+    });
+
+    it("keeps plain day cells while a screen reader runs", async () => {
+      jest.spyOn(AccessibilityInfo, "isScreenReaderEnabled").mockResolvedValueOnce(true);
+      await renderCalendar();
+      await act(async () => {});
+
+      await fireEvent(screen.getByTestId("calendar-day-2026-10-14"), "longPress");
+
+      expect(screen.queryByTestId("link-menu")).toBeNull();
     });
 
     it("requests time off on the long-pressed day", async () => {
@@ -525,6 +549,18 @@ describe("DashboardCalendar", () => {
 
       expect(screen.getByTestId("group-event-editor")).toHaveTextContent(/Edit group event/);
       expect(screen.getByTestId("group-event-editor-title")).toHaveProp("value", "Team offsite");
+    });
+
+    it("shows every event locked until the server says who may change it", async () => {
+      rightsQuery.mockReturnValue(undefined);
+      await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-22"));
+
+      const card = await screen.findByTestId("day-list-event-offsite-2026-10-22");
+      expect(card).toHaveTextContent(/Only Dana or a group admin can change this/);
+      expect(screen.queryByTestId("day-list-event-offsite-2026-10-22-edit")).toBeNull();
+      expect(rightsQuery).toHaveBeenCalledWith({ year: 2026, month: 10 }, { kind: "mine" });
     });
 
     it("deletes a one-off from the menu after a plain confirm", async () => {

@@ -2,6 +2,8 @@
 # menu presents the editor. The action waits for the menu to finish dismissing (MENU_DISMISS_MS in
 # src/components/calendar/day-menu.tsx); iOS skips a sheet presented sooner. Same device, account
 # and points as group-events-create.yaml; creates nothing.
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
 appId: com.flexiday.app
 ---
 - launchApp:
@@ -11,6 +13,9 @@ appId: com.flexiday.app
     end: 50%, 75%
     duration: 800
 - waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
 - swipe:
     start: 50%, 70%
     end: 50%, 45%

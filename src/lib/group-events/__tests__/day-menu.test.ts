@@ -1,10 +1,11 @@
 import { cs } from "@/i18n/cs";
 import { en } from "@/i18n/en";
-import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
+import type { CalendarBirthday } from "@/lib/local-store";
 
 import { dayItemsOf, dayMenu } from "../day-menu";
+import type { ShownGroupEvent } from "../rights";
 
-const event = (patch: Partial<CalendarGroupEvent>): CalendarGroupEvent => ({
+const event = (patch: Partial<ShownGroupEvent>): ShownGroupEvent => ({
   id: "ge-1",
   groupId: "g-1",
   groupName: "Dev Team",
@@ -17,7 +18,7 @@ const event = (patch: Partial<CalendarGroupEvent>): CalendarGroupEvent => ({
   repeat: null,
   ruleStartDate: "2026-10-21",
   changedOnce: false,
-  creator: { id: "bob", name: "Bob Dvorak", member: true },
+  creator: { id: "bob", name: "Bob Dvorak" },
   canEdit: true,
   ...patch,
 });

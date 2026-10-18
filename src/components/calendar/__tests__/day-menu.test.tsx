@@ -3,7 +3,8 @@ import { Pressable } from "react-native";
 
 import { DayMenu, DayMenuContext, MENU_DISMISS_MS, type DayMenuActions } from "../day-menu";
 import { TranslationProvider } from "@/i18n/use-translation";
-import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
+import type { ShownGroupEvent } from "@/lib/group-events/rights";
+import type { CalendarBirthday } from "@/lib/local-store";
 
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
@@ -11,7 +12,7 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
 
-const event = (patch: Partial<CalendarGroupEvent>): CalendarGroupEvent => ({
+const event = (patch: Partial<ShownGroupEvent>): ShownGroupEvent => ({
   id: "ge-1",
   groupId: "g-1",
   groupName: "Dev Team",
@@ -24,7 +25,7 @@ const event = (patch: Partial<CalendarGroupEvent>): CalendarGroupEvent => ({
   repeat: null,
   ruleStartDate: "2026-10-21",
   changedOnce: false,
-  creator: { id: "bob", name: "Bob Dvorak", member: true },
+  creator: { id: "bob", name: "Bob Dvorak" },
   canEdit: true,
   ...patch,
 });
@@ -55,7 +56,7 @@ async function renderDay({
   birthdays = [],
 }: {
   value: DayMenuActions | null;
-  events?: CalendarGroupEvent[];
+  events?: ShownGroupEvent[];
   birthdays?: CalendarBirthday[];
 }) {
   const onDay = jest.fn();

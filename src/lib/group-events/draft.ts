@@ -150,7 +150,7 @@ export function nextDates(start: IsoDate, rule: RepeatRule): IsoDate[] {
 
 /**
  * Applies a date change: a moved start keeps the event's length, the end never falls before the
- * start, and a run of days cannot repeat (D5).
+ * start, and a run of days cannot repeat.
  */
 export function withDates(
   draft: GroupEventDraft,

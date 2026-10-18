@@ -2,9 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { GroupEventDetail, GroupEventSheet } from "@/components/calendar/group-event-detail";
 import { TranslationProvider } from "@/i18n/use-translation";
-import type { CalendarGroupEvent } from "@/lib/local-store";
+import type { ShownGroupEvent } from "@/lib/group-events/rights";
 
-const STANDUP: CalendarGroupEvent = {
+const STANDUP: ShownGroupEvent = {
   id: "standup",
   groupId: "g-design",
   groupName: "Design",
@@ -17,7 +17,7 @@ const STANDUP: CalendarGroupEvent = {
   ruleStartDate: "2026-10-07",
   repeat: { freq: "weekly", interval: 1, weekdays: [2], monthlyMode: null, until: null },
   changedOnce: false,
-  creator: { id: "eva", name: "Eva Novak", member: true },
+  creator: { id: "eva", name: "Eva Novak" },
   canEdit: false,
 };
 

@@ -1,36 +1,31 @@
 import { Link } from "expo-router";
-import { createContext, use, type ReactElement } from "react";
+import { createContext, use, useEffect, useRef, type ReactElement } from "react";
 
 import { useTranslation } from "@/i18n/use-translation";
 import { dayMenu } from "@/lib/group-events/day-menu";
+import type { ShownGroupEvent } from "@/lib/group-events/rights";
 import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
 
 /**
  * iOS skips a modal presented while the context menu is still animating away, and the menu
- * reports no dismissal, so an action that opens one waits this long (T-341's prototype).
+ * reports no dismissal, so an action that opens one waits this long.
  */
 export const MENU_DISMISS_MS = 700;
 
 export type DayMenuActions = {
-  /** New group event shows only while the scope's group, or any group in Mine, may take one. */
   canCreate: boolean;
   requestTimeOff: (date: string) => void;
   create: (date: string) => void;
-  /** Shows the event's detail from the day it was opened on. */
   open: (event: CalendarGroupEvent, date: string) => void;
   edit: (event: CalendarGroupEvent) => void;
   remove: (event: CalendarGroupEvent) => void;
 };
 
-/** The dashboard provides it; a month rendered without it keeps plain day cells. */
+/** A month rendered without it, or while a screen reader runs, keeps plain day cells. */
 export const DayMenuContext = createContext<DayMenuActions | null>(null);
 
-const afterMenu = (run: () => void) => () => {
-  setTimeout(run, MENU_DISMISS_MS);
-};
-
 /**
- * A day cell with the native context menu on long-press (D25), the cell lifted as its preview.
+ * A day cell with the native context menu on long-press, the cell lifted as its preview.
  * The `href` is only there because `Link` needs one: a tap keeps the cell's own press.
  */
 export function DayMenu({
@@ -40,13 +35,27 @@ export function DayMenu({
   children,
 }: {
   date: string;
-  events: readonly CalendarGroupEvent[];
+  events: readonly ShownGroupEvent[];
   birthdays: readonly CalendarBirthday[];
   children: ReactElement;
 }) {
   const actions = use(DayMenuContext);
   const { t } = useTranslation();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    []
+  );
+
   if (!actions) return children;
+
+  const afterMenu = (run: () => void) => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(run, MENU_DISMISS_MS);
+  };
 
   const labels = t.groupEvents.menu;
   const menu = dayMenu({ date, events, birthdays, canCreate: actions.canCreate }, t);

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { DayList } from "@/components/calendar/day-list";
+import { useShownGroupEvents } from "@/components/calendar/use-shown-group-events";
 import { dayEntries, dayWindow } from "@/lib/calendar/day";
 import { addDays } from "@/lib/days";
 import {
@@ -12,6 +13,7 @@ import {
   type CalendarRecordType,
   type RequestListScope,
 } from "@/lib/local-store";
+import { monthOf } from "@/lib/requests/months";
 
 export type StoreDayListProps = {
   scope: RequestListScope;
@@ -20,7 +22,6 @@ export type StoreDayListProps = {
   onOpen?: (vacationId: string) => void;
   onBook: (day: string) => void;
   onSettings?: () => void;
-  /** Opens a group event's detail from its card. */
   onEvent?: (event: CalendarGroupEvent) => void;
   onNewEvent?: (day: string) => void;
   onEditEvent?: (event: CalendarGroupEvent) => void;
@@ -46,7 +47,11 @@ export function StoreDayList({
   const holidays = useCalendarBankHolidays({ range, scope });
   const today = { from: day, until: addDays(day, 1) };
   const birthdays = useCalendarBirthdays({ range: today, scope });
-  const events = useCalendarGroupEvents({ range: today, scope });
+  const events = useShownGroupEvents(
+    useCalendarGroupEvents({ range: today, scope }),
+    monthOf(day),
+    scope
+  );
 
   const entries = useMemo(
     () =>

@@ -3,6 +3,8 @@
 # iPhone 17 Pro, signed in as owner@dev.local, with the owner's organization forced to Free
 # (flexi-dev dev_set_plan FREE; set PRO again afterwards). The menu's rows are system UI out of
 # Maestro's reach, so its screenshot is the check there.
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
 appId: com.flexiday.app
 ---
 # A cold start reads the create rights again.
@@ -16,6 +18,9 @@ appId: com.flexiday.app
     end: 50%, 75%
     duration: 800
 - waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
 - swipe:
     start: 50%, 70%
     end: 50%, 45%

@@ -114,8 +114,8 @@ function Choice({
 }
 
 /**
- * D26's repeat controls. `value` holds what the person picked; what shows is that rule fitted to
- * the start, so the start's weekday is always on. A run of days cannot repeat (D5).
+ * `value` holds what the person picked; what shows is that rule fitted to the start, so the
+ * start's weekday is always on. A run of days cannot repeat.
  */
 export function RepeatControls({
   start,

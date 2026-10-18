@@ -17,6 +17,7 @@ import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
 import { addedByLabel, lockLabel, ruleSummary, timeLabel } from "@/lib/group-events/labels";
+import type { ShownGroupEvent } from "@/lib/group-events/rights";
 import type { CalendarGroupEvent } from "@/lib/local-store";
 
 function DetailLine({ icon, text }: { icon: PhosphorIcon; text: string }) {
@@ -39,7 +40,7 @@ export function GroupEventDetail({
   onEdit,
   onDelete,
 }: {
-  event: CalendarGroupEvent;
+  event: ShownGroupEvent;
   viewerId: string | null;
   onBack?: () => void;
   onEdit?: (event: CalendarGroupEvent) => void;
@@ -121,7 +122,7 @@ export function GroupEventSheet({
   onEdit,
   onDelete,
 }: {
-  event: CalendarGroupEvent | null;
+  event: ShownGroupEvent | null;
   viewerId: string | null;
   onClose: () => void;
   /** Once the sheet has finished hiding, for a modal that waits on it. */

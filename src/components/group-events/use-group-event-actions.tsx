@@ -20,7 +20,7 @@ import {
 /**
  * Create, edit and delete for the dashboard calendar, with the editor sheet they open. Callers
  * present it only once their own sheet or menu has gone. A create entry shows while the scope's
- * group, or any group in Mine, may take a new group event (D2, S3).
+ * group, or any group in Mine, may take a new group event.
  */
 export function useGroupEventActions(scope: RequestListScope) {
   const { t } = useTranslation();
@@ -56,7 +56,7 @@ export function useGroupEventActions(scope: RequestListScope) {
       const send = (request: GroupEventDeleteRequest) => {
         removeEvent(stored.id, request).catch((error: unknown) =>
           writeFailure(error, {
-            queryKeys: [qk.groupEventGroups()],
+            queryKeys: [qk.allGroupEvents()],
             retry: () => send(request),
           })
         );

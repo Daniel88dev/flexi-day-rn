@@ -16,6 +16,7 @@ import {
 import { openTestStore } from "@/lib/local-store/test-support/test-store";
 
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
+jest.mock("@/lib/query", () => ({ useGroupEventRights: () => undefined }));
 
 let store: StoreRuntime;
 

@@ -67,7 +67,6 @@ const occurrence = (patch: Partial<CalendarGroupEvent>): CalendarGroupEvent => (
   ruleStartDate: "2026-10-05",
   changedOnce: false,
   creator: null,
-  canEdit: true,
   ...patch,
 });
 

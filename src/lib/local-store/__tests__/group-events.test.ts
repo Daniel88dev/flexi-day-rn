@@ -120,8 +120,7 @@ describe("calendarGroupEvents", () => {
       ruleStartDate: "2026-10-05",
       repeat: { freq: "weekly", interval: 1, weekdays: [0], monthlyMode: null, until: null },
       changedOnce: false,
-      creator: { id: "eva", name: "Eva Novak", member: true },
-      canEdit: false,
+      creator: { id: "eva", name: "Eva Novak" },
     });
   });
 
@@ -139,46 +138,6 @@ describe("calendarGroupEvents", () => {
         repeat: null,
       }),
     ]);
-  });
-
-  it("lets a group admin edit, and the creator only while still a member", () => {
-    apply({
-      groupEvents: [
-        groupEventRow({
-          id: "mine",
-          groupId: "g-design",
-          createdByUserId: VIEWER,
-          startDate: "2026-10-07",
-          endDate: "2026-10-07",
-          repeatFreq: null,
-          repeatInterval: null,
-          repeatWeekdays: null,
-        }),
-      ],
-    });
-    const canEdit = () =>
-      Object.fromEntries(
-        read({ range: OCTOBER, scope: { kind: "mine" } }).map((event) => [event.id, event.canEdit])
-      );
-
-    expect(canEdit()).toEqual({ standup: false, offsite: true, mine: true });
-
-    apply({
-      groupUsers: [
-        groupUserRow({ id: "gu-3", groupId: "g-design", userId: "eva", deletedAt: DELETED }),
-      ],
-    });
-    expect(
-      read({ range: OCTOBER, scope: { kind: "mine" } }).find((event) => event.id === "standup")
-        ?.creator
-    ).toEqual({ id: "eva", name: "Eva Novak", member: false });
-  });
-
-  it("lets the group's manager edit", () => {
-    apply({ groups: [groupRow({ id: "g-design", groupName: "Design", managerUserId: VIEWER })] });
-    expect(read({ range: OCTOBER, scope: { kind: "group", groupId: "g-design" } })[0].canEdit).toBe(
-      true
-    );
   });
 
   it("names no creator once the creator's account is gone", () => {

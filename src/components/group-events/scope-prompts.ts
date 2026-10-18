@@ -25,7 +25,7 @@ function scopeSheet(
   );
 }
 
-/** Which dates a recurring save applies to (D8); a changed rule can't apply to one date. */
+/** Which dates a recurring save applies to; a changed rule can't apply to one date. */
 export function askEditScope(
   { title, ruleChanged }: { title: string; ruleChanged: boolean },
   t: Dictionary
@@ -57,7 +57,7 @@ export function confirmDropped(
 }
 
 /**
- * D16: a recurring group event asks which dates go, a one-off a plain confirm. Both say it leaves
+ * A recurring group event asks which dates go, a one-off a plain confirm. Both say it leaves
  * every calendar with no undo. Null when the person backs out.
  */
 export function askDelete(

@@ -1,9 +1,13 @@
-import { useRef } from "react";
 import { View } from "react-native";
 
 import { GroupEventSheet } from "@/components/calendar/group-event-detail";
 import { StoreDayList, type StoreDayListProps } from "@/components/calendar/store-day-list";
+import { useAfterDismiss } from "@/components/calendar/use-after-dismiss";
+import { useShownGroupEvents } from "@/components/calendar/use-shown-group-events";
 import type { CalendarGroupEvent } from "@/lib/local-store";
+import { monthOf } from "@/lib/requests/months";
+
+const NONE: readonly CalendarGroupEvent[] = [];
 
 /**
  * The stripes calendar's day list, inline under the grid where the lanes open a sheet. A group
@@ -19,28 +23,22 @@ export function DayCard({
   detail: CalendarGroupEvent | null;
   onDetail: (event: CalendarGroupEvent | null) => void;
 }) {
-  const afterCloseRef = useRef<(() => void) | null>(null);
   const { onEditEvent, onDeleteEvent } = props;
-
-  const closeThen = (run: () => void) => {
-    afterCloseRef.current = run;
-    onDetail(null);
-  };
-
-  const dismissed = () => {
-    const run = afterCloseRef.current;
-    afterCloseRef.current = null;
-    run?.();
-  };
+  const { closeThen, onDismiss } = useAfterDismiss(() => onDetail(null));
+  const [shown] = useShownGroupEvents(
+    detail ? [detail] : NONE,
+    detail ? monthOf(day) : null,
+    props.scope
+  );
 
   return (
     <View testID="day-card" className="mx-4 rounded-[24px] border border-border bg-card pt-4 pb-2">
       <StoreDayList day={day} {...props} onEvent={onDetail} />
       <GroupEventSheet
-        event={detail}
+        event={shown ?? null}
         viewerId={props.viewerId}
         onClose={() => onDetail(null)}
-        onDismiss={dismissed}
+        onDismiss={onDismiss}
         onEdit={onEditEvent && ((event) => closeThen(() => onEditEvent(event)))}
         onDelete={onDeleteEvent && ((event) => closeThen(() => onDeleteEvent(event)))}
       />

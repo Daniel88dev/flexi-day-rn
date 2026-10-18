@@ -3,7 +3,8 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { DayList } from "@/components/calendar/day-list";
 import { TranslationProvider } from "@/i18n/use-translation";
 import type { DayEntry } from "@/lib/calendar/day";
-import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
+import type { ShownGroupEvent } from "@/lib/group-events/rights";
+import type { CalendarBirthday } from "@/lib/local-store";
 
 const ENTRY: DayEntry = {
   vacationId: "v-eva",
@@ -21,7 +22,7 @@ async function renderList(
   entries: DayEntry[],
   holidays: string[] = [],
   birthdays: CalendarBirthday[] = [],
-  events: CalendarGroupEvent[] = []
+  events: ShownGroupEvent[] = []
 ) {
   const handlers = {
     onOpen: jest.fn(),
@@ -54,7 +55,7 @@ const birthday = (patch: Partial<CalendarBirthday>): CalendarBirthday => ({
   ...patch,
 });
 
-const groupEvent = (patch: Partial<CalendarGroupEvent>): CalendarGroupEvent => ({
+const groupEvent = (patch: Partial<ShownGroupEvent>): ShownGroupEvent => ({
   id: "standup",
   groupId: "g-design",
   groupName: "Design",
@@ -67,7 +68,7 @@ const groupEvent = (patch: Partial<CalendarGroupEvent>): CalendarGroupEvent => (
   ruleStartDate: "2026-10-07",
   repeat: { freq: "weekly", interval: 1, weekdays: [2], monthlyMode: null, until: null },
   changedOnce: false,
-  creator: { id: "eva", name: "Eva Novak", member: true },
+  creator: { id: "eva", name: "Eva Novak" },
   canEdit: false,
   ...patch,
 });
@@ -186,7 +187,7 @@ describe("DayList", () => {
       endTime: null,
       repeat: null,
       ruleStartDate: "2026-10-13",
-      creator: { id: "me", name: "Dana Holt", member: true },
+      creator: { id: "me", name: "Dana Holt" },
       canEdit: true,
     });
 

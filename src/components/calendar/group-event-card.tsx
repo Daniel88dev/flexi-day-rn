@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { addedByLabel, lockLabel, ruleSummary, timeLabel } from "@/lib/group-events/labels";
+import type { ShownGroupEvent } from "@/lib/group-events/rights";
 import type { CalendarGroupEvent } from "@/lib/local-store";
 
 /** `HH:MM–HH:MM · Every week on Mon`, the card's second line. */
@@ -27,7 +28,7 @@ export function GroupEventButtons({
   onDelete,
 }: {
   testID: string;
-  event: CalendarGroupEvent;
+  event: ShownGroupEvent;
   onEdit?: (event: CalendarGroupEvent) => void;
   onDelete?: (event: CalendarGroupEvent) => void;
 }) {
@@ -71,7 +72,7 @@ export function GroupEventCard({
   onEdit,
   onDelete,
 }: {
-  event: CalendarGroupEvent;
+  event: ShownGroupEvent;
   viewerId: string | null;
   onPress?: (event: CalendarGroupEvent) => void;
   onEdit?: (event: CalendarGroupEvent) => void;

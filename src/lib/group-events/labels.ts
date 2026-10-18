@@ -74,16 +74,16 @@ export function timeLabel(
     : `${start} ${event.startTime} – ${end} ${event.endTime}`;
 }
 
-type Creator = { id: string; name: string; member: boolean } | null;
+type Creator = { id: string; name: string } | null;
 
 export function addedByLabel(creator: Creator, viewerId: string | null, t: Dictionary): string {
   if (!creator) return t.groupEvents.addedByFormerMember;
   return creator.id === viewerId ? t.groupEvents.addedByYou : t.groupEvents.addedBy(creator.name);
 }
 
-/** A creator who left keeps no rights (S2), so only the admins are named then. */
+/** Names the creator while their account exists, as the web does. */
 export function lockLabel(creator: Creator, t: Dictionary): string {
-  return creator?.member
+  return creator
     ? t.groupEvents.lockedTo(firstName(creator.name, creator.name))
     : t.groupEvents.lockedToAdmins;
 }

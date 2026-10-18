@@ -2,9 +2,10 @@ import type { Dictionary } from "@/i18n/en";
 import { birthdayLabel } from "@/lib/calendar/birthday-label";
 import { dayParts } from "@/lib/calendar/day";
 import { addDays } from "@/lib/days";
-import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
+import type { CalendarBirthday } from "@/lib/local-store";
 
 import { lockLabel, timeLabel } from "./labels";
+import type { ShownGroupEvent } from "./rights";
 
 export type DayMenuItem =
   | { kind: "requestTimeOff"; title: string }
@@ -12,7 +13,7 @@ export type DayMenuItem =
   | {
       kind: "event";
       key: string;
-      event: CalendarGroupEvent;
+      event: ShownGroupEvent;
       title: string;
       subtitle: string;
       /** Why a non-editor cannot edit or delete; null for an editor. */
@@ -21,7 +22,7 @@ export type DayMenuItem =
   | { kind: "birthday"; key: string; title: string };
 
 /**
- * The long-press menu of one day (D25): Request time off, New group event while a group may take
+ * The long-press menu of one day: Request time off, New group event while a group may take
  * one, a submenu per group event, then the day's birthdays as rows that do nothing.
  */
 export function dayMenu(
@@ -32,7 +33,7 @@ export function dayMenu(
     canCreate,
   }: {
     date: string;
-    events: readonly CalendarGroupEvent[];
+    events: readonly ShownGroupEvent[];
     birthdays: readonly CalendarBirthday[];
     canCreate: boolean;
   },
@@ -59,7 +60,7 @@ export function dayMenu(
 }
 
 export type DayItems = {
-  events: readonly CalendarGroupEvent[];
+  events: readonly ShownGroupEvent[];
   birthdays: readonly CalendarBirthday[];
 };
 
@@ -68,10 +69,10 @@ export function dayItemsOf({
   events,
   birthdays,
 }: {
-  events: readonly CalendarGroupEvent[];
+  events: readonly ShownGroupEvent[];
   birthdays: readonly CalendarBirthday[];
 }): Map<string, DayItems> {
-  const byDay = new Map<string, { events: CalendarGroupEvent[]; birthdays: CalendarBirthday[] }>();
+  const byDay = new Map<string, { events: ShownGroupEvent[]; birthdays: CalendarBirthday[] }>();
   const on = (date: string) => {
     const items = byDay.get(date) ?? { events: [], birthdays: [] };
     byDay.set(date, items);

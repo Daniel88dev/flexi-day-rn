@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { dayMarkCounts, type DayMarks, type EventSpan } from "@/lib/calendar/day-mark";
 import { gridRange } from "@/lib/calendar/month-grid";
+import { useShownGroupEvents } from "@/components/calendar/use-shown-group-events";
 import { dayItemsOf, type DayItems } from "@/lib/group-events/day-menu";
 import {
   useCalendarBirthdays,
@@ -26,12 +27,13 @@ export function useMonthMarks(
   const range = gridRange(month);
   const birthdays = useCalendarBirthdays({ range, scope });
   const events = useCalendarGroupEvents({ range, scope });
+  const shown = useShownGroupEvents(events, month, scope);
   return useMemo(
     () => ({
       marks: dayMarkCounts({ birthdays, events }),
       eventSpans: events,
-      dayItems: dayItemsOf({ events, birthdays }),
+      dayItems: dayItemsOf({ events: shown, birthdays }),
     }),
-    [birthdays, events]
+    [birthdays, events, shown]
   );
 }

@@ -53,7 +53,6 @@ export function StripeMonth({
   selected: string;
   /** Birthdays and group events per day, marked in the cell's corner. */
   marks?: DayMarks;
-  /** Each day's group events and birthdays, for its long-press menu. */
   dayItems?: ReadonlyMap<string, DayItems>;
   onDay: (day: string) => void;
 }) {
@@ -178,11 +177,7 @@ export function StripeMonth({
                       </Text>
                     </View>
                     {mark ? (
-                      <DayMark
-                        counts={mark}
-                        room={stripeMarkRoom(cellWidth)}
-                        size="stripe"
-                      />
+                      <DayMark counts={mark} room={stripeMarkRoom(cellWidth)} size="stripe" />
                     ) : null}
                   </Pressable>
                 </DayMenu>

@@ -29,6 +29,7 @@ export {
   canCreateGroupEvent,
   GROUP_EVENTS_PLAN_REQUIRED,
   useGroupEventGroups,
+  useGroupEventRights,
   useGroupEventWrites,
   type GroupEventDeleteRequest,
   type GroupEventGroup,

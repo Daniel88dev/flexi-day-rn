@@ -35,6 +35,7 @@ import {
   stepMonth,
   type YearMonth,
 } from "@/lib/requests/months";
+import { useScreenReaderEnabled } from "@/lib/use-screen-reader";
 import { useToday } from "@/lib/use-today";
 
 type PageProps = {
@@ -134,6 +135,7 @@ export function DashboardCalendar({
   const { scope, groupId } = dashboardScope({ settings, scopeChoice, groupChoice, groups });
   const ranges = useMonthRanges(month, scope, filter);
   const groupEvents = useGroupEventActions(scope);
+  const screenReader = useScreenReaderEnabled();
 
   // A day picked on one month does not follow the calendar to another.
   const showMonth = (next: YearMonth) => {
@@ -207,7 +209,9 @@ export function DashboardCalendar({
     });
 
   return (
-    <DayMenuContext value={dayMenu}>
+    // The context menu's native view takes the day cells out of the accessibility tree, so a
+    // screen reader gets plain cells; Book and New group event are in the day list as well.
+    <DayMenuContext value={screenReader ? null : dayMenu}>
       <View className="gap-3">
         <View className="gap-3 px-4">
           <CalendarHeader

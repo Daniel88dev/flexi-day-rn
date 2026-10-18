@@ -66,7 +66,6 @@ export function dayMark({
   return { cake, dot, count: counted, width: widthWith(counted) };
 }
 
-/** What a day carries into its mark. */
 export type DayMarkCounts = { birthdays: number; events: number };
 
 export type DayMarks = ReadonlyMap<string, DayMarkCounts>;

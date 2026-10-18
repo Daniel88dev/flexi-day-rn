@@ -3,6 +3,8 @@
 # 18 October 2026 on an iPhone 17 Pro, signed in as alice@dev.local (lanes view, Mine scope) after
 # dev:scenario: Bob's one-off "Quarterly planning" sits on 21 October beside Alice's own booking.
 #   npm run dev:login:rn -- alice@dev.local --to /dashboard --udid <udid>
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
 appId: com.flexiday.app
 ---
 - openLink: flexiday:///dashboard
@@ -12,6 +14,9 @@ appId: com.flexiday.app
     end: 50%, 75%
     duration: 800
 - waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
 # The day marks sit in the cells, which the day menu's native view keeps out of the accessibility
 # tree (T-363); the day sheet below is the check.
 # The day number, above the booking's bar, which would open the request instead.

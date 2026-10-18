@@ -25,35 +25,14 @@ export type CalendarGroupEvent = {
   ruleStartDate: string;
   /** A one-off that replaced one occurrence of a recurring group event. */
   changedOnce: boolean;
-  /** Null once the creator's account is gone (S5). `member`: still in the group. */
-  creator: { id: string; name: string; member: boolean } | null;
-  /** S2 as the phone can see it: the creator while a member, or a group admin or manager. */
-  canEdit: boolean;
+  /** Null once the creator's account is gone. */
+  creator: { id: string; name: string } | null;
 };
-
-type Membership = { groupId: string; adminAccess: boolean };
-
-function liveMemberships(db: StoreDatabase, userIds: string[]): Map<string, Membership[]> {
-  if (userIds.length === 0) return new Map();
-  const rows = db
-    .select({
-      userId: groupUsers.userId,
-      groupId: groupUsers.groupId,
-      adminAccess: groupUsers.adminAccess,
-    })
-    .from(groupUsers)
-    .where(and(inArray(groupUsers.userId, userIds), isNull(groupUsers.deletedAt)))
-    .all();
-  const byUser = new Map<string, Membership[]>();
-  for (const row of rows) {
-    byUser.set(row.userId, [...(byUser.get(row.userId) ?? []), row]);
-  }
-  return byUser;
-}
 
 /**
  * Mine shows the events of every group the viewer is a live member of, Group the chosen group's.
- * Each recurring group event expands into its occurrences in the range.
+ * Each recurring group event expands into its occurrences in the range. What the viewer may do
+ * with one is the server's answer, never these rows.
  */
 export function calendarGroupEvents(
   db: StoreDatabase,
@@ -70,12 +49,7 @@ export function calendarGroupEvents(
       : inArray(groupEvents.groupId, viewerGroups);
 
   const rows = db
-    .select({
-      event: groupEvents,
-      groupName: groups.groupName,
-      managerUserId: groups.managerUserId,
-      creatorName: users.name,
-    })
+    .select({ event: groupEvents, groupName: groups.groupName, creatorName: users.name })
     .from(groupEvents)
     .innerJoin(groups, eq(groups.id, groupEvents.groupId))
     .leftJoin(users, eq(users.id, groupEvents.createdByUserId))
@@ -90,29 +64,14 @@ export function calendarGroupEvents(
     .all();
   if (rows.length === 0) return [];
 
-  const creatorIds = rows.flatMap(({ event }) =>
-    event.createdByUserId ? [event.createdByUserId] : []
-  );
-  const memberships = liveMemberships(db, [...new Set([viewerId, ...creatorIds])]);
-  const memberOf = (userId: string, groupId: string) =>
-    memberships.get(userId)?.find((membership) => membership.groupId === groupId);
   const last = addDays(range.until, -1);
 
   return rows
-    .flatMap(({ event, groupName, managerUserId, creatorName }) => {
+    .flatMap(({ event, groupName, creatorName }) => {
       const repeat = repeatRuleOf(event);
-      const viewer = memberOf(viewerId, event.groupId);
       const creator = event.createdByUserId
-        ? {
-            id: event.createdByUserId,
-            name: creatorName ?? "?",
-            member: memberOf(event.createdByUserId, event.groupId) !== undefined,
-          }
+        ? { id: event.createdByUserId, name: creatorName ?? "?" }
         : null;
-      const canEdit =
-        managerUserId === viewerId ||
-        viewer?.adminAccess === true ||
-        (creator?.id === viewerId && creator.member);
 
       return occurrences(
         {
@@ -136,7 +95,6 @@ export function calendarGroupEvents(
         ruleStartDate: event.startDate,
         changedOnce: event.recurringEventId !== null,
         creator,
-        canEdit,
       }));
     })
     .sort(

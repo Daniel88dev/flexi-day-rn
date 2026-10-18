@@ -3,6 +3,7 @@ import {
   currentMonth,
   isoDay,
   monthRange,
+  monthOf,
   monthOffset,
   monthsWithin,
   requestMonthBounds,
@@ -76,6 +77,12 @@ describe("monthOffset", () => {
   it("returns how many months a month lies after the first bound", () => {
     expect(monthOffset({ year: 2026, month: 9 }, BOUNDS)).toBe(20);
     expect(monthOffset({ year: 2025, month: 1 }, BOUNDS)).toBe(0);
+  });
+});
+
+describe("monthOf", () => {
+  it("returns the month an ISO day falls in", () => {
+    expect(monthOf("2026-09-28")).toEqual({ year: 2026, month: 9 });
   });
 });
 

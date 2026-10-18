@@ -1,5 +1,5 @@
 // The backend (`src/services/groupEvent/occurrences.ts`) and the web carry their own copies of this
-// module; all three pass the spec's section 6.4 vectors, so change them together.
+// module; all three pass the same test vectors, so change them together.
 
 /** `YYYY-MM-DD`. */
 export type IsoDate = string;
@@ -49,11 +49,11 @@ const MONTHLY_MODES = {
 
 /** The backend's `repeatRuleOf`: null for a one-off. */
 export function repeatRuleOf(columns: RepeatColumns): RepeatRule | null {
-  if (columns.repeatFreq === null) return null;
+  if (columns.repeatFreq === null || columns.repeatInterval === null) return null;
   const freq = columns.repeatFreq.toLowerCase() as RepeatFreq;
   return {
     freq,
-    interval: columns.repeatInterval ?? 1,
+    interval: columns.repeatInterval,
     weekdays: freq === "weekly" ? (columns.repeatWeekdays ?? []) : [],
     monthlyMode: freq === "monthly" ? MONTHLY_MODES[columns.repeatMonthlyMode ?? "DAY"] : null,
     until: columns.repeatUntil,
@@ -84,7 +84,7 @@ const daysInMonth = (year: number, month: number): number =>
 const ymd = (year: number, month: number, day: number): IsoDate =>
   fromUtc(Date.UTC(year, month - 1, day));
 
-/** D6: a day the month lacks lands on its last day. */
+/** A day the month lacks lands on its last day. */
 const clampDay = (year: number, month: number, day: number): IsoDate =>
   ymd(year, month, Math.min(day, daysInMonth(year, month)));
 
@@ -183,7 +183,7 @@ const recurringDates = (
 /**
  * The occurrences of a group event that touch the window `from`..`to`, both inclusive, in date
  * order. A one-off answers itself when any of its days is in the window. A recurring group event
- * applies D5, D6, `until` and its skipped dates.
+ * applies its rule, `until` and its skipped dates.
  */
 export const occurrences = (source: OccurrenceSource, from: IsoDate, to: IsoDate): Occurrence[] => {
   const span = daysBetween(source.startDate, source.endDate);

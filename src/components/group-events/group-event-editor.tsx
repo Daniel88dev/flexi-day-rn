@@ -418,8 +418,8 @@ function Editor({ state, onClose }: { state: GroupEventEditorState; onClose: () 
 }
 
 /**
- * D26's page sheet for a new or changed group event. A recurring save asks which dates it applies
- * to, and warns with the count before it drops changes made to single dates (D8).
+ * The page sheet for a new or changed group event. A recurring save asks which dates it applies
+ * to, and warns with the count before it drops changes made to single dates.
  */
 export function GroupEventEditor({
   state,

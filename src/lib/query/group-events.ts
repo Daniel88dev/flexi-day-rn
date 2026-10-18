@@ -6,21 +6,61 @@ import type {
   GroupEventEditRequest,
   GroupEventScope,
 } from "@/lib/group-events/draft";
+import type { GroupEventRight, GroupEventRights } from "@/lib/group-events/rights";
 import { pull, type RequestListScope } from "@/lib/local-store";
+import type { YearMonth } from "@/lib/requests/months";
 
 import { classifyFailure } from "./failure";
 import { qk } from "./keys";
 import { apiRequest } from "./runtime";
 
-/** One row of `GET /api/group-events/groups`: `canCreate` is S2's rights and S3's plan together. */
+/** One row of `GET /api/group-events/groups`: `canCreate` covers both rights and plan. */
 export type GroupEventGroup = { groupId: string; groupName: string; canCreate: boolean };
 
-/** Plan state for the create entries: a server read, never the Local store (spec 6.6). */
 export function useGroupEventGroups() {
   return useQuery({
     queryKey: qk.groupEventGroups(),
     queryFn: ({ signal }) => apiRequest<GroupEventGroup[]>("/api/group-events/groups", { signal }),
   });
+}
+
+type GroupEventRow = { id: string } & GroupEventRight;
+
+function rightsOf(rows: GroupEventRow[]): GroupEventRights {
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      {
+        canEdit: row.canEdit,
+        createdBy: row.createdBy && { id: row.createdBy.id, name: row.createdBy.name },
+      },
+    ])
+  );
+}
+
+/**
+ * Who may change each of a month's group events, from `GET /api/group-events`. The calendar draws
+ * the events from the Local store; this read only decides Edit and Delete. No month, no read.
+ */
+export function useGroupEventRights(
+  month: YearMonth | null,
+  scope: RequestListScope
+): GroupEventRights | undefined {
+  const groupId = scope.kind === "group" ? scope.groupId : null;
+  const query = useQuery({
+    queryKey: qk.groupEvents(month?.year ?? 0, month?.month ?? 0, groupId),
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams({
+        year: String(month?.year),
+        month: String(month?.month),
+      });
+      if (groupId) params.set("groupId", groupId);
+      return apiRequest<GroupEventRow[]>(`/api/group-events?${params.toString()}`, { signal });
+    },
+    select: rightsOf,
+    enabled: month !== null,
+  });
+  return query.data;
 }
 
 /**
@@ -50,7 +90,7 @@ function scopeQuery(request: GroupEventDeleteRequest): URLSearchParams {
   return query;
 }
 
-/** How many one-off changes the edit would drop (D8), writing nothing. */
+/** How many one-off changes the edit would drop, writing nothing. */
 async function groupEventImpact(id: string, request: GroupEventEditRequest): Promise<number> {
   const query = scopeQuery(request);
   query.set("changes", JSON.stringify(request.changes));
@@ -62,17 +102,21 @@ async function groupEventImpact(id: string, request: GroupEventEditRequest): Pro
 
 /**
  * Creates, edits and deletes group events. The calendar reads the Local store, so each write ends
- * in a pull. A refusal reads the create rights again and pulls, since the screen acted on a stale
- * answer; the caller words the failure, because it knows where the person is looking.
+ * in a pull, and the rights are read again. A refusal does the same, since the screen acted on a
+ * stale answer; the caller words the failure, because it knows where the person is looking.
  */
 export function useGroupEventWrites() {
   const queryClient = useQueryClient();
+  const readAgain = () => void queryClient.invalidateQueries({ queryKey: qk.allGroupEvents() });
 
   const options = {
-    onSuccess: () => void pull("after-write").catch(() => undefined),
+    onSuccess: () => {
+      readAgain();
+      void pull("after-write").catch(() => undefined);
+    },
     onError: (error: unknown) => {
       if (classifyFailure(error).kind !== "refusal") return;
-      void queryClient.invalidateQueries({ queryKey: qk.groupEventGroups() });
+      readAgain();
       void pull("refresh").catch(() => undefined);
     },
   };

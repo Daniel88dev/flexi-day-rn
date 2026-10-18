@@ -99,7 +99,7 @@ describe("timeLabel", () => {
 
 describe("addedByLabel", () => {
   it("returns who added the event, the viewer as you, a deleted account as a former member", () => {
-    const creator = { id: "eva", name: "Eva Novak", member: true };
+    const creator = { id: "eva", name: "Eva Novak" };
     expect(addedByLabel(creator, "me", en)).toBe("Added by Eva Novak");
     expect(addedByLabel({ ...creator, id: "me" }, "me", en)).toBe("Added by you");
     expect(addedByLabel(null, "me", en)).toBe("Added by a former member");
@@ -107,10 +107,10 @@ describe("addedByLabel", () => {
 });
 
 describe("lockLabel", () => {
-  it("returns the creator's first name while they are a member, otherwise the admins", () => {
-    const creator = { id: "eva", name: "Eva Novak", member: true };
-    expect(lockLabel(creator, en)).toBe("Only Eva or a group admin can change this");
-    expect(lockLabel({ ...creator, member: false }, en)).toBe("Only a group admin can change this");
+  it("returns the creator's first name, or only the admins once their account is gone", () => {
+    expect(lockLabel({ id: "eva", name: "Eva Novak" }, en)).toBe(
+      "Only Eva or a group admin can change this"
+    );
     expect(lockLabel(null, cs)).toBe("Změnit ji může jen správce skupiny");
   });
 });

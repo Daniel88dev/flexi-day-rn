@@ -12,6 +12,7 @@ import { useTranslation } from "@/i18n/use-translation";
 import { birthdayLabel } from "@/lib/calendar/birthday-label";
 import { dayParts, type DayEntry } from "@/lib/calendar/day";
 import { cn } from "@/lib/cn";
+import type { ShownGroupEvent } from "@/lib/group-events/rights";
 import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
 import { runDatesLabel } from "@/lib/requests/format";
 
@@ -108,7 +109,7 @@ function BirthdayRow({
 }
 
 const NO_BIRTHDAYS: readonly CalendarBirthday[] = [];
-const NO_EVENTS: readonly CalendarGroupEvent[] = [];
+const NO_EVENTS: readonly ShownGroupEvent[] = [];
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -138,8 +139,7 @@ export function DayList({
   entries: readonly DayEntry[];
   holidays: readonly string[];
   birthdays?: readonly CalendarBirthday[];
-  /** The group event occurrences covering the day. */
-  events?: readonly CalendarGroupEvent[];
+  events?: readonly ShownGroupEvent[];
   viewerId: string | null;
   onOpen?: (vacationId: string) => void;
   onBook: (day: string) => void;
