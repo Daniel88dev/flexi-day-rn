@@ -6,13 +6,13 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
-import { DayMark, markLabels } from "@/components/calendar/day-mark";
+import { DayMark, EventRibbons, markLabels } from "@/components/calendar/day-mark";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
-import { laneMarkRoom, type DayMarks } from "@/lib/calendar/day-mark";
+import { laneMarkRoom, type DayMarks, type EventSpan } from "@/lib/calendar/day-mark";
 import { placeWeek, type CalendarRange, type PlacedBar } from "@/lib/calendar/lanes";
 import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { cn } from "@/lib/cn";
@@ -41,6 +41,8 @@ type LaneMonthProps = {
   today: string;
   /** Birthdays and group events per day; they take no lanes. */
   marks?: DayMarks;
+  /** Group event occurrences; a multi-day one draws a ribbon along the days it covers. */
+  eventSpans?: readonly EventSpan[];
   onDay: (day: string) => void;
   onBar?: (vacationId: string) => void;
   onMore: (day: string) => void;
@@ -165,6 +167,7 @@ export function LaneMonth({
   viewerId,
   today,
   marks,
+  eventSpans,
   onDay,
   onBar,
   onMore,
@@ -280,6 +283,9 @@ export function LaneMonth({
                 );
               })}
               <MonthSeam week={week} cellWidth={cellWidth} />
+              {eventSpans ? (
+                <EventRibbons week={week} spans={eventSpans} cellWidth={cellWidth} />
+              ) : null}
               {bank.map((bar) => {
                 const iso = week[bar.startColumn].date;
                 return (

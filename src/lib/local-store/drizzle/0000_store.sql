@@ -24,6 +24,33 @@ CREATE TABLE `birthdays` (
 );
 --> statement-breakpoint
 CREATE INDEX `birthdays_month_day_idx` ON `birthdays` (`month`,`day`);--> statement-breakpoint
+CREATE TABLE `groupEvents` (
+	`id` text PRIMARY KEY NOT NULL,
+	`groupId` text NOT NULL,
+	`organizationId` text NOT NULL,
+	`createdByUserId` text,
+	`title` text,
+	`note` text,
+	`startDate` text NOT NULL,
+	`endDate` text NOT NULL,
+	`startTime` text,
+	`endTime` text,
+	`repeatFreq` text,
+	`repeatInterval` integer,
+	`repeatWeekdays` text,
+	`repeatMonthlyMode` text,
+	`repeatUntil` text,
+	`skippedDates` text NOT NULL,
+	`recurringEventId` text,
+	`originalDate` text,
+	`deletedAt` text,
+	`createdAt` text NOT NULL,
+	`updatedAt` text NOT NULL,
+	`generation` integer DEFAULT 0 NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX `groupEvents_groupId_idx` ON `groupEvents` (`groupId`);--> statement-breakpoint
+CREATE INDEX `groupEvents_organizationId_idx` ON `groupEvents` (`organizationId`);--> statement-breakpoint
 CREATE TABLE `groupMirrors` (
 	`id` text PRIMARY KEY NOT NULL,
 	`userId` text NOT NULL,

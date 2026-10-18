@@ -219,6 +219,8 @@ describe("schema", () => {
       [
         "bankHolidays_country_date_idx",
         "birthdays_month_day_idx",
+        "groupEvents_groupId_idx",
+        "groupEvents_organizationId_idx",
         "groupMirrors_organizationId_idx",
         "groupUsers_groupId_idx",
         "groupUsers_organizationId_idx",

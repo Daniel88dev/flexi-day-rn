@@ -16,6 +16,12 @@ const czechFew = (count: number) => Number.isInteger(count) && count >= 2 && cou
 const czechPlural = (count: number, one: string, few: string, many: string) =>
   count === 1 ? one : count >= 2 && count <= 4 ? few : many;
 
+/** "Každé 2 týdny", "Každých 5 let"; one is the plain "Každý týden". */
+const everyCs = (n: number, once: string, few: string, many: string) =>
+  n === 1
+    ? once
+    : `${czechPlural(n, "Každý", "Každé", "Každých")} ${n} ${czechPlural(n, "", few, many)}`;
+
 const MONTHS_GENITIVE_CS = [
   "ledna",
   "února",
@@ -1161,6 +1167,39 @@ export const cs: Dictionary = {
     forbidden: "Není ve vašem reportu",
     forbiddenBody:
       "Tento člověk není ve skupině, jejíž report vidíte, nebo jeho účet už neexistuje.",
+  },
+  groupEvents: {
+    section: "Skupinové události",
+    away: "Pryč",
+    allDay: "Celý den",
+    changedOnce: "Změněno jen pro tento den",
+    addedBy: (name: string) => `Autor: ${name}`,
+    addedByYou: "Autor: vy",
+    addedByFormerMember: "Autor: bývalý člen skupiny",
+    lockedTo: (name: string) => `Změnit ji může jen ${name} nebo správce skupiny`,
+    lockedToAdmins: "Změnit ji může jen správce skupiny",
+    back: "Zpět",
+    close: "Zavřít",
+    count: (count: number) =>
+      `${count} ${czechPlural(count, "skupinová událost", "skupinové události", "skupinových událostí")}`,
+    weekdaysLong: ["pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota", "neděle"],
+    dayMonth: (date: DayMonth) => `${date.day}. ${MONTHS_GENITIVE_CS[date.month - 1]}`,
+    fullDate: (date: DayMonth & { year: number }) =>
+      `${date.day}. ${MONTHS_GENITIVE_CS[date.month - 1]} ${date.year}`,
+    repeat: {
+      daily: (n: number) => everyCs(n, "Každý den", "dny", "dní"),
+      weekly: (n: number, days: string) =>
+        `${everyCs(n, "Každý týden", "týdny", "týdnů")}: ${days}`,
+      everyWeekday: "Každý pracovní den",
+      monthlyOnDay: (n: number, day: number) =>
+        `${everyCs(n, "Každý měsíc", "měsíce", "měsíců")}, ${day}. den`,
+      monthlyOnWeekday: (n: number, nth: number, weekday: string) =>
+        `${everyCs(n, "Každý měsíc", "měsíce", "měsíců")}, ${nth}. ${weekday}`,
+      monthlyOnLastWeekday: (n: number, weekday: string) =>
+        `${everyCs(n, "Každý měsíc", "měsíce", "měsíců")}, poslední ${weekday}`,
+      yearly: (n: number, date: string) => `${everyCs(n, "Každý rok", "roky", "let")}, ${date}`,
+      until: (summary: string, date: string) => `${summary}, do ${date}`,
+    },
   },
   common: {
     locale: "cs-CZ",

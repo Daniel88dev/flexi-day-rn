@@ -57,7 +57,7 @@ function MonthPage({
   ...props
 }: PageProps & { month: YearMonth }) {
   const ranges = useMonthRanges(month, scope, filter);
-  const marks = useMonthMarks(month, scope);
+  const { marks, eventSpans } = useMonthMarks(month, scope);
   return view === "stripes" ? (
     <StripeMonth
       month={month}
@@ -72,6 +72,7 @@ function MonthPage({
       month={month}
       ranges={ranges}
       marks={marks}
+      eventSpans={eventSpans}
       onDay={onDay}
       onMore={onDay}
       onBar={onBar}

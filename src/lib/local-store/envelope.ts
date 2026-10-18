@@ -4,6 +4,7 @@ import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import type {
   bankHolidays,
   birthdays,
+  groupEvents,
   groupMirrors,
   groupUsers,
   groups,
@@ -23,6 +24,7 @@ export const SYNC_TABLE_NAMES = [
   "userYearQuotas",
   "bankHolidays",
   "vacations",
+  "groupEvents",
   "birthdays",
 ] as const;
 
@@ -39,6 +41,7 @@ export type SyncGroupMirrorRow = SyncRow<typeof groupMirrors>;
 export type SyncUserYearQuotaRow = SyncRow<typeof userYearQuotas>;
 export type SyncBankHolidayRow = SyncRow<typeof bankHolidays>;
 export type SyncVacationRow = SyncRow<typeof vacations>;
+export type SyncGroupEventRow = SyncRow<typeof groupEvents>;
 export type SyncBirthdayRow = SyncRow<typeof birthdays>;
 
 /** One page of `GET /api/sync/pull`, mirroring the backend's `SyncEnvelope`. */
@@ -56,6 +59,8 @@ export type SyncEnvelope = {
   userYearQuotas: SyncUserYearQuotaRow[];
   bankHolidays: SyncBankHolidayRow[];
   vacations: SyncVacationRow[];
+  /** Absent from a backend that predates group events. */
+  groupEvents?: SyncGroupEventRow[];
   /** Absent from a backend that predates birthdays. */
   birthdays?: SyncBirthdayRow[];
 };

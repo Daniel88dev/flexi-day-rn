@@ -177,6 +177,44 @@ export const vacations = sqliteTable(
 );
 
 /**
+ * One row per group event as the pull sends it, the rule in flat columns with the backend's
+ * uppercase enums. A tombstone keeps only the key, the group and the dates, and is deleted here.
+ */
+export const groupEvents = sqliteTable(
+  "groupEvents",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("groupId").notNull(),
+    organizationId: text("organizationId").notNull(),
+    createdByUserId: text("createdByUserId"),
+    title: text("title"),
+    note: text("note"),
+    startDate: text("startDate").notNull(),
+    endDate: text("endDate").notNull(),
+    startTime: text("startTime"),
+    endTime: text("endTime"),
+    repeatFreq: text("repeatFreq", { enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"] }),
+    repeatInterval: integer("repeatInterval"),
+    repeatWeekdays: text("repeatWeekdays", { mode: "json" }).$type<number[]>(),
+    repeatMonthlyMode: text("repeatMonthlyMode", {
+      enum: ["DAY", "NTH_WEEKDAY", "LAST_WEEKDAY"],
+    }),
+    repeatUntil: text("repeatUntil"),
+    skippedDates: text("skippedDates", { mode: "json" }).$type<string[]>().notNull(),
+    recurringEventId: text("recurringEventId"),
+    originalDate: text("originalDate"),
+    deletedAt: text("deletedAt"),
+    createdAt: text("createdAt").notNull(),
+    updatedAt: text("updatedAt").notNull(),
+    generation: generation(),
+  },
+  (table) => [
+    index("groupEvents_groupId_idx").on(table.groupId),
+    index("groupEvents_organizationId_idx").on(table.organizationId),
+  ]
+);
+
+/**
  * Keyed by its owner: the pull sends `id` = `userId`. A birthday the viewer may no longer see
  * arrives as a tombstone, so a row here is one the viewer saw at the last pull.
  */
@@ -219,6 +257,7 @@ export const schema = {
   userYearQuotas,
   bankHolidays,
   vacations,
+  groupEvents,
   birthdays,
   syncState,
 };

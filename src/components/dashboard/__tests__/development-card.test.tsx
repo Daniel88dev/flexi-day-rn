@@ -23,6 +23,7 @@ const COUNTS = {
   userYearQuotas: 6,
   bankHolidays: 7,
   vacations: 8,
+  groupEvents: 10,
   birthdays: 9,
 };
 

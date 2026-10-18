@@ -2,6 +2,7 @@ import { CakeIcon, CaretRightIcon, PlusIcon } from "phosphor-react-native";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { BIRTHDAY_PINK } from "@/components/calendar/day-mark";
+import { GroupEventCard } from "@/components/calendar/group-event-card";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { SendingBadge, StatusBadge } from "@/components/requests/badges";
 import { Icon } from "@/components/ui/icon";
@@ -10,7 +11,7 @@ import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts, type DayEntry } from "@/lib/calendar/day";
 import { cn } from "@/lib/cn";
-import type { CalendarBirthday } from "@/lib/local-store";
+import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
 import { runDatesLabel } from "@/lib/requests/format";
 import { firstName } from "@/lib/viewer/viewer";
 
@@ -114,6 +115,15 @@ function BirthdayRow({
 }
 
 const NO_BIRTHDAYS: readonly CalendarBirthday[] = [];
+const NO_EVENTS: readonly CalendarGroupEvent[] = [];
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <Text className="px-2 pt-1 pb-1.5 text-[11px] font-bold tracking-[1px] text-faint uppercase">
+      {children}
+    </Text>
+  );
+}
 
 /** The lanes calendar shows this list in a sheet; the stripes calendar shows it inline. */
 export function DayList({
@@ -121,24 +131,31 @@ export function DayList({
   entries,
   holidays,
   birthdays = NO_BIRTHDAYS,
+  events = NO_EVENTS,
   viewerId,
   onOpen,
   onBook,
   onSettings,
+  onEvent,
 }: {
   day: string;
   entries: readonly DayEntry[];
   holidays: readonly string[];
   birthdays?: readonly CalendarBirthday[];
+  /** The group event occurrences covering the day. */
+  events?: readonly CalendarGroupEvent[];
   viewerId: string | null;
   onOpen?: (vacationId: string) => void;
   onBook: (day: string) => void;
   onSettings?: () => void;
+  onEvent?: (event: CalendarGroupEvent) => void;
 }) {
   const { t } = useTranslation();
   const labels = t.dashboard.calendar;
   const { weekday, date } = dayParts(day);
   const title = t.calendar.dayTitle(weekday, date);
+  const upper = events.length > 0 || birthdays.length > 0;
+  const away = entries.length > 0 || holidays.length > 0;
 
   return (
     <View testID="day-list" className="shrink">
@@ -149,9 +166,19 @@ export function DayList({
         </Text>
       </View>
       <ScrollView className="shrink px-3">
+        {events.length > 0 ? <SectionLabel>{t.groupEvents.section}</SectionLabel> : null}
+        {events.map((event) => (
+          <GroupEventCard
+            key={`${event.id}-${event.startDate}`}
+            event={event}
+            viewerId={viewerId}
+            onPress={onEvent}
+          />
+        ))}
         {birthdays.map((birthday) => (
           <BirthdayRow key={birthday.userId} birthday={birthday} onSettings={onSettings} />
         ))}
+        {upper && away ? <SectionLabel>{t.groupEvents.away}</SectionLabel> : null}
         {holidays.map((name) => (
           <View
             key={name}

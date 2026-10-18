@@ -1,3 +1,5 @@
+import { addDays } from "@/lib/days";
+
 /**
  * The mark a day cell carries for its birthdays and group events: one cake however many
  * birthdays, at most one dot however many events, and the event count beside the dot only when
@@ -64,20 +66,50 @@ export function dayMark({
   return { cake, dot, count: counted, width: widthWith(counted) };
 }
 
-/** What a day carries into its mark. Group events (T-361) add their count to `events`. */
+/** What a day carries into its mark. */
 export type DayMarkCounts = { birthdays: number; events: number };
 
 export type DayMarks = ReadonlyMap<string, DayMarkCounts>;
 
+/** A group event occurrence counts on every day it covers. */
 export function dayMarkCounts({
   birthdays,
+  events,
 }: {
   birthdays: readonly { date: string }[];
+  events: readonly { startDate: string; endDate: string }[];
 }): Map<string, DayMarkCounts> {
   const marks = new Map<string, DayMarkCounts>();
+  const add = (date: string, patch: (mark: DayMarkCounts) => DayMarkCounts) =>
+    marks.set(date, patch(marks.get(date) ?? { birthdays: 0, events: 0 }));
   for (const { date } of birthdays) {
-    const mark = marks.get(date) ?? { birthdays: 0, events: 0 };
-    marks.set(date, { ...mark, birthdays: mark.birthdays + 1 });
+    add(date, (mark) => ({ ...mark, birthdays: mark.birthdays + 1 }));
+  }
+  for (const { startDate, endDate } of events) {
+    for (let date = startDate; date <= endDate; date = addDays(date, 1)) {
+      add(date, (mark) => ({ ...mark, events: mark.events + 1 }));
+    }
   }
   return marks;
+}
+
+/** A multi-day occurrence's ribbon in one week: columns `startColumn` up to, not including, `endColumn`. */
+export type WeekRibbon = { key: string; startColumn: number; endColumn: number };
+
+/** A group event occurrence, both ends inclusive. */
+export type EventSpan = { id: string; startDate: string; endDate: string };
+
+export function weekRibbons(week: readonly string[], spans: readonly EventSpan[]): WeekRibbon[] {
+  const first = week[0];
+  const last = week[week.length - 1];
+  return spans.flatMap(({ id, startDate, endDate }) => {
+    if (startDate === endDate || endDate < first || startDate > last) return [];
+    return [
+      {
+        key: `${id}:${startDate}`,
+        startColumn: startDate < first ? 0 : week.indexOf(startDate),
+        endColumn: endDate > last ? week.length : week.indexOf(endDate) + 1,
+      },
+    ];
+  });
 }

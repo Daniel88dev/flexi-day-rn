@@ -6,7 +6,9 @@ import { addDays } from "@/lib/days";
 import {
   useCalendarBankHolidays,
   useCalendarBirthdays,
+  useCalendarGroupEvents,
   useCalendarVacations,
+  type CalendarGroupEvent,
   type CalendarRecordType,
   type RequestListScope,
 } from "@/lib/local-store";
@@ -18,6 +20,8 @@ export type StoreDayListProps = {
   onOpen?: (vacationId: string) => void;
   onBook: (day: string) => void;
   onSettings?: () => void;
+  /** Opens a group event's detail from its card. */
+  onEvent?: (event: CalendarGroupEvent) => void;
 };
 
 /** The day list over the Local store's rows for the scope and filter the calendar shows. */
@@ -29,11 +33,14 @@ export function StoreDayList({
   onOpen,
   onBook,
   onSettings,
+  onEvent,
 }: StoreDayListProps & { day: string }) {
   const range = dayWindow(day);
   const rows = useCalendarVacations({ range, scope });
   const holidays = useCalendarBankHolidays({ range, scope });
-  const birthdays = useCalendarBirthdays({ range: { from: day, until: addDays(day, 1) }, scope });
+  const today = { from: day, until: addDays(day, 1) };
+  const birthdays = useCalendarBirthdays({ range: today, scope });
+  const events = useCalendarGroupEvents({ range: today, scope });
 
   const entries = useMemo(
     () =>
@@ -54,10 +61,12 @@ export function StoreDayList({
       entries={entries}
       holidays={[...new Set(names)]}
       birthdays={birthdays}
+      events={events}
       viewerId={viewerId}
       onOpen={onOpen}
       onBook={onBook}
       onSettings={onSettings}
+      onEvent={onEvent}
     />
   );
 }

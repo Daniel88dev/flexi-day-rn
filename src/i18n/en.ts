@@ -1115,6 +1115,39 @@ export const en = {
     forbiddenBody:
       "This person isn't in a group whose report you can see, or their account no longer exists.",
   },
+  groupEvents: {
+    section: "Group events",
+    away: "Away",
+    allDay: "All day",
+    changedOnce: "Changed for this date only",
+    addedBy: (name: string) => `Added by ${name}`,
+    addedByYou: "Added by you",
+    addedByFormerMember: "Added by a former member",
+    lockedTo: (name: string) => `Only ${name} or a group admin can change this`,
+    lockedToAdmins: "Only a group admin can change this",
+    back: "Back",
+    close: "Close",
+    count: (count: number) => `${count} ${count === 1 ? "group event" : "group events"}`,
+    weekdaysLong: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    dayMonth: (date: DayMonth) => `${date.day} ${en.calendar.months[date.month - 1]}`,
+    fullDate: (date: DayMonth & { year: number }) =>
+      `${date.day} ${en.calendar.months[date.month - 1]} ${date.year}`,
+    repeat: {
+      daily: (n: number) => (n === 1 ? "Every day" : `Every ${n} days`),
+      weekly: (n: number, days: string) =>
+        `${n === 1 ? "Every week" : `Every ${n} weeks`} on ${days}`,
+      everyWeekday: "Every weekday",
+      monthlyOnDay: (n: number, day: number) =>
+        `${n === 1 ? "Every month" : `Every ${n} months`} on day ${day}`,
+      monthlyOnWeekday: (n: number, nth: number, weekday: string) =>
+        `${n === 1 ? "Every month" : `Every ${n} months`} on the ${["1st", "2nd", "3rd", "4th"][nth - 1]} ${weekday}`,
+      monthlyOnLastWeekday: (n: number, weekday: string) =>
+        `${n === 1 ? "Every month" : `Every ${n} months`} on the last ${weekday}`,
+      yearly: (n: number, date: string) =>
+        `${n === 1 ? "Every year" : `Every ${n} years`} on ${date}`,
+      until: (summary: string, date: string) => `${summary}, until ${date}`,
+    },
+  },
   common: {
     locale: "en-GB",
     decimalSeparator: ".",

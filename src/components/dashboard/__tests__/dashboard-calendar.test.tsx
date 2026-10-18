@@ -9,6 +9,7 @@ import type { StoreRuntime } from "@/lib/local-store/runtime";
 import {
   bankHolidayRow,
   birthdayRow,
+  groupEventRow,
   groupRow,
   groupUserRow,
   syncPage,
@@ -297,6 +298,109 @@ describe("DashboardCalendar", () => {
 
       expect(onSettings).toHaveBeenCalledTimes(1);
       expect(screen.queryByTestId("day-list")).toBeNull();
+    });
+  });
+
+  describe("with group events pulled", () => {
+    const weeks = ["2026-10-07", "2026-10-14", "2026-10-28"];
+
+    beforeEach(() =>
+      pullIn({
+        groupEvents: [
+          groupEventRow({
+            id: "standup",
+            groupId: "g-design",
+            createdByUserId: "eva",
+            startDate: "2026-10-07",
+            endDate: "2026-10-07",
+            repeatWeekdays: [2],
+            skippedDates: ["2026-10-21"],
+          }),
+          groupEventRow({
+            id: "offsite",
+            groupId: "g-platform",
+            createdByUserId: VIEWER,
+            title: "Team offsite",
+            startDate: "2026-10-22",
+            endDate: "2026-10-23",
+            startTime: null,
+            endTime: null,
+            repeatFreq: null,
+            repeatInterval: null,
+            repeatWeekdays: null,
+          }),
+        ],
+      })
+    );
+
+    it("marks a weekly event on each week in Lanes, and nothing on its skipped date", async () => {
+      await renderCalendar();
+
+      for (const day of weeks) {
+        expect(screen.getByTestId(`calendar-mark-${day}-dot`)).toBeOnTheScreen();
+      }
+      expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+      expect(screen.queryByTestId("calendar-mark-2026-09-30")).toBeNull();
+      expect(screen.getByTestId("calendar-ribbon-offsite-2026-10-22-2026-10-19")).toBeOnTheScreen();
+    });
+
+    it("marks a weekly event on each week in Stripes, and nothing on its skipped date", async () => {
+      answerSettings({ dashboardCalendarView: "STRIPES" });
+      await renderCalendar();
+
+      for (const day of weeks) {
+        expect(screen.getByTestId(`calendar-mark-${day}-dot`)).toBeOnTheScreen();
+        expect(screen.getByTestId(`calendar-day-${day}`)).toHaveAccessibleName(/1 group event/);
+      }
+      expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+    });
+
+    it("follows the scope: Group shows only that group's events", async () => {
+      answerSettings({ dashboardScope: "GROUP", dashboardGroupId: "g-platform" });
+      await renderCalendar();
+
+      expect(screen.queryByTestId("calendar-mark-2026-10-14")).toBeNull();
+      expect(screen.getByTestId("calendar-mark-2026-10-22-dot")).toBeOnTheScreen();
+    });
+
+    it("lists the day's event above Away with the lock line, and opens its detail in the sheet", async () => {
+      await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-14"));
+      const card = await screen.findByTestId("day-list-event-standup-2026-10-14");
+      expect(card).toHaveTextContent(/Only Eva or a group admin can change this/);
+      expect(screen.getByTestId("day-list")).toHaveTextContent(
+        /Group events.*Weekly standup.*Away/
+      );
+
+      await fireEvent.press(card);
+      expect(screen.getByTestId("group-event-detail")).toHaveTextContent(
+        /Weekly standup.*Wed 14 Oct.*Every week on Wed.*Design · Added by Eva Novak/
+      );
+      expect(screen.queryByTestId("day-list")).toBeNull();
+
+      await fireEvent.press(screen.getByTestId("group-event-detail-back"));
+      expect(screen.getByTestId("day-list")).toBeOnTheScreen();
+    });
+
+    it("lists a multi-day event on each of its days, without the lock line for its creator", async () => {
+      await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-23"));
+
+      const card = await screen.findByTestId("day-list-event-offsite-2026-10-22");
+      expect(card).toHaveTextContent(/Thu 22 Oct – Fri 23 Oct · All day.*Added by you · Platform/);
+      expect(card).not.toHaveTextContent(/can change this/);
+    });
+
+    it("opens an event's detail sheet from the stripes' day card", async () => {
+      answerSettings({ dashboardCalendarView: "STRIPES" });
+      await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("day-list-event-standup-2026-10-14"));
+
+      expect(screen.getByTestId("group-event-sheet")).toHaveTextContent(/Weekly standup/);
+      expect(screen.getByTestId("day-card")).toBeOnTheScreen();
     });
   });
 
