@@ -60,6 +60,33 @@ describe("GroupEventDetail", () => {
     expect(detail).not.toHaveTextContent(/Every/);
   });
 
+  it("offers an editor Edit and Delete, and a non-editor neither", async () => {
+    const onEdit = jest.fn();
+    const onDelete = jest.fn();
+    await render(
+      <TranslationProvider>
+        <GroupEventDetail event={STANDUP} viewerId="me" onEdit={onEdit} onDelete={onDelete} />
+      </TranslationProvider>
+    );
+    expect(screen.queryByTestId("group-event-detail-edit")).toBeNull();
+
+    await render(
+      <TranslationProvider>
+        <GroupEventDetail
+          event={{ ...STANDUP, canEdit: true }}
+          viewerId="me"
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      </TranslationProvider>
+    );
+    await fireEvent.press(screen.getByTestId("group-event-detail-edit"));
+    await fireEvent.press(screen.getByTestId("group-event-detail-delete"));
+
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: "standup" }));
+    expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: "standup" }));
+  });
+
   it("goes back from a Back button when it has one", async () => {
     const onBack = jest.fn();
     await render(

@@ -4,18 +4,27 @@ import { Modal, Pressable, View } from "react-native";
 export function BottomSheet({
   open,
   onClose,
+  onDismiss,
   closeLabel,
   testID,
   children,
 }: {
   open: boolean;
   onClose: () => void;
+  /** Runs once the sheet has finished hiding; iOS skips a modal presented any sooner. */
+  onDismiss?: () => void;
   closeLabel: string;
   testID?: string;
   children: ReactNode;
 }) {
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={open}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      onDismiss={onDismiss}
+    >
       <View className="flex-1 justify-end">
         <Pressable
           testID={testID ? `${testID}-backdrop` : undefined}

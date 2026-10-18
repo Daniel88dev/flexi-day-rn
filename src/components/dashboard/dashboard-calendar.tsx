@@ -3,6 +3,7 @@ import { useWindowDimensions, View } from "react-native";
 
 import { CalendarHeader } from "@/components/calendar/calendar-header";
 import { DayCard } from "@/components/calendar/day-card";
+import { DayMenuContext, type DayMenuActions } from "@/components/calendar/day-menu";
 import { DaySheet } from "@/components/calendar/day-sheet";
 import { FilterSheet } from "@/components/calendar/filter-sheet";
 import { LaneMonth, laneMonthHeight } from "@/components/calendar/lane-month";
@@ -12,6 +13,7 @@ import { ScopeRow } from "@/components/calendar/scope-row";
 import { StripeMonth, stripeMonthHeight } from "@/components/calendar/stripe-month";
 import { useMonthMarks } from "@/components/calendar/use-month-marks";
 import { useMonthRanges } from "@/components/calendar/use-month-ranges";
+import { useGroupEventActions } from "@/components/group-events/use-group-event-actions";
 import { LEAVE_TYPE_ORDER } from "@/components/ui/leave-classes";
 import { openingDay } from "@/lib/calendar/day";
 import { monthWeeks } from "@/lib/calendar/month-grid";
@@ -19,6 +21,7 @@ import { dashboardScope } from "@/lib/calendar/scope";
 import { calendarView, type CalendarView } from "@/lib/calendar/view";
 import {
   useRequestScopeGroups,
+  type CalendarGroupEvent,
   type CalendarRecordType,
   type RequestListScope,
 } from "@/lib/local-store";
@@ -57,12 +60,13 @@ function MonthPage({
   ...props
 }: PageProps & { month: YearMonth }) {
   const ranges = useMonthRanges(month, scope, filter);
-  const { marks, eventSpans } = useMonthMarks(month, scope);
+  const { marks, eventSpans, dayItems } = useMonthMarks(month, scope);
   return view === "stripes" ? (
     <StripeMonth
       month={month}
       ranges={ranges}
       marks={marks}
+      dayItems={dayItems}
       selected={selected}
       onDay={onDay}
       {...props}
@@ -73,6 +77,7 @@ function MonthPage({
       ranges={ranges}
       marks={marks}
       eventSpans={eventSpans}
+      dayItems={dayItems}
       onDay={onDay}
       onMore={onDay}
       onBar={onBar}
@@ -114,6 +119,7 @@ export function DashboardCalendar({
   const [filterOpen, setFilterOpen] = useState(false);
   const [sheetDay, setSheetDay] = useState<string | null>(null);
   const [pickedDay, setPickedDay] = useState<string | null>(null);
+  const [detail, setDetail] = useState<CalendarGroupEvent | null>(null);
 
   // The bounds move with the year, so a month picked before New Year can fall outside them.
   const index = Math.min(Math.max(monthOffset(picked, bounds), 0), months.length - 1);
@@ -127,11 +133,47 @@ export function DashboardCalendar({
   const groups = useRequestScopeGroups();
   const { scope, groupId } = dashboardScope({ settings, scopeChoice, groupChoice, groups });
   const ranges = useMonthRanges(month, scope, filter);
+  const groupEvents = useGroupEventActions(scope);
 
   // A day picked on one month does not follow the calendar to another.
   const showMonth = (next: YearMonth) => {
     setPicked(next);
     setPickedDay(null);
+    setDetail(null);
+  };
+
+  const closeSheet = () => {
+    setSheetDay(null);
+    setDetail(null);
+  };
+
+  const pickDay = (day: string) => {
+    setPickedDay(day);
+    setDetail(null);
+  };
+
+  const { canCreate, create, edit, remove } = groupEvents;
+  const stripes = view === "stripes";
+  const dayMenu = useMemo<DayMenuActions>(
+    () => ({
+      canCreate,
+      requestTimeOff: onBook,
+      create,
+      open: (event, day) => {
+        if (stripes) setPickedDay(day);
+        else setSheetDay(day);
+        setDetail(event);
+      },
+      edit,
+      remove,
+    }),
+    [canCreate, onBook, create, stripes, edit, remove, setPickedDay, setSheetDay, setDetail]
+  );
+
+  const eventHandlers = {
+    onNewEvent: canCreate ? create : undefined,
+    onEditEvent: edit,
+    onDeleteEvent: remove,
   };
 
   const step = (delta: -1 | 1) => {
@@ -146,100 +188,109 @@ export function DashboardCalendar({
 
   // The sheet goes first, so the screen that opens is not left under it.
   const book = (day: string) => {
-    setSheetDay(null);
+    closeSheet();
     onBook(day);
   };
 
   const openSettings =
     onSettings &&
     (() => {
-      setSheetDay(null);
+      closeSheet();
       onSettings();
     });
 
   const openRequest =
     onOpenRequest &&
     ((vacationId: string) => {
-      setSheetDay(null);
+      closeSheet();
       onOpenRequest(vacationId);
     });
 
   return (
-    <View className="gap-3">
-      <View className="gap-3 px-4">
-        <CalendarHeader
-          month={month}
-          canPrevious={stepMonth(month, -1, bounds) !== null}
-          canNext={stepMonth(month, 1, bounds) !== null}
-          onStep={step}
-          onToday={() => showMonth(thisMonth)}
+    <DayMenuContext value={dayMenu}>
+      <View className="gap-3">
+        <View className="gap-3 px-4">
+          <CalendarHeader
+            month={month}
+            canPrevious={stepMonth(month, -1, bounds) !== null}
+            canNext={stepMonth(month, 1, bounds) !== null}
+            onStep={step}
+            onToday={() => showMonth(thisMonth)}
+          />
+          <ScopeRow
+            scope={scope}
+            groupId={groupId}
+            groups={groups}
+            filter={filter}
+            onScope={choose}
+            onFilter={() => setFilterOpen(true)}
+          />
+        </View>
+        <MonthPager
+          months={months}
+          index={index}
+          onIndex={(page) => showMonth(months[page])}
+          width={width}
+          height={
+            view === "stripes"
+              ? stripeMonthHeight(monthWeeks(month).length)
+              : laneMonthHeight(monthWeeks(month).length)
+          }
+          extraData={[view, selectedDay, scope, filter, viewerId, today]}
+          renderMonth={(page) => (
+            <MonthPage
+              month={page}
+              view={view}
+              selected={selectedDay}
+              scope={scope}
+              filter={filter}
+              width={width}
+              viewerId={viewerId}
+              today={today}
+              onDay={view === "stripes" ? pickDay : setSheetDay}
+              onBar={onOpenRequest}
+            />
+          )}
         />
-        <ScopeRow
-          scope={scope}
-          groupId={groupId}
-          groups={groups}
-          filter={filter}
-          onScope={choose}
-          onFilter={() => setFilterOpen(true)}
-        />
-      </View>
-      <MonthPager
-        months={months}
-        index={index}
-        onIndex={(page) => showMonth(months[page])}
-        width={width}
-        height={
-          view === "stripes"
-            ? stripeMonthHeight(monthWeeks(month).length)
-            : laneMonthHeight(monthWeeks(month).length)
-        }
-        extraData={[view, selectedDay, scope, filter, viewerId, today]}
-        renderMonth={(page) => (
-          <MonthPage
-            month={page}
-            view={view}
-            selected={selectedDay}
+        <View className="px-4">
+          <Legend ranges={ranges} />
+        </View>
+        {view === "stripes" ? (
+          <DayCard
+            day={selectedDay}
             scope={scope}
             filter={filter}
-            width={width}
             viewerId={viewerId}
-            today={today}
-            onDay={view === "stripes" ? setPickedDay : setSheetDay}
-            onBar={onOpenRequest}
+            onOpen={onOpenRequest}
+            onBook={onBook}
+            onSettings={onSettings}
+            detail={detail}
+            onDetail={setDetail}
+            {...eventHandlers}
           />
-        )}
-      />
-      <View className="px-4">
-        <Legend ranges={ranges} />
-      </View>
-      {view === "stripes" ? (
-        <DayCard
-          day={selectedDay}
+        ) : null}
+
+        <FilterSheet
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          filter={filter}
+          onChange={setFilter}
+        />
+        <DaySheet
+          day={sheetDay}
+          detail={detail}
+          onDetail={setDetail}
+          onClose={closeSheet}
           scope={scope}
           filter={filter}
           viewerId={viewerId}
-          onOpen={onOpenRequest}
-          onBook={onBook}
-          onSettings={onSettings}
+          onOpen={openRequest}
+          onBook={book}
+          onSettings={openSettings}
+          {...eventHandlers}
         />
-      ) : null}
-
-      <FilterSheet
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        filter={filter}
-        onChange={setFilter}
-      />
-      <DaySheet
-        day={sheetDay}
-        onClose={() => setSheetDay(null)}
-        scope={scope}
-        filter={filter}
-        viewerId={viewerId}
-        onOpen={openRequest}
-        onBook={book}
-        onSettings={openSettings}
-      />
-    </View>
+        {groupEvents.editor}
+      </View>
+    </DayMenuContext>
   );
 }

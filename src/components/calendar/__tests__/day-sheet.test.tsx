@@ -53,6 +53,8 @@ async function renderSheet(day: string | null) {
         scope={{ kind: "mine" }}
         filter={new Set(LEAVE_TYPE_ORDER)}
         viewerId="me"
+        detail={null}
+        onDetail={jest.fn()}
         onBook={jest.fn()}
       />
     </TranslationProvider>

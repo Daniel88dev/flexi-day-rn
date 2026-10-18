@@ -3,6 +3,9 @@
 # birthday the dev scenario seeds on 25 October:
 #   npm run dev:login:rn -- owner@dev.local --to /dashboard --udid <udid>
 # The flow removes a stored year first. Without one, the wheel offers 2000.
+# Day cells sit in the day menu's native view, out of the accessibility tree, so 25 October is
+# tapped by screen point, measured on the October 2026 grid of an iPhone 17 Pro. T-364 restores
+# tree-based taps.
 appId: com.flexiday.app
 ---
 - openLink: flexiday:///settings
@@ -36,7 +39,7 @@ appId: com.flexiday.app
     id: calendar-title
     text: "October 2026"
 - tapOn:
-    id: calendar-day-2026-10-25
+    point: 86%, 82%
 - assertVisible:
     id: "day-list-birthday-.*"
     text: "Your birthday"
@@ -57,7 +60,7 @@ appId: com.flexiday.app
 - tapOn:
     id: stack-back
 - tapOn:
-    id: calendar-day-2026-10-25
+    point: 86%, 82%
 - assertVisible:
     id: "day-list-birthday-.*"
     text: 'Your birthday · \d+'
@@ -75,7 +78,7 @@ appId: com.flexiday.app
 - tapOn:
     id: stack-back
 - tapOn:
-    id: calendar-day-2026-10-25
+    point: 86%, 82%
 - assertVisible:
     id: "day-list-birthday-.*"
     text: "Your birthday"

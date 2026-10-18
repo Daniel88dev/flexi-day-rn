@@ -12,10 +12,8 @@ appId: com.flexiday.app
     end: 50%, 75%
     duration: 800
 - waitForAnimationToEnd
-- assertVisible:
-    id: calendar-mark-2026-10-19-dot
-- assertVisible:
-    id: calendar-mark-2026-10-21-dot
+# The day marks sit in the cells, which the day menu's native view keeps out of the accessibility
+# tree (T-363); the day sheet below is the check.
 # The day number, above the booking's bar, which would open the request instead.
 - tapOn:
     point: 34%, 82%

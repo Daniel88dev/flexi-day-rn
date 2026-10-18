@@ -1,0 +1,38 @@
+# Group events, menu to editor (T-363): ten times in a row, New group event from a day's native
+# menu presents the editor. The action waits for the menu to finish dismissing (MENU_DISMISS_MS in
+# src/components/calendar/day-menu.tsx); iOS skips a sheet presented sooner. Same device, account
+# and points as group-events-create.yaml; creates nothing.
+appId: com.flexiday.app
+---
+- launchApp:
+    stopApp: false
+- swipe:
+    start: 50%, 25%
+    end: 50%, 75%
+    duration: 800
+- waitForAnimationToEnd
+- swipe:
+    start: 50%, 70%
+    end: 50%, 45%
+    duration: 600
+- waitForAnimationToEnd
+- repeat:
+    times: 10
+    commands:
+      # Thursday 15 October, then the menu's second row.
+      - longPressOn:
+          point: 47%, 52%
+      - tapOn:
+          point: 51%, 41%
+      - extendedWaitUntil:
+          visible:
+            id: group-event-editor
+          timeout: 3000
+      # The title takes focus as the sheet opens; the first tap would only end that.
+      - hideKeyboard
+      - tapOn:
+          id: group-event-editor-cancel
+      - extendedWaitUntil:
+          notVisible:
+            id: group-event-editor
+          timeout: 3000

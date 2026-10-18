@@ -1,0 +1,48 @@
+# Group events, delete (T-363): Delete on a recurring group event asks which dates go; "All events"
+# removes the rule and the date changed on its own. Runs after group-events-edit-one.yaml and
+# leaves the dev data as dev:scenario seeded it. Same device, account and points as the others.
+appId: com.flexiday.app
+---
+- launchApp:
+    stopApp: false
+- swipe:
+    start: 50%, 25%
+    end: 50%, 75%
+    duration: 800
+- waitForAnimationToEnd
+- swipe:
+    start: 50%, 70%
+    end: 50%, 45%
+    duration: 600
+- waitForAnimationToEnd
+# Thursday 15 October.
+- tapOn:
+    point: 47%, 50%
+- tapOn:
+    id: "day-list-event-.*-2026-10-15-delete"
+- extendedWaitUntil:
+    visible:
+      text: "All events"
+    timeout: 5000
+- assertVisible:
+    text: ".*leaves every calendar.*can't be undone.*"
+- takeScreenshot: .maestro/screenshots/group-events-delete-scope
+- tapOn:
+    text: "All events"
+- extendedWaitUntil:
+    notVisible:
+      text: ".*T-363 test.*"
+    timeout: 10000
+- tapOn:
+    id: day-sheet-backdrop
+- waitForAnimationToEnd
+# Thursday 22 October lost its changed date too.
+- tapOn:
+    point: 47%, 60%
+- assertVisible:
+    id: day-list
+- assertNotVisible:
+    text: ".*T-363 test.*"
+- tapOn:
+    id: day-sheet-backdrop
+- waitForAnimationToEnd

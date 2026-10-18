@@ -6,6 +6,7 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
+import { DayMenu } from "@/components/calendar/day-menu";
 import { DayMark, markLabels } from "@/components/calendar/day-mark";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
@@ -16,6 +17,7 @@ import type { CalendarRange } from "@/lib/calendar/lanes";
 import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { placeStripeWeek } from "@/lib/calendar/stripes";
 import { cn } from "@/lib/cn";
+import type { DayItems } from "@/lib/group-events/day-menu";
 import { isoDay, type YearMonth } from "@/lib/requests/months";
 
 const CALENDAR_GUTTER = 16;
@@ -25,6 +27,8 @@ const STRIPES_TOP = 34;
 const STRIPE_H = 4;
 const STRIPE_GAP = 2;
 const ROW_H = STRIPES_TOP + 3 * (STRIPE_H + STRIPE_GAP) + 16;
+
+const NOTHING: readonly never[] = [];
 
 export function stripeMonthHeight(weeks: number): number {
   return HEADER_H + weeks * ROW_H;
@@ -38,6 +42,7 @@ export function StripeMonth({
   today,
   selected,
   marks,
+  dayItems,
   onDay,
 }: {
   month: YearMonth;
@@ -48,6 +53,8 @@ export function StripeMonth({
   selected: string;
   /** Birthdays and group events per day, marked in the cell's corner. */
   marks?: DayMarks;
+  /** Each day's group events and birthdays, for its long-press menu. */
+  dayItems?: ReadonlyMap<string, DayItems>;
   onDay: (day: string) => void;
 }) {
   const { t } = useTranslation();
@@ -110,60 +117,75 @@ export function StripeMonth({
               const holiday = holidays.has(column);
               const faded = fadesNumber({ inMonth, highlighted: isToday || isSelected });
               const mark = marks?.get(iso);
+              const items = dayItems?.get(iso);
               return (
-                <Pressable
+                <DayMenu
                   key={iso}
-                  testID={inMonth ? `calendar-day-${iso}` : `calendar-adjacent-day-${iso}`}
-                  onPress={() => onDay(iso)}
-                  accessibilityRole="button"
-                  accessibilityLabel={dayLabel(iso)}
-                  accessibilityState={{ selected: isSelected }}
-                  style={{ width: cellWidth }}
-                  className="items-center pt-1"
+                  date={iso}
+                  events={items?.events ?? NOTHING}
+                  birthdays={items?.birthdays ?? NOTHING}
                 >
-                  {holiday ? (
-                    <View className="absolute inset-x-[3px] top-[3px] bottom-[3px] overflow-hidden rounded-[12px]">
-                      <View className="absolute inset-0 bg-leave-bank" style={{ opacity: 0.18 }} />
-                    </View>
-                  ) : null}
-                  {column === labelColumn ? (
-                    <Text className="absolute top-0 left-[2px] text-[8.5px] font-bold tracking-[0.2px] text-muted-foreground uppercase">
-                      {monthShortName(t, iso)}
-                    </Text>
-                  ) : null}
-                  <View
-                    style={{ height: DAY_H, width: DAY_H }}
-                    className={cn(
-                      "items-center justify-center rounded-full",
-                      isSelected && (isToday ? "bg-primary" : "bg-foreground")
-                    )}
+                  <Pressable
+                    testID={inMonth ? `calendar-day-${iso}` : `calendar-adjacent-day-${iso}`}
+                    onPress={() => onDay(iso)}
+                    // The day menu's Link would announce the cell as a link; `role` outranks it.
+                    role="button"
+                    accessibilityLabel={dayLabel(iso)}
+                    accessibilityState={{ selected: isSelected }}
+                    style={{ width: cellWidth }}
+                    className="items-center pt-1"
                   >
-                    <Text
+                    {holiday ? (
+                      <View className="absolute inset-x-[3px] top-[3px] bottom-[3px] overflow-hidden rounded-[12px]">
+                        <View
+                          className="absolute inset-0 bg-leave-bank"
+                          style={{ opacity: 0.18 }}
+                        />
+                      </View>
+                    ) : null}
+                    {column === labelColumn ? (
+                      <Text className="absolute top-0 left-[2px] text-[8.5px] font-bold tracking-[0.2px] text-muted-foreground uppercase">
+                        {monthShortName(t, iso)}
+                      </Text>
+                    ) : null}
+                    <View
+                      style={{ height: DAY_H, width: DAY_H }}
                       className={cn(
-                        "text-[14px]",
-                        isSelected
-                          ? isToday
-                            ? "font-bold text-primary-foreground"
-                            : "font-bold text-background"
-                          : isToday
-                            ? "font-bold text-primary"
-                            : !inMonth
-                              ? "text-faint"
-                              : holiday
-                                ? "font-semibold text-leave-bank"
-                                : column >= 5
-                                  ? "text-faint"
-                                  : "font-medium text-foreground"
+                        "items-center justify-center rounded-full",
+                        isSelected && (isToday ? "bg-primary" : "bg-foreground")
                       )}
-                      style={faded ? { opacity: ADJACENT_NUMBER_OPACITY } : undefined}
                     >
-                      {day}
-                    </Text>
-                  </View>
-                  {mark ? (
-                    <DayMark counts={mark} room={stripeMarkRoom(cellWidth)} size="stripe" />
-                  ) : null}
-                </Pressable>
+                      <Text
+                        className={cn(
+                          "text-[14px]",
+                          isSelected
+                            ? isToday
+                              ? "font-bold text-primary-foreground"
+                              : "font-bold text-background"
+                            : isToday
+                              ? "font-bold text-primary"
+                              : !inMonth
+                                ? "text-faint"
+                                : holiday
+                                  ? "font-semibold text-leave-bank"
+                                  : column >= 5
+                                    ? "text-faint"
+                                    : "font-medium text-foreground"
+                        )}
+                        style={faded ? { opacity: ADJACENT_NUMBER_OPACITY } : undefined}
+                      >
+                        {day}
+                      </Text>
+                    </View>
+                    {mark ? (
+                      <DayMark
+                        counts={mark}
+                        room={stripeMarkRoom(cellWidth)}
+                        size="stripe"
+                      />
+                    ) : null}
+                  </Pressable>
+                </DayMenu>
               );
             })}
             <MonthSeam week={week} cellWidth={cellWidth} />

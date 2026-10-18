@@ -13,6 +13,7 @@ export function FakeDateTimePicker(props: {
   value: Date;
   minimumDate?: Date;
   maximumDate?: Date;
+  disabled?: boolean;
   onValueChange: (event: unknown, date: Date) => void;
 }) {
   const dates = props.mode === "date";
@@ -20,6 +21,8 @@ export function FakeDateTimePicker(props: {
   return (
     <Pressable
       testID={props.testID}
+      disabled={props.disabled}
+      accessibilityState={{ disabled: Boolean(props.disabled) }}
       accessibilityValue={{
         text: dates ? dayOfDate(props.value) : props.value.toTimeString().slice(0, 5),
       }}

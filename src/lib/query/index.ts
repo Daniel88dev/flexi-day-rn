@@ -25,7 +25,14 @@ export {
   type PendingApproval,
 } from "./dashboard";
 export { useCreateRequest } from "./create-request";
-export { canCreateGroupEvent, useGroupEventGroups, type GroupEventGroup } from "./group-events";
+export {
+  canCreateGroupEvent,
+  GROUP_EVENTS_PLAN_REQUIRED,
+  useGroupEventGroups,
+  useGroupEventWrites,
+  type GroupEventDeleteRequest,
+  type GroupEventGroup,
+} from "./group-events";
 export { ApiError, classifyFailure, type FailureClass } from "./failure";
 export {
   useAdministeredGroups,

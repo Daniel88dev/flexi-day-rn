@@ -1,4 +1,4 @@
-import { CakeIcon, CaretRightIcon, PlusIcon } from "phosphor-react-native";
+import { CakeIcon, CalendarPlusIcon, CaretRightIcon, PlusIcon } from "phosphor-react-native";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { BIRTHDAY_PINK } from "@/components/calendar/day-mark";
@@ -9,11 +9,11 @@ import { Icon } from "@/components/ui/icon";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
+import { birthdayLabel } from "@/lib/calendar/birthday-label";
 import { dayParts, type DayEntry } from "@/lib/calendar/day";
 import { cn } from "@/lib/cn";
 import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
 import { runDatesLabel } from "@/lib/requests/format";
-import { firstName } from "@/lib/viewer/viewer";
 
 function EntryRow({
   entry,
@@ -73,14 +73,7 @@ function BirthdayRow({
 }) {
   const { t } = useTranslation();
   const labels = t.dashboard.calendar;
-  const name = firstName(birthday.userName ?? undefined, "?");
-  const label = birthday.own
-    ? birthday.age === null
-      ? labels.yourBirthday
-      : labels.yourBirthdayAge(birthday.age)
-    : birthday.age === null
-      ? labels.namesBirthday(name)
-      : labels.nameTurns(name, birthday.age);
+  const label = birthdayLabel(birthday, t);
   const opensSettings = birthday.own && onSettings !== undefined;
 
   return (
@@ -137,6 +130,9 @@ export function DayList({
   onBook,
   onSettings,
   onEvent,
+  onNewEvent,
+  onEditEvent,
+  onDeleteEvent,
 }: {
   day: string;
   entries: readonly DayEntry[];
@@ -149,6 +145,10 @@ export function DayList({
   onBook: (day: string) => void;
   onSettings?: () => void;
   onEvent?: (event: CalendarGroupEvent) => void;
+  /** Shown only while the day's group, or any group in Mine, may take a new group event. */
+  onNewEvent?: (day: string) => void;
+  onEditEvent?: (event: CalendarGroupEvent) => void;
+  onDeleteEvent?: (event: CalendarGroupEvent) => void;
 }) {
   const { t } = useTranslation();
   const labels = t.dashboard.calendar;
@@ -173,6 +173,8 @@ export function DayList({
             event={event}
             viewerId={viewerId}
             onPress={onEvent}
+            onEdit={onEditEvent}
+            onDelete={onDeleteEvent}
           />
         ))}
         {birthdays.map((birthday) => (
@@ -205,6 +207,20 @@ export function DayList({
             {labels.book(title)}
           </Text>
         </Pressable>
+        {onNewEvent ? (
+          <Pressable
+            testID="day-list-new-event"
+            onPress={() => onNewEvent(day)}
+            accessibilityRole="button"
+            accessibilityLabel={t.groupEvents.newGroupEvent}
+            className="mt-2 h-12 flex-row items-center justify-center gap-2 rounded-full border border-input active:opacity-70"
+          >
+            <Icon icon={CalendarPlusIcon} tone="foreground" size={16} />
+            <Text className="text-[15px] font-semibold text-foreground">
+              {t.groupEvents.newGroupEvent}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

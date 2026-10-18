@@ -53,6 +53,8 @@ async function renderCard(filter = new Set(LEAVE_TYPE_ORDER)) {
         scope={{ kind: "mine" }}
         filter={filter}
         viewerId="me"
+        detail={null}
+        onDetail={jest.fn()}
         onBook={onBook}
       />
     </TranslationProvider>

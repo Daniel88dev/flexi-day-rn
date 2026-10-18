@@ -6,6 +6,7 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
+import { DayMenu } from "@/components/calendar/day-menu";
 import { DayMark, EventRibbons, markLabels } from "@/components/calendar/day-mark";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
@@ -16,6 +17,7 @@ import { laneMarkRoom, type DayMarks, type EventSpan } from "@/lib/calendar/day-
 import { placeWeek, type CalendarRange, type PlacedBar } from "@/lib/calendar/lanes";
 import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { cn } from "@/lib/cn";
+import type { DayItems } from "@/lib/group-events/day-menu";
 import { isoDay, type YearMonth } from "@/lib/requests/months";
 import { firstName } from "@/lib/viewer/viewer";
 
@@ -28,6 +30,8 @@ const BARS_TOP = 28;
 const HEADER_H = 30;
 const ROW_H = BARS_TOP + MAX_LANES * (BAR_H + LANE_GAP) + 20;
 const AVATAR_MIN_WIDTH = 80;
+
+const NOTHING: readonly never[] = [];
 
 export function laneMonthHeight(weeks: number): number {
   return HEADER_H + weeks * ROW_H + 2;
@@ -43,6 +47,8 @@ type LaneMonthProps = {
   marks?: DayMarks;
   /** Group event occurrences; a multi-day one draws a ribbon along the days it covers. */
   eventSpans?: readonly EventSpan[];
+  /** Each day's group events and birthdays, for its long-press menu. */
+  dayItems?: ReadonlyMap<string, DayItems>;
   onDay: (day: string) => void;
   onBar?: (vacationId: string) => void;
   onMore: (day: string) => void;
@@ -168,6 +174,7 @@ export function LaneMonth({
   today,
   marks,
   eventSpans,
+  dayItems,
   onDay,
   onBar,
   onMore,
@@ -231,55 +238,67 @@ export function LaneMonth({
                 const mark = marks?.get(date);
                 // A 52 pt cell holds the day number and either the month label or the mark.
                 const label = column === labelColumn && !mark ? monthShortName(t, date) : null;
+                const items = dayItems?.get(date);
                 return (
-                  <Pressable
+                  <DayMenu
                     key={date}
-                    testID={inMonth ? `calendar-day-${date}` : `calendar-adjacent-day-${date}`}
-                    onPress={() => onDay(date)}
-                    accessibilityRole="button"
-                    accessibilityLabel={dayLabel(date)}
-                    style={{ width: cellWidth }}
-                    className={cn(
-                      "px-1 pt-1.5 active:bg-muted",
-                      column < 6 && "border-r border-border",
-                      (!inMonth || column >= 5) && "bg-tint"
-                    )}
+                    date={date}
+                    events={items?.events ?? NOTHING}
+                    birthdays={items?.birthdays ?? NOTHING}
                   >
-                    <View className="flex-row items-center gap-[3px]">
-                      <View
-                        className={cn(
-                          "h-[22px] min-w-[22px] items-center justify-center self-start rounded-full px-1",
-                          isToday && "bg-primary"
-                        )}
-                      >
-                        <Text
+                    <Pressable
+                      testID={inMonth ? `calendar-day-${date}` : `calendar-adjacent-day-${date}`}
+                      onPress={() => onDay(date)}
+                      // The day menu's Link would announce the cell as a link; `role` outranks it.
+                      role="button"
+                      accessibilityLabel={dayLabel(date)}
+                      style={{ width: cellWidth }}
+                      className={cn(
+                        "px-1 pt-1.5 active:bg-muted",
+                        column < 6 && "border-r border-border",
+                        (!inMonth || column >= 5) && "bg-tint"
+                      )}
+                    >
+                      <View className="flex-row items-center gap-[3px]">
+                        <View
                           className={cn(
-                            "text-[12px]",
-                            isToday
-                              ? "font-bold text-primary-foreground"
-                              : !inMonth || column >= 5
-                                ? "text-faint"
-                                : "font-medium text-muted-foreground"
+                            "h-[22px] min-w-[22px] items-center justify-center self-start rounded-full px-1",
+                            isToday && "bg-primary"
                           )}
-                          style={
-                            fadesNumber({ inMonth, highlighted: isToday })
-                              ? { opacity: ADJACENT_NUMBER_OPACITY }
-                              : undefined
-                          }
                         >
-                          {day}
-                        </Text>
+                          <Text
+                            className={cn(
+                              "text-[12px]",
+                              isToday
+                                ? "font-bold text-primary-foreground"
+                                : !inMonth || column >= 5
+                                  ? "text-faint"
+                                  : "font-medium text-muted-foreground"
+                            )}
+                            style={
+                              fadesNumber({ inMonth, highlighted: isToday })
+                                ? { opacity: ADJACENT_NUMBER_OPACITY }
+                                : undefined
+                            }
+                          >
+                            {day}
+                          </Text>
+                        </View>
+                        {label ? (
+                          <Text className="text-[9.5px] font-bold text-muted-foreground uppercase">
+                            {label}
+                          </Text>
+                        ) : null}
+                        {mark ? (
+                          <DayMark
+                            counts={mark}
+                            room={laneMarkRoom(cellWidth)}
+                            size="lane"
+                          />
+                        ) : null}
                       </View>
-                      {label ? (
-                        <Text className="text-[9.5px] font-bold text-muted-foreground uppercase">
-                          {label}
-                        </Text>
-                      ) : null}
-                      {mark ? (
-                        <DayMark counts={mark} room={laneMarkRoom(cellWidth)} size="lane" />
-                      ) : null}
-                    </View>
-                  </Pressable>
+                    </Pressable>
+                  </DayMenu>
                 );
               })}
               <MonthSeam week={week} cellWidth={cellWidth} />

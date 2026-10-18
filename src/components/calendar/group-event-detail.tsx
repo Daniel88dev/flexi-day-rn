@@ -11,6 +11,7 @@ import {
 import { Pressable, ScrollView, View } from "react-native";
 
 import { BottomSheet } from "@/components/calendar/bottom-sheet";
+import { GroupEventButtons } from "@/components/calendar/group-event-card";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -35,10 +36,14 @@ export function GroupEventDetail({
   event,
   viewerId,
   onBack,
+  onEdit,
+  onDelete,
 }: {
   event: CalendarGroupEvent;
   viewerId: string | null;
   onBack?: () => void;
+  onEdit?: (event: CalendarGroupEvent) => void;
+  onDelete?: (event: CalendarGroupEvent) => void;
 }) {
   const { t } = useTranslation();
   const dayTitle = (date: string) => {
@@ -87,7 +92,16 @@ export function GroupEventDetail({
           icon={UsersIcon}
           text={`${event.groupName} · ${addedByLabel(event.creator, viewerId, t)}`}
         />
-        {event.canEdit ? null : (
+        {event.canEdit ? (
+          <View className="px-1 pt-3 pb-2">
+            <GroupEventButtons
+              testID="group-event-detail"
+              event={event}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          </View>
+        ) : (
           <View className="flex-row items-center gap-1.5 px-1 pt-3 pb-2">
             <Icon icon={LockIcon} tone="faint" size={14} />
             <Text className="flex-1 text-[13px] text-faint">{lockLabel(event.creator, t)}</Text>
@@ -103,22 +117,30 @@ export function GroupEventSheet({
   event,
   viewerId,
   onClose,
+  onDismiss,
+  onEdit,
+  onDelete,
 }: {
   event: CalendarGroupEvent | null;
   viewerId: string | null;
   onClose: () => void;
+  /** Once the sheet has finished hiding, for a modal that waits on it. */
+  onDismiss?: () => void;
+  onEdit?: (event: CalendarGroupEvent) => void;
+  onDelete?: (event: CalendarGroupEvent) => void;
 }) {
   const { t } = useTranslation();
   return (
     <BottomSheet
       open={event !== null}
       onClose={onClose}
+      onDismiss={onDismiss}
       closeLabel={t.groupEvents.close}
       testID="group-event-sheet"
     >
       {event ? (
         <View className="pb-3">
-          <GroupEventDetail event={event} viewerId={viewerId} />
+          <GroupEventDetail event={event} viewerId={viewerId} onEdit={onEdit} onDelete={onDelete} />
         </View>
       ) : null}
     </BottomSheet>

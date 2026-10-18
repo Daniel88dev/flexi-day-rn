@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
-import { ActionSheetIOS } from "react-native";
+import { ActionSheetIOS, Alert, type AlertButton } from "react-native";
+
+import { MENU_DISMISS_MS } from "@/components/calendar/day-menu";
 
 import { DashboardCalendar } from "@/components/dashboard/dashboard-calendar";
 import { TranslationProvider } from "@/i18n/use-translation";
@@ -17,16 +19,54 @@ import {
   vacationRow,
 } from "@/lib/local-store/test-support/sync-fixtures";
 import { openTestStore } from "@/lib/local-store/test-support/test-store";
-import { useMySettings, type MySettings } from "@/lib/query";
+import { useGroupEventGroups, useMySettings, type MySettings } from "@/lib/query";
 import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
-jest.mock("@/lib/query", () => ({ useMySettings: jest.fn() }));
+const mockWrites = {
+  create: jest.fn(async () => {}),
+  update: jest.fn(async () => {}),
+  remove: jest.fn(async () => {}),
+  impact: jest.fn(async () => 0),
+  busy: false,
+};
+
+jest.mock("@/lib/query", () => ({
+  useMySettings: jest.fn(),
+  useGroupEventGroups: jest.fn(),
+  canCreateGroupEvent: jest.requireActual("@/lib/query/group-events").canCreateGroupEvent,
+  useGroupEventWrites: () => mockWrites,
+  useWriteFailure: () => jest.fn(),
+  qk: jest.requireActual("@/lib/query/keys").qk,
+}));
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  Link: jest.requireActual("@/test-support/link-menu").FakeLink,
+}));
+jest.mock(
+  "@react-native-community/datetimepicker",
+  () => jest.requireActual("@/test-support/date-time-picker").FakeDateTimePicker
+);
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
 
 const VIEWER = "me";
 const APPROVED = "2026-10-01T08:00:00.000Z";
 
 const settingsQuery = useMySettings as jest.MockedFunction<typeof useMySettings>;
+const groupsQuery = useGroupEventGroups as jest.MockedFunction<typeof useGroupEventGroups>;
+
+function answerGroups(canCreate: boolean) {
+  groupsQuery.mockReturnValue({
+    data: [
+      { groupId: "g-design", groupName: "Design", canCreate },
+      { groupId: "g-platform", groupName: "Platform", canCreate },
+    ],
+  } as ReturnType<typeof useGroupEventGroups>);
+}
+
+let alertButtons: AlertButton[] = [];
+const alert = jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
+  alertButtons = buttons ?? [];
+});
 
 let choose: (index: number) => void = () => {};
 const showSheet = jest
@@ -55,7 +95,10 @@ beforeEach(async () => {
     doNotFake: ["setImmediate", "nextTick", "queueMicrotask"],
   });
   showSheet.mockClear();
+  alert.mockClear();
+  jest.clearAllMocks();
   answerSettings(undefined);
+  answerGroups(true);
   store = await openTestStore(VIEWER);
   await pullIn({
     users: [
@@ -391,6 +434,113 @@ describe("DashboardCalendar", () => {
       const card = await screen.findByTestId("day-list-event-offsite-2026-10-22");
       expect(card).toHaveTextContent(/Thu 22 Oct – Fri 23 Oct · All day.*Added by you · Platform/);
       expect(card).not.toHaveTextContent(/can change this/);
+    });
+
+    const menuItem = (title: string) =>
+      within(screen.getByTestId("link-menu")).getByRole("menuitem", { name: title });
+
+    const afterMenu = () => act(() => jest.advanceTimersByTime(MENU_DISMISS_MS));
+
+    it("creates a group event from a day's long-press menu, the editor opening once the menu has gone", async () => {
+      await renderCalendar();
+
+      await fireEvent(screen.getByTestId("calendar-day-2026-10-14"), "longPress");
+      expect(menuItem("Edit or delete")).toBeDisabled();
+      await fireEvent.press(menuItem("New group event"));
+      expect(screen.queryByTestId("group-event-editor")).toBeNull();
+      await afterMenu();
+
+      await fireEvent.changeText(screen.getByTestId("group-event-editor-title"), "Retro");
+      await fireEvent.press(screen.getByTestId("group-event-editor-repeat-weekly"));
+      await fireEvent.press(screen.getByTestId("group-event-editor-save"));
+
+      expect(mockWrites.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          groupId: "g-design",
+          title: "Retro",
+          startDate: "2026-10-14",
+          repeat: expect.objectContaining({ freq: "weekly", weekdays: [2] }),
+        })
+      );
+      expect(screen.queryByTestId("group-event-editor")).toBeNull();
+    });
+
+    it("requests time off on the long-pressed day", async () => {
+      const { onBook } = await renderCalendar();
+
+      await fireEvent(screen.getByTestId("calendar-day-2026-10-20"), "longPress");
+      await fireEvent.press(menuItem("Request time off"));
+
+      expect(onBook).toHaveBeenCalledWith("2026-10-20");
+    });
+
+    it("opens an event's detail in the day sheet from the menu", async () => {
+      await renderCalendar();
+
+      await fireEvent(screen.getByTestId("calendar-day-2026-10-14"), "longPress");
+      await fireEvent.press(menuItem("Open"));
+      await afterMenu();
+
+      expect(screen.getByTestId("group-event-detail")).toHaveTextContent(/Weekly standup/);
+    });
+
+    it("hides every create entry when no group is on a paid plan", async () => {
+      answerGroups(false);
+      await renderCalendar();
+
+      await fireEvent(screen.getByTestId("calendar-day-2026-10-14"), "longPress");
+      expect(
+        within(screen.getByTestId("link-menu")).queryByRole("menuitem", { name: "New group event" })
+      ).toBeNull();
+      expect(menuItem("Request time off")).toBeOnTheScreen();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-15"));
+      expect(await screen.findByTestId("day-list-book")).toBeOnTheScreen();
+      expect(screen.queryByTestId("day-list-new-event")).toBeNull();
+    });
+
+    it("opens the editor from the day sheet's New group event once the sheet has gone", async () => {
+      await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-15"));
+      await fireEvent.press(await screen.findByTestId("day-list-new-event"));
+
+      expect(screen.queryByTestId("day-list")).toBeNull();
+      expect(screen.getByTestId("group-event-editor")).toHaveTextContent(/New group event/);
+      expect(screen.getByTestId("group-event-editor-start-date")).toHaveProp("accessibilityValue", {
+        text: "2026-10-15",
+      });
+    });
+
+    it("edits the creator's own event from its card, and offers no Edit on someone else's", async () => {
+      await renderCalendar();
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-14"));
+      await screen.findByTestId("day-list-event-standup-2026-10-14");
+      expect(screen.queryByTestId("day-list-event-standup-2026-10-14-edit")).toBeNull();
+      await fireEvent.press(screen.getByTestId("day-list-book"));
+
+      await fireEvent.press(screen.getByTestId("calendar-day-2026-10-22"));
+      await fireEvent.press(await screen.findByTestId("day-list-event-offsite-2026-10-22-edit"));
+
+      expect(screen.getByTestId("group-event-editor")).toHaveTextContent(/Edit group event/);
+      expect(screen.getByTestId("group-event-editor-title")).toHaveProp("value", "Team offsite");
+    });
+
+    it("deletes a one-off from the menu after a plain confirm", async () => {
+      await renderCalendar();
+
+      await fireEvent(screen.getByTestId("calendar-day-2026-10-23"), "longPress");
+      await fireEvent.press(menuItem("Delete…"));
+      await afterMenu();
+      expect(alert).toHaveBeenCalledWith(
+        "Delete “Team offsite”?",
+        expect.stringMatching(/leaves every calendar/),
+        expect.any(Array)
+      );
+      await act(async () => alertButtons.find((button) => button.text === "Delete")?.onPress?.());
+
+      expect(mockWrites.remove).toHaveBeenCalledWith("offsite", {});
     });
 
     it("opens an event's detail sheet from the stripes' day card", async () => {

@@ -123,6 +123,28 @@ describe("DayList", () => {
     expect(onSettings).toHaveBeenCalledTimes(1);
   });
 
+  it("offers New group event under Book only when given a way to create one", async () => {
+    await renderList([]);
+    expect(screen.queryByTestId("day-list-new-event")).toBeNull();
+
+    const onNewEvent = jest.fn();
+    await render(
+      <TranslationProvider>
+        <DayList
+          day="2026-10-14"
+          entries={[]}
+          holidays={[]}
+          viewerId="me"
+          onBook={jest.fn()}
+          onNewEvent={onNewEvent}
+        />
+      </TranslationProvider>
+    );
+    await fireEvent.press(screen.getByTestId("day-list-new-event"));
+
+    expect(onNewEvent).toHaveBeenCalledWith("2026-10-14");
+  });
+
   it("renders Nobody is away and still offers to book the day", async () => {
     const { onBook } = await renderList([]);
 
@@ -204,6 +226,32 @@ describe("DayList", () => {
       await fireEvent.press(screen.getByTestId("day-list-event-standup-2026-10-14"));
 
       expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ id: "standup" }));
+    });
+
+    it("offers Edit and Delete on an editor's card only, handing over the event", async () => {
+      const onEditEvent = jest.fn();
+      const onDeleteEvent = jest.fn();
+      await render(
+        <TranslationProvider>
+          <DayList
+            day="2026-10-14"
+            entries={[]}
+            holidays={[]}
+            events={[groupEvent({}), groupEvent({ id: "retro", title: "Retro", canEdit: true })]}
+            viewerId="me"
+            onBook={jest.fn()}
+            onEditEvent={onEditEvent}
+            onDeleteEvent={onDeleteEvent}
+          />
+        </TranslationProvider>
+      );
+
+      expect(screen.queryByTestId("day-list-event-standup-2026-10-14-edit")).toBeNull();
+      await fireEvent.press(screen.getByTestId("day-list-event-retro-2026-10-14-edit"));
+      await fireEvent.press(screen.getByTestId("day-list-event-retro-2026-10-14-delete"));
+
+      expect(onEditEvent).toHaveBeenCalledWith(expect.objectContaining({ id: "retro" }));
+      expect(onDeleteEvent).toHaveBeenCalledWith(expect.objectContaining({ id: "retro" }));
     });
 
     it("leaves the headings out on a day without events or birthdays", async () => {

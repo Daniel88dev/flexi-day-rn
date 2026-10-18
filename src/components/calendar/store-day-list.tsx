@@ -22,6 +22,9 @@ export type StoreDayListProps = {
   onSettings?: () => void;
   /** Opens a group event's detail from its card. */
   onEvent?: (event: CalendarGroupEvent) => void;
+  onNewEvent?: (day: string) => void;
+  onEditEvent?: (event: CalendarGroupEvent) => void;
+  onDeleteEvent?: (event: CalendarGroupEvent) => void;
 };
 
 /** The day list over the Local store's rows for the scope and filter the calendar shows. */
@@ -34,6 +37,9 @@ export function StoreDayList({
   onBook,
   onSettings,
   onEvent,
+  onNewEvent,
+  onEditEvent,
+  onDeleteEvent,
 }: StoreDayListProps & { day: string }) {
   const range = dayWindow(day);
   const rows = useCalendarVacations({ range, scope });
@@ -67,6 +73,9 @@ export function StoreDayList({
       onBook={onBook}
       onSettings={onSettings}
       onEvent={onEvent}
+      onNewEvent={onNewEvent}
+      onEditEvent={onEditEvent}
+      onDeleteEvent={onDeleteEvent}
     />
   );
 }
