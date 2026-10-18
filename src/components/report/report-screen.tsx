@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import { View } from "react-native";
 
-import { NotificationBell } from "@/components/notifications/notification-bell";
 import { StackScreen } from "@/components/shell/stack-screen";
-import { Text } from "@/components/ui/text";
+import { TabHeader } from "@/components/shell/tab-header";
 import { useTranslation } from "@/i18n/use-translation";
 import { useReportScope, useReportWindow, useRereadReportOnFocus } from "@/lib/query";
 import {
@@ -120,15 +119,7 @@ export function ReportTab() {
   const { t } = useTranslation();
   return (
     <View testID="report-tab" className="flex-1 bg-background pt-safe">
-      <View className="flex-row items-center justify-between gap-3 px-4 pt-3 pb-4">
-        <Text
-          className="font-display text-[28px] font-semibold text-foreground"
-          style={{ letterSpacing: -0.56 }}
-        >
-          {t.nav.report}
-        </Text>
-        <NotificationBell />
-      </View>
+      <TabHeader title={t.nav.report} className="px-4 pt-3 pb-4" />
       <ReportBody />
     </View>
   );

@@ -3,11 +3,11 @@ import { PlusIcon } from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
-import { NotificationBell } from "@/components/notifications/notification-bell";
 import { FilterChips } from "@/components/requests/filter-chips";
 import { MonthStepper } from "@/components/requests/month-stepper";
 import { RequestCard } from "@/components/requests/request-card";
 import { ScopeMenu } from "@/components/requests/scope-menu";
+import { TabHeader } from "@/components/shell/tab-header";
 import { Icon, useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -60,16 +60,10 @@ export default function RequestsScreen() {
   return (
     <View className="flex-1 bg-background pt-safe">
       <View className="gap-4 px-4 pt-3 pb-4">
-        <View className="flex-row items-center justify-between gap-3">
-          <Text
-            className="font-display text-[28px] font-semibold text-foreground"
-            style={{ letterSpacing: -0.56 }}
-          >
-            {t.requests.title}
-          </Text>
-          <View className="max-w-[65%] flex-row items-center gap-2">
-            <ScopeMenu groups={groups} selected={selected} onChange={setChoice} />
-            <NotificationBell />
+        <TabHeader
+          title={t.requests.title}
+          beforeBell={<ScopeMenu groups={groups} selected={selected} onChange={setChoice} />}
+          afterBell={
             <Pressable
               testID="requests-new-request"
               onPress={() => router.push("/requests/new")}
@@ -79,8 +73,8 @@ export default function RequestsScreen() {
             >
               <Icon icon={PlusIcon} tone="onPrimary" size={18} weight="bold" />
             </Pressable>
-          </View>
-        </View>
+          }
+        />
         <MonthStepper
           month={month}
           canPrevious={stepMonth(month, -1, bounds) !== null}
