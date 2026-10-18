@@ -17,7 +17,7 @@ export type CalendarBirthday = {
 };
 
 /**
- * Mine shows the viewer's own birthday only (S7). Group adds the shared birthdays of the group's
+ * Mine shows the viewer's own birthday only. Group adds the shared birthdays of the group's
  * live members, read through the store's own memberships: a colleague who left drops out here
  * before the next snapshot sweeps their row.
  */

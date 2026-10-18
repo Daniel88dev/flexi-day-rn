@@ -50,13 +50,17 @@ async function renderMonth(
 }
 
 describe("LaneMonth", () => {
-  it("draws a cake right of the day number on a day with a birthday, and nothing elsewhere", async () => {
+  it("names a day's birthdays on its cell, and on no other day", async () => {
     await renderMonth([], 402, OCTOBER, new Map([["2026-10-20", { birthdays: 2, events: 0 }]]));
 
-    const day = screen.getByTestId("calendar-day-2026-10-20");
-    expect(within(day).getByTestId("calendar-mark-2026-10-20-cake")).toBeOnTheScreen();
-    expect(within(day).queryByTestId("calendar-mark-2026-10-20-dot")).toBeNull();
-    expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+    expect(screen.getByTestId("calendar-day-2026-10-20")).toHaveProp(
+      "accessibilityLabel",
+      "Tue 20 Oct, 2 birthdays"
+    );
+    expect(screen.getByTestId("calendar-day-2026-10-21")).toHaveProp(
+      "accessibilityLabel",
+      "Wed 21 Oct"
+    );
   });
 
   it("caps a busy day at the cake and one dot in a 52 pt cell, and counts the events with room", async () => {
@@ -70,11 +74,8 @@ describe("LaneMonth", () => {
       ])
     );
 
-    const busy = screen.getByTestId("calendar-mark-2026-10-20");
-    expect(within(busy).getByTestId("calendar-mark-2026-10-20-cake")).toBeOnTheScreen();
-    expect(within(busy).getByTestId("calendar-mark-2026-10-20-dot")).toBeOnTheScreen();
-    expect(busy).toHaveTextContent("", { exact: true });
-    expect(screen.getByTestId("calendar-mark-2026-10-21")).toHaveTextContent("3");
+    expect(screen.getByTestId("calendar-day-2026-10-20")).toHaveTextContent("20", { exact: true });
+    expect(within(screen.getByTestId("calendar-day-2026-10-21")).getByText("3")).toBeOnTheScreen();
   });
 
   it("gives the month label's place to a day's mark", async () => {
@@ -82,7 +83,7 @@ describe("LaneMonth", () => {
 
     const first = screen.getByTestId("calendar-adjacent-day-2026-09-28");
     expect(first).toHaveTextContent("28", { exact: true });
-    expect(within(first).getByTestId("calendar-mark-2026-09-28-cake")).toBeOnTheScreen();
+    expect(first).toHaveProp("accessibilityLabel", "Mon 28 Sep, 1 birthday");
   });
 
   it("renders a cell for every day of the month, Monday first", async () => {

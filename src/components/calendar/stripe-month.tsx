@@ -6,7 +6,7 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
-import { DayMark } from "@/components/calendar/day-mark";
+import { DayMark, markLabels } from "@/components/calendar/day-mark";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -64,13 +64,12 @@ export function StripeMonth({
     const holidays = ranges
       .filter((range) => range.type === "BANK_HOLIDAY" && range.from <= iso && range.to >= iso)
       .flatMap((range) => range.names);
-    const birthdays = marks?.get(iso)?.birthdays ?? 0;
     return [
       iso === today ? t.calendar.today : null,
       t.calendar.dayTitle(weekday, date),
       ...holidays,
       away > 0 ? t.dashboard.calendar.awayCount(away) : null,
-      birthdays > 0 ? t.dashboard.calendar.birthdayCount(birthdays) : null,
+      ...markLabels(t, marks?.get(iso)),
     ]
       .filter(Boolean)
       .join(", ");
@@ -162,12 +161,7 @@ export function StripeMonth({
                     </Text>
                   </View>
                   {mark ? (
-                    <DayMark
-                      date={iso}
-                      counts={mark}
-                      room={stripeMarkRoom(cellWidth)}
-                      size="stripe"
-                    />
+                    <DayMark counts={mark} room={stripeMarkRoom(cellWidth)} size="stripe" />
                   ) : null}
                 </Pressable>
               );

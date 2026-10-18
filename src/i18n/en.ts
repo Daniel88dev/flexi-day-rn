@@ -476,7 +476,7 @@ export const en = {
       addAction: "Add",
       editAction: "Edit",
       date: (day: number, month: number) => `${day} ${en.calendar.months[month - 1]}`,
-      withYear: (year: number, age: number) => `${year}, age ${age}`,
+      withYear: (year: number, age: number) => `${year}, turns ${age}`,
       noYear: "No year, age hidden",
       whoSees: "Who sees it",
       shareRow: "Share with my groups",

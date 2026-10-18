@@ -133,7 +133,6 @@ export function DayList({
   viewerId: string | null;
   onOpen?: (vacationId: string) => void;
   onBook: (day: string) => void;
-  /** Opens Settings from the viewer's own birthday. */
   onSettings?: () => void;
 }) {
   const { t } = useTranslation();

@@ -6,7 +6,7 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
-import { DayMark } from "@/components/calendar/day-mark";
+import { DayMark, markLabels } from "@/components/calendar/day-mark";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
@@ -173,6 +173,17 @@ export function LaneMonth({
   const cellWidth = (width - CALENDAR_GUTTER * 2 - 2) / 7;
   const weeks = monthWeeks(month);
 
+  const dayLabel = (iso: string) => {
+    const { weekday, date } = dayParts(iso);
+    return [
+      iso === today ? t.calendar.today : null,
+      t.calendar.dayTitle(weekday, date),
+      ...markLabels(t, marks?.get(iso)),
+    ]
+      .filter(Boolean)
+      .join(", ");
+  };
+
   const labelOf = (range: CalendarRange) => {
     const name =
       range.userId === viewerId ? t.requests.you : firstName(range.userName ?? undefined, "?");
@@ -223,6 +234,7 @@ export function LaneMonth({
                     testID={inMonth ? `calendar-day-${date}` : `calendar-adjacent-day-${date}`}
                     onPress={() => onDay(date)}
                     accessibilityRole="button"
+                    accessibilityLabel={dayLabel(date)}
                     style={{ width: cellWidth }}
                     className={cn(
                       "px-1 pt-1.5 active:bg-muted",
@@ -261,12 +273,7 @@ export function LaneMonth({
                         </Text>
                       ) : null}
                       {mark ? (
-                        <DayMark
-                          date={date}
-                          counts={mark}
-                          room={laneMarkRoom(cellWidth)}
-                          size="lane"
-                        />
+                        <DayMark counts={mark} room={laneMarkRoom(cellWidth)} size="lane" />
                       ) : null}
                     </View>
                   </Pressable>

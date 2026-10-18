@@ -1,5 +1,5 @@
 import {
-  ageOn,
+  ageAtNextBirthday,
   audience,
   birthdayOccurrences,
   draftOf,
@@ -63,19 +63,22 @@ describe("birthdayOccurrences", () => {
   });
 });
 
-describe("ageOn", () => {
-  it("returns the age before and on the birthday", () => {
-    expect(ageOn({ month: 3, day: 14, year: 1988 }, "2026-03-13")).toBe(37);
-    expect(ageOn({ month: 3, day: 14, year: 1988 }, "2026-03-14")).toBe(38);
+describe("ageAtNextBirthday", () => {
+  it("returns the age turned on the coming birthday, today included", () => {
+    expect(ageAtNextBirthday({ month: 3, day: 14, year: 1988 }, "2026-03-13")).toBe(38);
+    expect(ageAtNextBirthday({ month: 3, day: 14, year: 1988 }, "2026-03-14")).toBe(38);
+    expect(ageAtNextBirthday({ month: 3, day: 14, year: 1988 }, "2026-03-15")).toBe(39);
+    expect(ageAtNextBirthday({ month: 3, day: 14, year: 1988 }, "2026-10-18")).toBe(39);
   });
 
-  it("counts 29 February as had on 28 February in a non-leap year", () => {
-    expect(ageOn({ month: 2, day: 29, year: 1992 }, "2027-02-28")).toBe(35);
-    expect(ageOn({ month: 2, day: 29, year: 1992 }, "2027-02-27")).toBe(34);
+  it("returns the age on 28 February for a 29 February birthday in a non-leap year", () => {
+    expect(ageAtNextBirthday({ month: 2, day: 29, year: 1992 }, "2027-02-28")).toBe(35);
+    expect(ageAtNextBirthday({ month: 2, day: 29, year: 1992 }, "2027-03-01")).toBe(36);
+    expect(ageAtNextBirthday({ month: 2, day: 29, year: 1992 }, "2028-02-29")).toBe(36);
   });
 
   it("returns null without a year", () => {
-    expect(ageOn({ month: 3, day: 14, year: null }, "2026-10-18")).toBeNull();
+    expect(ageAtNextBirthday({ month: 3, day: 14, year: null }, "2026-10-18")).toBeNull();
   });
 });
 

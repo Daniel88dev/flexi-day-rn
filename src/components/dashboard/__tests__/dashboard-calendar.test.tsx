@@ -256,8 +256,14 @@ describe("DashboardCalendar", () => {
     it("marks only the viewer's own birthday in Mine", async () => {
       await renderCalendar();
 
-      expect(screen.getByTestId("calendar-mark-2026-10-20-cake")).toBeOnTheScreen();
-      expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+      expect(screen.getByTestId("calendar-day-2026-10-20")).toHaveProp(
+        "accessibilityLabel",
+        "Tue 20 Oct, 1 birthday"
+      );
+      expect(screen.getByTestId("calendar-day-2026-10-21")).toHaveProp(
+        "accessibilityLabel",
+        "Wed 21 Oct"
+      );
     });
 
     it("lists a birthday only on its own day", async () => {
@@ -277,7 +283,10 @@ describe("DashboardCalendar", () => {
 
       expect(await screen.findByTestId("day-list-birthday-eva")).toHaveTextContent("Eva turns 34");
       expect(screen.getByTestId("day-list-birthday-me")).toHaveTextContent(/Your birthday · 38/);
-      expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+      expect(screen.getByTestId("calendar-day-2026-10-21")).toHaveProp(
+        "accessibilityLabel",
+        "Wed 21 Oct"
+      );
     });
 
     it("closes the day list and opens Settings from the viewer's own birthday", async () => {

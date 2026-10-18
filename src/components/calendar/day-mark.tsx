@@ -3,6 +3,7 @@ import { View } from "react-native";
 
 import { useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import type { Dictionary } from "@/i18n";
 import {
   DAY_MARK_METRICS,
   dayMark,
@@ -14,16 +15,23 @@ import { cn } from "@/lib/cn";
 export const BIRTHDAY_PINK = "#e0619a";
 
 /**
- * A day's birthdays and group events, capped per S14 to what `room` holds. Lanes lay it out in a
- * row beside the day number; stripes stack it, cake over dot, in the cell's corner.
+ * The mark sits inside the day cell's pressable, which hides it from the accessibility tree, so the
+ * cell's own label names what it shows.
+ */
+export function markLabels(t: Dictionary, counts: DayMarkCounts | undefined): string[] {
+  const birthdays = counts?.birthdays ?? 0;
+  return birthdays > 0 ? [t.dashboard.calendar.birthdayCount(birthdays)] : [];
+}
+
+/**
+ * A day's birthdays and group events, capped to what `room` holds. Lanes lay it out in a row
+ * beside the day number; stripes stack it, cake over dot, in the cell's corner.
  */
 export function DayMark({
-  date,
   counts,
   room,
   size,
 }: {
-  date: string;
   counts: DayMarkCounts;
   room: number;
   size: DayMarkSize;
@@ -33,10 +41,8 @@ export function DayMark({
   if (!parts) return null;
 
   const metrics = DAY_MARK_METRICS[size];
-  const testID = `calendar-mark-${date}`;
   return (
     <View
-      testID={testID}
       pointerEvents="none"
       style={
         size === "stripe"
@@ -45,15 +51,10 @@ export function DayMark({
       }
       className={cn(size === "stripe" ? "items-end" : "ml-auto flex-row items-center")}
     >
-      {parts.cake ? (
-        <View testID={`${testID}-cake`}>
-          <CakeIcon size={metrics.cake} color={BIRTHDAY_PINK} weight="fill" />
-        </View>
-      ) : null}
+      {parts.cake ? <CakeIcon size={metrics.cake} color={BIRTHDAY_PINK} weight="fill" /> : null}
       {parts.dot ? (
         <View className="flex-row items-center" style={{ gap: metrics.countGap }}>
           <View
-            testID={`${testID}-dot`}
             style={{
               width: metrics.dot,
               height: metrics.dot,

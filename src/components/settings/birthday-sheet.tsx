@@ -15,8 +15,8 @@ import { useRemoveMyBirthday, useSaveMyBirthday } from "@/lib/query";
 const EARLIEST = new Date(1900, 0, 1);
 
 /**
- * D22's edit page sheet: the system date wheel keeps its year column, the switch decides whether
- * the year is saved. Removing the birthday turns sharing off with it, on the server.
+ * The system date wheel keeps its year column and the switch decides whether the year is saved.
+ * Removing the birthday turns sharing off with it, on the server.
  */
 export function BirthdaySheet({
   open,

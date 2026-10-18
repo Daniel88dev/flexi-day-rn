@@ -326,7 +326,10 @@ describe("Settings", () => {
   });
 
   it("offers Retry while the settings cannot be read", async () => {
-    mockFetch.mockRejectedValue(new TypeError("Network request failed"));
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith("/api/users/me/birthday")) return answer(200, BIRTHDAY);
+      throw new TypeError("Network request failed");
+    });
     await renderSettings();
 
     expect(await screen.findByText(en.sync.unreachable, {}, { timeout: 5000 })).toBeOnTheScreen();

@@ -1,6 +1,5 @@
 export type BirthDate = { month: number; day: number; year: number | null };
 
-/** What `GET /api/users/me/birthday` holds for the signed-in user. */
 export type MyBirthday = BirthDate & { shared: boolean };
 
 export type BirthdayShareGroup = { groupId: string; groupName: string };
@@ -11,7 +10,7 @@ function isLeap(year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
-/** 29 February lands on 28 February in a year without it (D19). */
+/** 29 February lands on 28 February in a year without it. */
 function dayIn(birthday: BirthDate, year: number): number {
   return birthday.month === 2 && birthday.day === 29 && !isLeap(year) ? 28 : birthday.day;
 }
@@ -37,16 +36,16 @@ export function birthdayOccurrences(
   return found;
 }
 
-/** The age on an ISO day, or null without a year. */
-export function ageOn(birthday: BirthDate, today: string): number | null {
+/** The age turned on the next birthday, today included, as the web's settings card shows it. */
+export function ageAtNextBirthday(birthday: BirthDate, today: string): number | null {
   if (birthday.year === null) return null;
   const year = Number(today.slice(0, 4));
-  const had = today.slice(5) >= `${pad(birthday.month)}-${pad(dayIn(birthday, year))}`;
-  return year - birthday.year - (had ? 0 : 1);
+  const ahead = today.slice(5) <= `${pad(birthday.month)}-${pad(dayIn(birthday, year))}`;
+  return (ahead ? year : year + 1) - birthday.year;
 }
 
 /**
- * What the share switch offers (D28), as on the web. `open`: it turns on and off. `lapsed`: only
+ * What the share switch offers, as on the web. `open`: it turns on and off. `lapsed`: only
  * turning off, with the lapsed line. `notice`: no paid or lapsed group, the notice replaces it.
  */
 export type ShareSwitchState = "open" | "lapsed" | "notice";

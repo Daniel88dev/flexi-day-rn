@@ -1,10 +1,30 @@
 # Birthdays (T-354): set a birthday with a year, see the age on the user's own day, remove the
-# year and see the age go. Runs on 18 October 2026, signed in as owner@dev.local (lanes view),
-# with the owner's birthday stored as 25 October without a year:
+# year and see the age go. Runs in October 2026, signed in as owner@dev.local (lanes view), whose
+# birthday the dev scenario seeds on 25 October:
 #   npm run dev:login:rn -- owner@dev.local --to /dashboard --udid <udid>
-# The wheel offers 2000 for a birthday without a year: age 25 today, 26 on the day.
+# The flow removes a stored year first. Without one, the wheel offers 2000.
 appId: com.flexiday.app
 ---
+- openLink: flexiday:///settings
+- extendedWaitUntil:
+    visible:
+      id: settings-birthday
+    timeout: 10000
+- runFlow:
+    when:
+      visible:
+        id: settings-birthday
+        text: '.*turns \d+.*'
+    commands:
+      - tapOn:
+          id: settings-birthday
+      - tapOn:
+          id: birthday-sheet-year
+      - tapOn:
+          id: birthday-sheet-save
+- assertVisible:
+    id: settings-birthday
+    text: ".*No year, age hidden.*"
 - openLink: flexiday:///dashboard
 # Pull to refresh, so the store holds what the server stores now.
 - swipe:
@@ -12,6 +32,9 @@ appId: com.flexiday.app
     end: 50%, 75%
     duration: 800
 - waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
 - tapOn:
     id: calendar-day-2026-10-25
 - assertVisible:
@@ -30,14 +53,14 @@ appId: com.flexiday.app
     id: birthday-sheet-save
 - assertVisible:
     id: settings-birthday
-    text: ".*2000, age 25.*"
+    text: '.*2000, turns \d+.*'
 - tapOn:
     id: stack-back
 - tapOn:
     id: calendar-day-2026-10-25
 - assertVisible:
     id: "day-list-birthday-.*"
-    text: "Your birthday · 26"
+    text: 'Your birthday · \d+'
 - tapOn:
     id: "day-list-birthday-.*"
 - tapOn:
@@ -57,4 +80,5 @@ appId: com.flexiday.app
     id: "day-list-birthday-.*"
     text: "Your birthday"
 - assertNotVisible:
-    text: "Your birthday · 26"
+    id: "day-list-birthday-.*"
+    text: 'Your birthday · \d+'

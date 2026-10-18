@@ -489,7 +489,7 @@ export const cs: Dictionary = {
       addAction: "Přidat",
       editAction: "Upravit",
       date: (day: number, month: number) => `${day}. ${MONTHS_GENITIVE_CS[month - 1]}`,
-      withYear: (year: number, age: number) => `${year}, věk ${age}`,
+      withYear: (year: number, age: number) => `${year}, bude vám ${age}`,
       noYear: "Bez roku, věk skrytý",
       whoSees: "Kdo je uvidí",
       shareRow: "Sdílet se skupinami",

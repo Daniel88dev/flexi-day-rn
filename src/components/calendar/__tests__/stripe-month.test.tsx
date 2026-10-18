@@ -58,7 +58,7 @@ async function renderMonth(
 }
 
 describe("StripeMonth", () => {
-  it("draws a cake in the corner of a day with a birthday and names it to a screen reader", async () => {
+  it("names a day's birthdays on its cell, and on no other day", async () => {
     await renderMonth(
       [],
       "2026-10-14",
@@ -66,10 +66,14 @@ describe("StripeMonth", () => {
       new Map([["2026-10-20", { birthdays: 2, events: 0 }]])
     );
 
-    const day = screen.getByTestId("calendar-day-2026-10-20");
-    expect(within(day).getByTestId("calendar-mark-2026-10-20-cake")).toBeOnTheScreen();
-    expect(day).toHaveProp("accessibilityLabel", "Tue 20 Oct, 2 birthdays");
-    expect(screen.queryByTestId("calendar-mark-2026-10-21")).toBeNull();
+    expect(screen.getByTestId("calendar-day-2026-10-20")).toHaveProp(
+      "accessibilityLabel",
+      "Tue 20 Oct, 2 birthdays"
+    );
+    expect(screen.getByTestId("calendar-day-2026-10-21")).toHaveProp(
+      "accessibilityLabel",
+      "Wed 21 Oct"
+    );
   });
 
   it("renders a cell for every day of the month and selects a tapped one", async () => {

@@ -11,7 +11,7 @@ import { useWriteFailure } from "./use-write-failure";
 
 export type BirthdaySettings = {
   birthday: MyBirthday | null;
-  /** Whether the share switch may turn on: one of the user's groups is on a paid plan (D28). */
+  /** Whether the share switch may turn on: one of the user's groups is on a paid plan. */
   canShare: boolean;
   /** The paid and lapsed groups a shared birthday shows in today. */
   shareGroups: BirthdayShareGroup[];

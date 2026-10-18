@@ -5,10 +5,16 @@ import { Pressable, View } from "react-native";
 import { BirthdaySheet } from "@/components/settings/birthday-sheet";
 import { Divider, Row, Section } from "@/components/settings/grouped-list";
 import { Icon, useTone } from "@/components/ui/icon";
+import { Notice } from "@/components/ui/notice";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
-import { ageOn, audience, shareSwitchState, type AudienceRow } from "@/lib/birthdays/birthday";
+import {
+  ageAtNextBirthday,
+  audience,
+  shareSwitchState,
+  type AudienceRow,
+} from "@/lib/birthdays/birthday";
 import { dayOfDate } from "@/lib/days";
 import { useMyBirthday, useSaveMyBirthday } from "@/lib/query";
 import { useToday } from "@/lib/use-today";
@@ -72,10 +78,7 @@ function AudienceTable({ rows }: { rows: AudienceRow[] }) {
   );
 }
 
-/**
- * D22: the birthday card under the account header, its edit sheet, and who sees it. Plan state
- * comes from the server (D28): the switch, the lapsed line, or the notice in its place.
- */
+/** Plan state comes from the server: the switch, the lapsed line, or the notice in its place. */
 export function BirthdaySettings() {
   const { t } = useTranslation();
   const labels = t.settings.birthday;
@@ -88,7 +91,7 @@ export function BirthdaySettings() {
   const settings = query.data;
   const stored = settings?.birthday ?? null;
   const birthday = pending ?? stored;
-  const age = birthday ? ageOn(birthday, today) : null;
+  const age = birthday ? ageAtNextBirthday(birthday, today) : null;
   const shareGroups = settings?.shareGroups ?? [];
   const state = shareSwitchState({
     canShare: settings?.canShare ?? false,
@@ -103,6 +106,20 @@ export function BirthdaySettings() {
       ? labels.withYear(birthday.year, age)
       : labels.noYear
     : null;
+
+  if (query.isError && !settings) {
+    return (
+      <Notice
+        tone="error"
+        message={t.sync.unreachable}
+        action={{
+          label: t.request.retry,
+          onPress: () => void query.refetch(),
+          testID: "settings-birthday-retry",
+        }}
+      />
+    );
+  }
 
   return (
     <View className="gap-7">

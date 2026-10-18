@@ -1,7 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 
 import { BirthdaySettings } from "@/components/settings/birthday-card";
+import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { pull } from "@/lib/local-store";
 import { queryClient, type BirthdaySettings as Settings } from "@/lib/query";
@@ -66,7 +67,7 @@ function puts() {
     .map(([, init]) => JSON.parse(String(init.body)));
 }
 
-async function renderCard() {
+async function renderBare() {
   await render(
     <TranslationProvider>
       <QueryClientProvider client={queryClient}>
@@ -74,6 +75,10 @@ async function renderCard() {
       </QueryClientProvider>
     </TranslationProvider>
   );
+}
+
+async function renderCard() {
+  await renderBare();
   await waitFor(() => expect(screen.getByTestId("settings-birthday")).toBeEnabled());
 }
 
@@ -93,7 +98,7 @@ afterEach(() => {
 });
 
 describe("BirthdaySettings", () => {
-  it("shows the date, the year and the age today, and who sees what", async () => {
+  it("shows the date, the year, the age at the next birthday, and who sees what", async () => {
     server({
       birthday: { month: 3, day: 14, year: 1988, shared: true },
       canShare: true,
@@ -103,7 +108,7 @@ describe("BirthdaySettings", () => {
 
     const card = screen.getByTestId("settings-birthday");
     expect(card).toHaveTextContent(/14 March/);
-    expect(card).toHaveTextContent(/1988, age 38/);
+    expect(card).toHaveTextContent(/1988, turns 39/);
     expect(card).toHaveTextContent(/Edit/);
     expect(screen.getByTestId("settings-birthday-share")).toHaveProp("value", true);
     const groups = screen.getByTestId("settings-birthday-audience-groups");
@@ -258,5 +263,18 @@ describe("BirthdaySettings", () => {
         /turning it back on needs a group on a paid plan/
       )
     );
+  });
+
+  it("offers Retry while the birthday cannot be read", async () => {
+    mockFetch.mockRejectedValue(new TypeError("Network request failed"));
+    await renderBare();
+    await act(() => jest.advanceTimersByTimeAsync(5000));
+
+    expect(await screen.findByText(en.sync.unreachable)).toBeOnTheScreen();
+    expect(screen.queryByTestId("settings-birthday")).toBeNull();
+    server({ birthday: null, canShare: true, shareGroups: [] });
+    await fireEvent.press(screen.getByTestId("settings-birthday-retry"));
+
+    await waitFor(() => expect(screen.getByTestId("settings-birthday")).toBeEnabled());
   });
 });

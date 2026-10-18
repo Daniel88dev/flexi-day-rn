@@ -1,5 +1,5 @@
 /**
- * The mark a day cell carries for its birthdays and group events (S14): one cake however many
+ * The mark a day cell carries for its birthdays and group events: one cake however many
  * birthdays, at most one dot however many events, and the event count beside the dot only when
  * the cell has room for it. Lanes draw it in a row right of the day number; stripes stack it in the
  * cell's top-right corner, cake over dot.
