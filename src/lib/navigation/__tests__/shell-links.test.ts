@@ -54,8 +54,21 @@ describe("splitForTabBar", () => {
     expect(sheet.map((section) => section.links.map((link) => link.key))).toEqual([["groups"]]);
   });
 
+  it("puts Report on the bar as its tab route, not the page pushed over the shell", () => {
+    const { bar } = splitForTabBar(buildSections(en, { attendanceLink: false }));
+    expect(bar[2]).toMatchObject({ key: "report", href: "/report-tab", tab: true });
+  });
+
+  it("keeps Report in the sheet as the page pushed over the shell", () => {
+    const { sheet } = splitForTabBar(buildSections(en));
+    const report = sheet[0].links.find((link) => link.key === "report");
+    expect(report?.href).toBe("/report");
+    expect(report?.tab).toBeUndefined();
+  });
+
   it("returns the tab routes the bar leaves off, so the layout keeps them reachable", () => {
-    expect(splitForTabBar(buildSections(en)).hiddenTabs).toEqual([]);
+    const shown = splitForTabBar(buildSections(en)).hiddenTabs;
+    expect(shown.map((link) => [link.key, link.href])).toEqual([["report", "/report-tab"]]);
     const { hiddenTabs } = splitForTabBar(buildSections(en, { attendanceLink: false }));
     expect(hiddenTabs.map((link) => link.key)).toEqual(["myAttendance"]);
   });

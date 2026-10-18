@@ -6,7 +6,10 @@ import { useShellUnderneath } from "@/lib/navigation/use-shell-underneath";
 import { queryClient } from "@/lib/query";
 import { useRootRoute } from "@/lib/session/root-route-context";
 
-/** Pushed over the shell from the More sheet, outside its query layer. */
+/**
+ * Pushed over the shell from the More sheet, outside its query layer. Report on the bar is the
+ * `/report-tab` tab instead.
+ */
 export default function ReportRoute() {
   const route = useRootRoute();
   const orphaned = useShellUnderneath("/report");
