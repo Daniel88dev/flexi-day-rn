@@ -127,6 +127,7 @@ describe("storeRowCounts", () => {
       userYearQuotas: 0,
       bankHolidays: 0,
       vacations: 0,
+      groupEvents: 0,
       birthdays: 0,
     });
   });
@@ -149,6 +150,7 @@ describe("storeRowCounts", () => {
       userYearQuotas: 1,
       bankHolidays: 1,
       vacations: 2,
+      groupEvents: 1,
       birthdays: 1,
     });
   });

@@ -9,6 +9,7 @@ import {
   type CalendarQuery,
 } from "./calendar";
 import type { StoreChannel } from "./events";
+import { calendarGroupEvents, type CalendarGroupEvent } from "./group-events";
 import { MERGED_VACATION_CHANNELS } from "./queries";
 import type { ListedVacation } from "./requests";
 import { useStoreOverlay } from "./use-pending-changes";
@@ -31,6 +32,14 @@ const HOLIDAY_CHANNELS = [
 
 const BIRTHDAY_CHANNELS = [
   "birthdays",
+  "users",
+  "groupUsers",
+  "syncState",
+] as const satisfies readonly StoreChannel[];
+
+const GROUP_EVENT_CHANNELS = [
+  "groupEvents",
+  "groups",
   "users",
   "groupUsers",
   "syncState",
@@ -77,4 +86,18 @@ export function useCalendarBirthdays({ range, scope }: CalendarQuery): CalendarB
     [from, until, groupId]
   );
   return useStoreQuery(build, BIRTHDAY_CHANNELS);
+}
+
+export function useCalendarGroupEvents({ range, scope }: CalendarQuery): CalendarGroupEvent[] {
+  const { from, until } = range;
+  const groupId = scope.kind === "group" ? scope.groupId : null;
+  const build = useCallback(
+    (db: StoreDatabase) =>
+      calendarGroupEvents(db, {
+        range: { from, until },
+        scope: groupId === null ? { kind: "mine" } : { kind: "group", groupId },
+      }),
+    [from, until, groupId]
+  );
+  return useStoreQuery(build, GROUP_EVENT_CHANNELS);
 }

@@ -4,6 +4,7 @@ import type {
   SyncBankHolidayRow,
   SyncBirthdayRow,
   SyncEnvelope,
+  SyncGroupEventRow,
   SyncGroupMirrorRow,
   SyncGroupRow,
   SyncGroupUserRow,
@@ -29,6 +30,7 @@ export function syncPage(page: Partial<SyncEnvelope> = {}): SyncEnvelope {
     userYearQuotas: [],
     bankHolidays: [],
     vacations: [],
+    groupEvents: [],
     birthdays: [],
     ...page,
   };
@@ -150,6 +152,34 @@ export function vacationRow(row: Partial<SyncVacationRow> = {}): SyncVacationRow
   };
 }
 
+/** A weekly Monday group event, 09:30 to 09:45, from Monday 5 October 2026. */
+export function groupEventRow(row: Partial<SyncGroupEventRow> = {}): SyncGroupEventRow {
+  return {
+    id: "group-event-1",
+    groupId: "group-1",
+    organizationId: "org-1",
+    createdByUserId: "user-1",
+    title: "Weekly standup",
+    note: null,
+    startDate: "2026-10-05",
+    endDate: "2026-10-05",
+    startTime: "09:30",
+    endTime: "09:45",
+    repeatFreq: "WEEKLY",
+    repeatInterval: 1,
+    repeatWeekdays: [0],
+    repeatMonthlyMode: null,
+    repeatUntil: null,
+    skippedDates: [],
+    recurringEventId: null,
+    originalDate: null,
+    deletedAt: null,
+    createdAt: STAMP,
+    updatedAt: STAMP,
+    ...row,
+  };
+}
+
 export function birthdayRow(row: Partial<SyncBirthdayRow> = {}): SyncBirthdayRow {
   return {
     id: row.userId ?? "user-1",
@@ -176,6 +206,7 @@ export function fullSyncPage(page: Partial<SyncEnvelope> = {}): SyncEnvelope {
     userYearQuotas: [userYearQuotaRow()],
     bankHolidays: [bankHolidayRow()],
     vacations: [vacationRow()],
+    groupEvents: [groupEventRow()],
     birthdays: [birthdayRow()],
     ...page,
   });

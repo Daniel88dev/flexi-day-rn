@@ -16,6 +16,12 @@ const czechFew = (count: number) => Number.isInteger(count) && count >= 2 && cou
 const czechPlural = (count: number, one: string, few: string, many: string) =>
   count === 1 ? one : count >= 2 && count <= 4 ? few : many;
 
+/** "Každé 2 týdny", "Každých 5 let"; one is the plain "Každý týden". */
+const everyCs = (n: number, once: string, few: string, many: string) =>
+  n === 1
+    ? once
+    : `${czechPlural(n, "Každý", "Každé", "Každých")} ${n} ${czechPlural(n, "", few, many)}`;
+
 const MONTHS_GENITIVE_CS = [
   "ledna",
   "února",
@@ -1161,6 +1167,115 @@ export const cs: Dictionary = {
     forbidden: "Není ve vašem reportu",
     forbiddenBody:
       "Tento člověk není ve skupině, jejíž report vidíte, nebo jeho účet už neexistuje.",
+  },
+  groupEvents: {
+    section: "Skupinové události",
+    away: "Pryč",
+    allDay: "Celý den",
+    changedOnce: "Změněno jen pro tento den",
+    addedBy: (name: string) => `Autor: ${name}`,
+    addedByYou: "Autor: vy",
+    addedByFormerMember: "Autor: bývalý člen skupiny",
+    lockedTo: (name: string) => `Změnit ji může jen ${name} nebo správce skupiny`,
+    lockedToAdmins: "Změnit ji může jen správce skupiny",
+    back: "Zpět",
+    close: "Zavřít",
+    count: (count: number) =>
+      `${count} ${czechPlural(count, "skupinová událost", "skupinové události", "skupinových událostí")}`,
+    weekdaysLong: ["pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota", "neděle"],
+    dayMonth: (date: DayMonth) => `${date.day}. ${MONTHS_GENITIVE_CS[date.month - 1]}`,
+    fullDate: (date: DayMonth & { year: number }) =>
+      `${date.day}. ${MONTHS_GENITIVE_CS[date.month - 1]} ${date.year}`,
+    repeat: {
+      daily: (n: number) => everyCs(n, "Každý den", "dny", "dní"),
+      weekly: (n: number, days: string) =>
+        `${everyCs(n, "Každý týden", "týdny", "týdnů")}: ${days}`,
+      everyWeekday: "Každý pracovní den",
+      monthlyOnDay: (n: number, day: number) =>
+        `${everyCs(n, "Každý měsíc", "měsíce", "měsíců")}, ${day}. den`,
+      monthlyOnWeekday: (n: number, nth: number, weekday: string) =>
+        `${everyCs(n, "Každý měsíc", "měsíce", "měsíců")}, ${nth}. ${weekday}`,
+      monthlyOnLastWeekday: (n: number, weekday: string) =>
+        `${everyCs(n, "Každý měsíc", "měsíce", "měsíců")}, poslední ${weekday}`,
+      yearly: (n: number, date: string) => `${everyCs(n, "Každý rok", "roky", "let")}, ${date}`,
+      until: (summary: string, date: string) => `${summary}, do ${date}`,
+    },
+    menu: {
+      requestTimeOff: "Požádat o volno",
+      newGroupEvent: "Nová skupinová událost",
+      open: "Otevřít",
+      edit: "Upravit…",
+      delete: "Smazat…",
+      editOrDelete: "Upravit nebo smazat",
+    },
+    edit: "Upravit",
+    delete: "Smazat",
+    newGroupEvent: "Nová skupinová událost",
+    editor: {
+      newTitle: "Nová skupinová událost",
+      editTitle: "Upravit skupinovou událost",
+      cancel: "Zrušit",
+      add: "Přidat",
+      save: "Uložit",
+      title: "Název",
+      group: "Skupina",
+      noGroup: "Do žádné z vašich skupin teď nejde přidat novou skupinovou událost.",
+      allDay: "Celý den",
+      starts: "Začátek",
+      ends: "Konec",
+      note: "Poznámka (nepovinná)",
+      deleteEvent: "Smazat skupinovou událost",
+      lastsOneDay: "Opakovaná skupinová událost trvá jeden den",
+      repeat: "Opakování",
+      freq: {
+        never: "Nikdy",
+        daily: "Denně",
+        weekly: "Týdně",
+        monthly: "Měsíčně",
+        yearly: "Ročně",
+      },
+      every: (freq: "daily" | "weekly" | "monthly" | "yearly", n: number) =>
+        ({
+          daily: everyCs(n, "Každý den", "dny", "dní"),
+          weekly: everyCs(n, "Každý týden", "týdny", "týdnů"),
+          monthly: everyCs(n, "Každý měsíc", "měsíce", "měsíců"),
+          yearly: everyCs(n, "Každý rok", "roky", "let"),
+        })[freq],
+      fewer: "Méně",
+      more: "Více",
+      startWeekday: "Den v týdnu, kdy událost začíná, se opakuje vždy",
+      onDay: (day: number) => `${day}. den v měsíci`,
+      onNthWeekday: (nth: number, weekday: string) => `${nth}. ${weekday} v měsíci`,
+      onLastWeekday: (weekday: string) => `Poslední ${weekday} v měsíci`,
+      shorterMonths: "Kratší měsíce použijí svůj poslední den.",
+      endsNever: "Nikdy",
+      endsOnDate: "K datu",
+      nextDates: "Další termíny",
+      problems: {
+        title: "Zadejte název skupinové události.",
+        group: "Vyberte skupinu.",
+        endsBeforeStart: "Končí dřív, než začne.",
+        untilBeforeStart: "Opakování končí před prvním dnem.",
+      },
+      planRequired:
+        "Tato skupina nemá placený tarif, takže do ní nové skupinové události přidat nejde.",
+    },
+    scope: {
+      changeTitle: (title: string) => `Změnit „${title}“`,
+      deleteTitle: (title: string) => `Smazat „${title}“?`,
+      changeQuestion: "Na které dny se má změna použít?",
+      thisEvent: "Tato událost",
+      following: "Tato a následující",
+      all: "Všechny události",
+      cancel: "Zrušit",
+      ruleOnOneDate: "Nové pravidlo opakování nejde použít na jeden den",
+      dropped: (n: number) =>
+        `${n} ${czechPlural(n, "změna", "změny", "změn")} jednotlivých dnů se ztratí, včetně smazaných dnů.`,
+      save: "Uložit",
+      deleteBody:
+        "Zmizí ze všech kalendářů, včetně odběrů .ics a synchronizovaných kalendářů Google a Microsoft. Nejde to vrátit.",
+      deleteConfirm: "Smazat",
+    },
   },
   common: {
     locale: "cs-CZ",

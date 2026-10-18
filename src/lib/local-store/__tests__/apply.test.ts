@@ -8,6 +8,7 @@ import type { StoreRuntime } from "../runtime";
 import {
   bankHolidays,
   birthdays,
+  groupEvents,
   groupMirrors,
   groupUsers,
   groups,
@@ -21,6 +22,7 @@ import {
   bankHolidayRow,
   birthdayRow,
   fullSyncPage,
+  groupEventRow,
   groupMirrorRow,
   groupUserRow,
   groupRow,
@@ -50,6 +52,7 @@ function allRows(db: StoreDatabase) {
     userYearQuotas: db.select().from(userYearQuotas).all(),
     bankHolidays: db.select().from(bankHolidays).all(),
     vacations: db.select().from(vacations).all(),
+    groupEvents: db.select().from(groupEvents).all(),
     birthdays: db.select().from(birthdays).all(),
   };
 }
@@ -75,6 +78,7 @@ describe("applyPage", () => {
       "userYearQuotas",
       "bankHolidays",
       "vacations",
+      "groupEvents",
       "birthdays",
     ]);
     expect(touched).toEqual([...SYNC_TABLE_NAMES]);
@@ -84,7 +88,9 @@ describe("applyPage", () => {
     apply(fullSyncPage());
 
     const rows = allRows(store.getDatabase());
-    expect(Object.values(rows).map((table) => table.length)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    expect(Object.values(rows).map((table) => table.length)).toEqual([
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    ]);
     expect(rows.groups[0].workingDays).toEqual([1, 2, 3, 4, 5]);
     expect(rows.groupUsers[0].viewAccess).toBe(true);
   });
@@ -174,6 +180,53 @@ describe("applyPage", () => {
     );
 
     expect(allRows(store.getDatabase()).birthdays).toEqual([]);
+  });
+
+  it("deletes the local group event for a group event tombstone", () => {
+    apply(fullSyncPage());
+
+    apply(
+      syncPage({
+        groupEvents: [
+          groupEventRow({
+            title: null,
+            createdByUserId: null,
+            repeatFreq: null,
+            repeatInterval: null,
+            repeatWeekdays: null,
+            deletedAt: "2026-09-20T08:00:00.000Z",
+          }),
+        ],
+      })
+    );
+
+    expect(allRows(store.getDatabase()).groupEvents).toEqual([]);
+  });
+
+  it("stores a group event's rule columns as the pull sends them", () => {
+    apply(
+      syncPage({
+        groupEvents: [
+          groupEventRow({ repeatWeekdays: [0, 2], skippedDates: ["2026-10-12", "2026-10-19"] }),
+        ],
+      })
+    );
+
+    expect(allRows(store.getDatabase()).groupEvents[0]).toMatchObject({
+      repeatFreq: "WEEKLY",
+      repeatWeekdays: [0, 2],
+      skippedDates: ["2026-10-12", "2026-10-19"],
+    });
+  });
+
+  it("applies a page from a backend that sends no group events", () => {
+    const { groupEvents: _omitted, ...page } = fullSyncPage();
+
+    apply(page);
+
+    const rows = allRows(store.getDatabase());
+    expect(rows.vacations).toHaveLength(1);
+    expect(rows.groupEvents).toEqual([]);
   });
 
   it("applies a page from a backend that sends no birthdays", () => {

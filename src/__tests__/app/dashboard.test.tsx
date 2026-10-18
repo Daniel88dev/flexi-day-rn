@@ -128,6 +128,7 @@ const NO_ROWS: Record<SyncTableName, number> = {
   userYearQuotas: 0,
   bankHolidays: 0,
   vacations: 0,
+  groupEvents: 0,
   birthdays: 0,
 };
 

@@ -30,7 +30,8 @@ async function renderMonth(
   ranges: CalendarRange[],
   width = 390,
   month = OCTOBER,
-  marks?: DayMarks
+  marks?: DayMarks,
+  eventSpans?: { id: string; startDate: string; endDate: string }[]
 ) {
   const handlers = { onDay: jest.fn(), onBar: jest.fn(), onMore: jest.fn() };
   await render(
@@ -42,6 +43,7 @@ async function renderMonth(
         viewerId={VIEWER}
         today="2026-10-14"
         marks={marks}
+        eventSpans={eventSpans}
         {...handlers}
       />
     </TranslationProvider>
@@ -76,6 +78,24 @@ describe("LaneMonth", () => {
 
     expect(screen.getByTestId("calendar-day-2026-10-20")).toHaveTextContent("20", { exact: true });
     expect(within(screen.getByTestId("calendar-day-2026-10-21")).getByText("3")).toBeOnTheScreen();
+  });
+
+  it("draws a ribbon along the days a multi-day group event covers, week by week", async () => {
+    await renderMonth([], 402, OCTOBER, undefined, [
+      { id: "offsite", startDate: "2026-10-23", endDate: "2026-10-27" },
+      { id: "standup", startDate: "2026-10-19", endDate: "2026-10-19" },
+    ]);
+
+    const cell = (402 - 34) / 7;
+    expect(screen.getByTestId("calendar-ribbon-offsite-2026-10-23-2026-10-19")).toHaveStyle({
+      left: 4 * cell + 1,
+      width: 3 * cell - 2,
+    });
+    expect(screen.getByTestId("calendar-ribbon-offsite-2026-10-23-2026-10-26")).toHaveStyle({
+      left: 1,
+      width: 2 * cell - 2,
+    });
+    expect(screen.queryByTestId(/calendar-ribbon-standup/)).toBeNull();
   });
 
   it("gives the month label's place to a day's mark", async () => {

@@ -43,6 +43,10 @@ export function monthsWithin(bounds: MonthBounds): YearMonth[] {
   return Array.from({ length: count }, (_, offset) => addMonths(bounds.first, offset));
 }
 
+export function monthOf(day: string): YearMonth {
+  return { year: Number(day.slice(0, 4)), month: Number(day.slice(5, 7)) };
+}
+
 export function isoDay({ year, month }: YearMonth, day: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }

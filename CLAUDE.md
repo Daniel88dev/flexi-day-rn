@@ -224,8 +224,8 @@ throws `ApiError` with the server's message.
   402, 403 or 409, shows the server's message, reloads the screen's queries and starts a sync
   pull. Any other 4xx shows the server's message. Neither offers Retry, because the same tap
   fails the same way; a 5xx or no answer at all does. It takes a Local store `WriteOutcome` as
-  well as a thrown error. Six sheets, the Join screen and the birthday share switch are exceptions,
-  because the failure belongs where the person is looking. The Clock sheet sorts its writes' failures with
+  well as a thrown error. Six sheets, the Join screen, the birthday share switch and the group event
+  editor are exceptions, because the failure belongs where the person is looking. The Clock sheet sorts its writes' failures with
   `classifyFailure` into notices inside the sheet (`src/lib/attendance/notice.ts`); attendance
   has no sync pull to start. The new-request form shows its failure inline above the entry it kept
   (`submitFailureMessage` in `src/lib/requests/new-request.ts`) and toasts nothing, while a
@@ -243,7 +243,10 @@ throws `ApiError` with the server's message.
   one above its footer, and a 410 turns the screen into that invite's dead state (`closedInvite`).
   The birthday card words a 402 `BIRTHDAY_SHARE_PLAN_REQUIRED` as the lapsed line under its share
   switch and reads the plan state again (`useSaveMyBirthday`), because the message belongs beside
-  the switch; any other failure goes to the handler.
+  the switch; any other failure goes to the handler. The group event editor words a failed save
+  inline (`groupEventFailure` in `src/lib/group-events/failure.ts`), because a toast would sit under
+  the sheet, and `useGroupEventWrites` reads the group events again and starts a sync pull on a
+  refusal itself. Deleting a group event goes to the handler.
 
 ## Testing
 

@@ -1,4 +1,4 @@
-import { dayMark, dayMarkCounts, laneMarkRoom, stripeMarkRoom } from "../day-mark";
+import { dayMark, dayMarkCounts, laneMarkRoom, stripeMarkRoom, weekRibbons } from "../day-mark";
 
 // The iPhone 17 Pro is 402 pt wide: lane cells (402 - 34) / 7, stripe cells (402 - 32) / 7.
 const LANE_CELL = (402 - 34) / 7;
@@ -67,6 +67,7 @@ describe("dayMarkCounts", () => {
     expect(
       dayMarkCounts({
         birthdays: [{ date: "2026-10-14" }, { date: "2026-10-14" }, { date: "2026-10-20" }],
+        events: [],
       })
     ).toEqual(
       new Map([
@@ -74,5 +75,69 @@ describe("dayMarkCounts", () => {
         ["2026-10-20", { birthdays: 1, events: 0 }],
       ])
     );
+  });
+});
+
+describe("dayMarkCounts with group events", () => {
+  it("returns an event on every day its occurrence covers, beside the day's birthdays", () => {
+    expect(
+      dayMarkCounts({
+        birthdays: [{ date: "2026-10-22" }],
+        events: [
+          { startDate: "2026-10-21", endDate: "2026-10-23" },
+          { startDate: "2026-10-22", endDate: "2026-10-22" },
+        ],
+      })
+    ).toEqual(
+      new Map([
+        ["2026-10-21", { birthdays: 0, events: 1 }],
+        ["2026-10-22", { birthdays: 1, events: 2 }],
+        ["2026-10-23", { birthdays: 0, events: 1 }],
+      ])
+    );
+  });
+
+  it("keeps a busy day's mark inside a 52 pt lane cell", () => {
+    const counts = dayMarkCounts({
+      birthdays: [{ date: "2026-10-22" }],
+      events: [
+        { startDate: "2026-10-22", endDate: "2026-10-22" },
+        { startDate: "2026-10-22", endDate: "2026-10-22" },
+      ],
+    }).get("2026-10-22")!;
+    const room = laneMarkRoom(LANE_CELL);
+    const mark = dayMark({ ...counts, room, size: "lane" })!;
+    expect(mark).toMatchObject({ cake: true, dot: true, count: null });
+    expect(mark.width).toBeLessThanOrEqual(room);
+  });
+});
+
+describe("weekRibbons", () => {
+  const week = [
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-24",
+    "2026-10-25",
+  ];
+
+  it("returns the columns a multi-day occurrence covers in the week, single days left out", () => {
+    expect(
+      weekRibbons(week, [
+        { id: "offsite", startDate: "2026-10-21", endDate: "2026-10-23" },
+        { id: "standup", startDate: "2026-10-19", endDate: "2026-10-19" },
+      ])
+    ).toEqual([{ key: "offsite:2026-10-21", startColumn: 2, endColumn: 5 }]);
+  });
+
+  it("clips a span that runs past either end of the week", () => {
+    expect(
+      weekRibbons(week, [{ id: "trip", startDate: "2026-10-17", endDate: "2026-10-28" }])
+    ).toEqual([{ key: "trip:2026-10-17", startColumn: 0, endColumn: 7 }]);
+    expect(
+      weekRibbons(week, [{ id: "gone", startDate: "2026-10-12", endDate: "2026-10-13" }])
+    ).toEqual([]);
   });
 });

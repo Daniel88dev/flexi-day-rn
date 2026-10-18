@@ -21,6 +21,7 @@ import type { StoreRuntime, StoreTransaction } from "./runtime";
 import {
   bankHolidays,
   birthdays,
+  groupEvents,
   groupMirrors,
   groupUsers,
   groups,
@@ -55,6 +56,7 @@ const SYNC_TABLES: {
   userYearQuotas: { table: userYearQuotas, tombstones: "keep" },
   bankHolidays: { table: bankHolidays, tombstones: "keep" },
   vacations: { table: vacations, tombstones: "keep" },
+  groupEvents: { table: groupEvents, tombstones: "delete" },
   birthdays: { table: birthdays, tombstones: "delete" },
 };
 

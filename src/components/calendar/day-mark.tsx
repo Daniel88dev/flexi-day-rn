@@ -7,8 +7,10 @@ import type { Dictionary } from "@/i18n";
 import {
   DAY_MARK_METRICS,
   dayMark,
+  weekRibbons,
   type DayMarkCounts,
   type DayMarkSize,
+  type EventSpan,
 } from "@/lib/calendar/day-mark";
 import { cn } from "@/lib/cn";
 
@@ -19,8 +21,12 @@ export const BIRTHDAY_PINK = "#e0619a";
  * cell's own label names what it shows.
  */
 export function markLabels(t: Dictionary, counts: DayMarkCounts | undefined): string[] {
+  const events = counts?.events ?? 0;
   const birthdays = counts?.birthdays ?? 0;
-  return birthdays > 0 ? [t.dashboard.calendar.birthdayCount(birthdays)] : [];
+  return [
+    ...(events > 0 ? [t.groupEvents.count(events)] : []),
+    ...(birthdays > 0 ? [t.dashboard.calendar.birthdayCount(birthdays)] : []),
+  ];
 }
 
 /**
@@ -69,4 +75,34 @@ export function DayMark({
       ) : null}
     </View>
   );
+}
+
+/** Lanes: a thin ink ribbon along the top of the days a multi-day group event covers. */
+export function EventRibbons({
+  week,
+  spans,
+  cellWidth,
+}: {
+  week: readonly { date: string }[];
+  spans: readonly EventSpan[];
+  cellWidth: number;
+}) {
+  const ink = useTone("foreground");
+  const dates = week.map((cell) => cell.date);
+  return weekRibbons(dates, spans).map((ribbon) => (
+    <View
+      key={ribbon.key}
+      testID={`calendar-ribbon-${ribbon.key.replace(":", "-")}-${dates[0]}`}
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: 0,
+        left: ribbon.startColumn * cellWidth + 1,
+        width: (ribbon.endColumn - ribbon.startColumn) * cellWidth - 2,
+        height: 3,
+        borderRadius: 2,
+        backgroundColor: ink,
+      }}
+    />
+  ));
 }

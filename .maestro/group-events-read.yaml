@@ -1,0 +1,45 @@
+# Group events, read only (T-361): the day sheet lists the day's group events above Away, with the
+# lock line for a viewer who cannot change them, and a card opens the event's detail. Runs on
+# 18 October 2026 on an iPhone 17 Pro, signed in as alice@dev.local (lanes view, Mine scope) after
+# dev:scenario: Bob's one-off "Quarterly planning" sits on 21 October beside Alice's own booking.
+#   npm run dev:login:rn -- alice@dev.local --to /dashboard --udid <udid>
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
+appId: com.flexiday.app
+---
+- openLink: flexiday:///dashboard
+# Pull to refresh, so the store holds what the server stores now.
+- swipe:
+    start: 50%, 25%
+    end: 50%, 75%
+    duration: 800
+- waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
+# The day marks sit in the cells, which the day menu's native view keeps out of the accessibility
+# tree (T-363); the day sheet below is the check.
+# The day number, above the booking's bar, which would open the request instead.
+- tapOn:
+    point: 34%, 82%
+- assertVisible:
+    id: day-list
+- assertVisible:
+    text: "Group events"
+- assertVisible:
+    id: "day-list-event-.*-2026-10-21"
+    text: ".*Quarterly planning.*Added by Bob.*Only Bob or a group admin can change this.*"
+- assertVisible:
+    text: "Away"
+- takeScreenshot: .maestro/screenshots/group-events-day-sheet
+- tapOn:
+    id: "day-list-event-.*-2026-10-21"
+- assertVisible:
+    id: group-event-detail
+- assertVisible:
+    text: "Dev Team · Added by Bob.*"
+- takeScreenshot: .maestro/screenshots/group-events-detail
+- tapOn:
+    id: group-event-detail-back
+- assertVisible:
+    id: day-list

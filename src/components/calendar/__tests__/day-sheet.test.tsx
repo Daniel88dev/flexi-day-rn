@@ -16,6 +16,7 @@ import {
 import { openTestStore } from "@/lib/local-store/test-support/test-store";
 
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
+jest.mock("@/lib/query", () => ({ useGroupEventRights: () => undefined }));
 
 let store: StoreRuntime;
 
@@ -53,6 +54,8 @@ async function renderSheet(day: string | null) {
         scope={{ kind: "mine" }}
         filter={new Set(LEAVE_TYPE_ORDER)}
         viewerId="me"
+        detail={null}
+        onDetail={jest.fn()}
         onBook={jest.fn()}
       />
     </TranslationProvider>

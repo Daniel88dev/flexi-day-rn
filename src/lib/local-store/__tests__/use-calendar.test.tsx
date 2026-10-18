@@ -6,6 +6,7 @@ import type { StoreRuntime } from "../runtime";
 import {
   bankHolidayRow,
   birthdayRow,
+  groupEventRow,
   groupRow,
   groupUserRow,
   syncPage,
@@ -16,6 +17,7 @@ import { openTestStore } from "../test-support/test-store";
 import {
   useCalendarBankHolidays,
   useCalendarBirthdays,
+  useCalendarGroupEvents,
   useCalendarVacations,
 } from "../use-calendar";
 
@@ -78,5 +80,30 @@ describe("useCalendarBirthdays", () => {
     expect(result.current).toEqual([
       { userId: "eva", userName: "Eva Novak", date: "2026-09-14", age: null, own: false },
     ]);
+  });
+});
+
+describe("useCalendarGroupEvents", () => {
+  it("returns a group's event once the event lands, and drops it on its tombstone", async () => {
+    await pullIn({ groups: [groupRow()], groupUsers: [groupUserRow()] });
+    const { result } = await renderHook(() => useCalendarGroupEvents(QUERY));
+    expect(result.current).toEqual([]);
+
+    await pullIn({
+      groupEvents: [groupEventRow({ startDate: "2026-09-07", endDate: "2026-09-07" })],
+    });
+
+    expect(result.current.map((event) => event.startDate)).toEqual([
+      "2026-09-07",
+      "2026-09-14",
+      "2026-09-21",
+      "2026-09-28",
+    ]);
+
+    await pullIn({
+      groupEvents: [groupEventRow({ title: null, deletedAt: "2026-09-20T08:00:00.000Z" })],
+    });
+
+    expect(result.current).toEqual([]);
   });
 });

@@ -1,0 +1,92 @@
+# Group events, create (T-363): long-press a day, New group event from the native menu, save a
+# weekly group event, and see it on three weeks. Runs on 18 October 2026 on an iPhone 17 Pro,
+# signed in as owner@dev.local (lanes view, Mine scope) after dev:scenario:
+#   npm run dev:login:rn -- owner@dev.local --to /dashboard --udid <udid>
+# Expo Router's Link.Menu mounts each day cell inside a zero-size native view, which keeps the cells
+# out of the accessibility tree XCUITest walks, so the days and the menu rows are tapped by point.
+# The points fit the October page with the dashboard scrolled by the second swipe below.
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
+appId: com.flexiday.app
+---
+# A cold start reads the create rights again.
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: dashboard
+    timeout: 15000
+# Pull to refresh, so the store holds what the server stores now, and the page starts at the top.
+- swipe:
+    start: 50%, 25%
+    end: 50%, 75%
+    duration: 800
+- waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
+- swipe:
+    start: 50%, 70%
+    end: 50%, 45%
+    duration: 600
+- waitForAnimationToEnd
+# Thursday 15 October.
+- longPressOn:
+    point: 47%, 52%
+- waitForAnimationToEnd
+- takeScreenshot: .maestro/screenshots/group-events-menu
+# New group event, the menu's second row.
+- tapOn:
+    point: 51%, 41%
+- extendedWaitUntil:
+    visible:
+      id: group-event-editor
+    timeout: 5000
+- tapOn:
+    id: group-event-editor-title
+- inputText: "T-363 test weekly"
+- hideKeyboard
+- tapOn:
+    id: group-event-editor-repeat-weekly
+- assertVisible:
+    id: group-event-editor-one-day
+- assertVisible:
+    text: "15 October · 22 October · 29 October.*"
+- takeScreenshot: .maestro/screenshots/group-events-editor-weekly
+- tapOn:
+    id: group-event-editor-save
+- extendedWaitUntil:
+    notVisible:
+      id: group-event-editor
+    timeout: 10000
+- waitForAnimationToEnd
+# 15, 22 and 29 October each list it.
+- tapOn:
+    point: 47%, 50%
+- extendedWaitUntil:
+    visible:
+      text: ".*T-363 test weekly.*"
+    timeout: 10000
+- assertVisible:
+    id: "day-list-event-.*-2026-10-15"
+    text: ".*T-363 test weekly.*All day.*Every week on Thu.*Added by you · Dev Team.*"
+- takeScreenshot: .maestro/screenshots/group-events-created
+- tapOn:
+    id: day-sheet-backdrop
+- waitForAnimationToEnd
+- tapOn:
+    point: 47%, 60%
+- assertVisible:
+    id: "day-list-event-.*-2026-10-22"
+    text: ".*T-363 test weekly.*"
+- tapOn:
+    id: day-sheet-backdrop
+- waitForAnimationToEnd
+- tapOn:
+    point: 47%, 70%
+- assertVisible:
+    id: "day-list-event-.*-2026-10-29"
+    text: ".*T-363 test weekly.*"
+- tapOn:
+    id: day-sheet-backdrop
+- waitForAnimationToEnd
+- takeScreenshot: .maestro/screenshots/group-events-three-weeks

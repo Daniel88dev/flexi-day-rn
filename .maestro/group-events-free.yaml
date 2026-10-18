@@ -1,0 +1,46 @@
+# Group events on Free (T-363): with no group able to take a new group event, the day's menu offers
+# only Request time off and the day sheet no New group event. Runs on 18 October 2026 on an
+# iPhone 17 Pro, signed in as owner@dev.local, with the owner's organization forced to Free
+# (flexi-dev dev_set_plan FREE; set PRO again afterwards). The menu's rows are system UI out of
+# Maestro's reach, so its screenshot is the check there.
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
+appId: com.flexiday.app
+---
+# A cold start reads the create rights again.
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: dashboard
+    timeout: 15000
+- swipe:
+    start: 50%, 25%
+    end: 50%, 75%
+    duration: 800
+- waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
+- swipe:
+    start: 50%, 70%
+    end: 50%, 45%
+    duration: 600
+- waitForAnimationToEnd
+# Thursday 15 October.
+- longPressOn:
+    point: 47%, 52%
+- waitForAnimationToEnd
+- takeScreenshot: .maestro/screenshots/group-events-free-menu
+# Away from the menu, which takes the tap to close.
+- tapOn:
+    point: 50%, 15%
+- waitForAnimationToEnd
+- tapOn:
+    point: 47%, 50%
+- assertVisible:
+    id: day-list-book
+- assertNotVisible:
+    id: day-list-new-event
+- takeScreenshot: .maestro/screenshots/group-events-free-day-sheet
+- tapOn:
+    id: day-sheet-backdrop

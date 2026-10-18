@@ -1,18 +1,20 @@
-import { CakeIcon, CaretRightIcon, PlusIcon } from "phosphor-react-native";
+import { CakeIcon, CalendarPlusIcon, CaretRightIcon, PlusIcon } from "phosphor-react-native";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { BIRTHDAY_PINK } from "@/components/calendar/day-mark";
+import { GroupEventCard } from "@/components/calendar/group-event-card";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { SendingBadge, StatusBadge } from "@/components/requests/badges";
 import { Icon } from "@/components/ui/icon";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
+import { birthdayLabel } from "@/lib/calendar/birthday-label";
 import { dayParts, type DayEntry } from "@/lib/calendar/day";
 import { cn } from "@/lib/cn";
-import type { CalendarBirthday } from "@/lib/local-store";
+import type { ShownGroupEvent } from "@/lib/group-events/rights";
+import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
 import { runDatesLabel } from "@/lib/requests/format";
-import { firstName } from "@/lib/viewer/viewer";
 
 function EntryRow({
   entry,
@@ -72,14 +74,7 @@ function BirthdayRow({
 }) {
   const { t } = useTranslation();
   const labels = t.dashboard.calendar;
-  const name = firstName(birthday.userName ?? undefined, "?");
-  const label = birthday.own
-    ? birthday.age === null
-      ? labels.yourBirthday
-      : labels.yourBirthdayAge(birthday.age)
-    : birthday.age === null
-      ? labels.namesBirthday(name)
-      : labels.nameTurns(name, birthday.age);
+  const label = birthdayLabel(birthday, t);
   const opensSettings = birthday.own && onSettings !== undefined;
 
   return (
@@ -114,6 +109,15 @@ function BirthdayRow({
 }
 
 const NO_BIRTHDAYS: readonly CalendarBirthday[] = [];
+const NO_EVENTS: readonly ShownGroupEvent[] = [];
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <Text className="px-2 pt-1 pb-1.5 text-[11px] font-bold tracking-[1px] text-faint uppercase">
+      {children}
+    </Text>
+  );
+}
 
 /** The lanes calendar shows this list in a sheet; the stripes calendar shows it inline. */
 export function DayList({
@@ -121,24 +125,37 @@ export function DayList({
   entries,
   holidays,
   birthdays = NO_BIRTHDAYS,
+  events = NO_EVENTS,
   viewerId,
   onOpen,
   onBook,
   onSettings,
+  onEvent,
+  onNewEvent,
+  onEditEvent,
+  onDeleteEvent,
 }: {
   day: string;
   entries: readonly DayEntry[];
   holidays: readonly string[];
   birthdays?: readonly CalendarBirthday[];
+  events?: readonly ShownGroupEvent[];
   viewerId: string | null;
   onOpen?: (vacationId: string) => void;
   onBook: (day: string) => void;
   onSettings?: () => void;
+  onEvent?: (event: CalendarGroupEvent) => void;
+  /** Shown only while the day's group, or any group in Mine, may take a new group event. */
+  onNewEvent?: (day: string) => void;
+  onEditEvent?: (event: CalendarGroupEvent) => void;
+  onDeleteEvent?: (event: CalendarGroupEvent) => void;
 }) {
   const { t } = useTranslation();
   const labels = t.dashboard.calendar;
   const { weekday, date } = dayParts(day);
   const title = t.calendar.dayTitle(weekday, date);
+  const upper = events.length > 0 || birthdays.length > 0;
+  const away = entries.length > 0 || holidays.length > 0;
 
   return (
     <View testID="day-list" className="shrink">
@@ -149,9 +166,21 @@ export function DayList({
         </Text>
       </View>
       <ScrollView className="shrink px-3">
+        {events.length > 0 ? <SectionLabel>{t.groupEvents.section}</SectionLabel> : null}
+        {events.map((event) => (
+          <GroupEventCard
+            key={`${event.id}-${event.startDate}`}
+            event={event}
+            viewerId={viewerId}
+            onPress={onEvent}
+            onEdit={onEditEvent}
+            onDelete={onDeleteEvent}
+          />
+        ))}
         {birthdays.map((birthday) => (
           <BirthdayRow key={birthday.userId} birthday={birthday} onSettings={onSettings} />
         ))}
+        {upper && away ? <SectionLabel>{t.groupEvents.away}</SectionLabel> : null}
         {holidays.map((name) => (
           <View
             key={name}
@@ -178,6 +207,20 @@ export function DayList({
             {labels.book(title)}
           </Text>
         </Pressable>
+        {onNewEvent ? (
+          <Pressable
+            testID="day-list-new-event"
+            onPress={() => onNewEvent(day)}
+            accessibilityRole="button"
+            accessibilityLabel={t.groupEvents.newGroupEvent}
+            className="mt-2 h-12 flex-row items-center justify-center gap-2 rounded-full border border-input active:opacity-70"
+          >
+            <Icon icon={CalendarPlusIcon} tone="foreground" size={16} />
+            <Text className="text-[15px] font-semibold text-foreground">
+              {t.groupEvents.newGroupEvent}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

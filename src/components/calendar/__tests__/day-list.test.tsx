@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { DayList } from "@/components/calendar/day-list";
 import { TranslationProvider } from "@/i18n/use-translation";
 import type { DayEntry } from "@/lib/calendar/day";
+import type { ShownGroupEvent } from "@/lib/group-events/rights";
 import type { CalendarBirthday } from "@/lib/local-store";
 
 const ENTRY: DayEntry = {
@@ -20,9 +21,15 @@ const ENTRY: DayEntry = {
 async function renderList(
   entries: DayEntry[],
   holidays: string[] = [],
-  birthdays: CalendarBirthday[] = []
+  birthdays: CalendarBirthday[] = [],
+  events: ShownGroupEvent[] = []
 ) {
-  const handlers = { onOpen: jest.fn(), onBook: jest.fn(), onSettings: jest.fn() };
+  const handlers = {
+    onOpen: jest.fn(),
+    onBook: jest.fn(),
+    onSettings: jest.fn(),
+    onEvent: jest.fn(),
+  };
   await render(
     <TranslationProvider>
       <DayList
@@ -30,6 +37,7 @@ async function renderList(
         entries={entries}
         holidays={holidays}
         birthdays={birthdays}
+        events={events}
         viewerId="me"
         {...handlers}
       />
@@ -44,6 +52,24 @@ const birthday = (patch: Partial<CalendarBirthday>): CalendarBirthday => ({
   date: "2026-10-14",
   age: 34,
   own: false,
+  ...patch,
+});
+
+const groupEvent = (patch: Partial<ShownGroupEvent>): ShownGroupEvent => ({
+  id: "standup",
+  groupId: "g-design",
+  groupName: "Design",
+  title: "Weekly standup",
+  note: null,
+  startDate: "2026-10-14",
+  endDate: "2026-10-14",
+  startTime: "09:30",
+  endTime: "09:45",
+  ruleStartDate: "2026-10-07",
+  repeat: { freq: "weekly", interval: 1, weekdays: [2], monthlyMode: null, until: null },
+  changedOnce: false,
+  creator: { id: "eva", name: "Eva Novak" },
+  canEdit: false,
   ...patch,
 });
 
@@ -98,6 +124,28 @@ describe("DayList", () => {
     expect(onSettings).toHaveBeenCalledTimes(1);
   });
 
+  it("offers New group event under Book only when given a way to create one", async () => {
+    await renderList([]);
+    expect(screen.queryByTestId("day-list-new-event")).toBeNull();
+
+    const onNewEvent = jest.fn();
+    await render(
+      <TranslationProvider>
+        <DayList
+          day="2026-10-14"
+          entries={[]}
+          holidays={[]}
+          viewerId="me"
+          onBook={jest.fn()}
+          onNewEvent={onNewEvent}
+        />
+      </TranslationProvider>
+    );
+    await fireEvent.press(screen.getByTestId("day-list-new-event"));
+
+    expect(onNewEvent).toHaveBeenCalledWith("2026-10-14");
+  });
+
   it("renders Nobody is away and still offers to book the day", async () => {
     const { onBook } = await renderList([]);
 
@@ -125,5 +173,93 @@ describe("DayList", () => {
     expect(onOpen).not.toHaveBeenCalled();
     expect(row).toBeDisabled();
     expect(row).toHaveTextContent(/Sending…/);
+  });
+
+  describe("with group events", () => {
+    const offsite = groupEvent({
+      id: "offsite",
+      groupName: "Platform",
+      title: "Team offsite",
+      note: "Bring boots",
+      startDate: "2026-10-13",
+      endDate: "2026-10-15",
+      startTime: null,
+      endTime: null,
+      repeat: null,
+      ruleStartDate: "2026-10-13",
+      creator: { id: "me", name: "Dana Holt" },
+      canEdit: true,
+    });
+
+    it("lists the day's events under Group events, then birthdays, above Away", async () => {
+      await renderList([ENTRY], ["Statehood"], [birthday({})], [groupEvent({}), offsite]);
+
+      expect(screen.getByTestId("day-list")).toHaveTextContent(
+        /Group events.*Weekly standup.*Team offsite.*Petra turns 34.*Away.*Statehood.*Eva Novak/
+      );
+    });
+
+    it("renders a card's time, rule, note and who added it to which group", async () => {
+      await renderList([], [], [], [groupEvent({}), offsite]);
+
+      expect(screen.getByTestId("day-list-event-standup-2026-10-14")).toHaveTextContent(
+        /09:30–09:45 · Every week on Wed.*Added by Eva Novak · Design/
+      );
+      expect(screen.getByTestId("day-list-event-offsite-2026-10-13")).toHaveTextContent(
+        /Tue 13 Oct – Thu 15 Oct · All day.*Bring boots.*Added by you · Platform/
+      );
+    });
+
+    it("shows the lock line on a card the viewer cannot change, and none on one they can", async () => {
+      await renderList([], [], [], [groupEvent({}), offsite]);
+
+      expect(screen.getByTestId("day-list-event-standup-2026-10-14")).toHaveTextContent(
+        /Only Eva or a group admin can change this/
+      );
+      expect(screen.getByTestId("day-list-event-offsite-2026-10-13")).not.toHaveTextContent(
+        /can change this/
+      );
+    });
+
+    it("calls back with the tapped event", async () => {
+      const { onEvent } = await renderList([], [], [], [groupEvent({})]);
+
+      await fireEvent.press(screen.getByTestId("day-list-event-standup-2026-10-14"));
+
+      expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ id: "standup" }));
+    });
+
+    it("offers Edit and Delete on an editor's card only, handing over the event", async () => {
+      const onEditEvent = jest.fn();
+      const onDeleteEvent = jest.fn();
+      await render(
+        <TranslationProvider>
+          <DayList
+            day="2026-10-14"
+            entries={[]}
+            holidays={[]}
+            events={[groupEvent({}), groupEvent({ id: "retro", title: "Retro", canEdit: true })]}
+            viewerId="me"
+            onBook={jest.fn()}
+            onEditEvent={onEditEvent}
+            onDeleteEvent={onDeleteEvent}
+          />
+        </TranslationProvider>
+      );
+
+      expect(screen.queryByTestId("day-list-event-standup-2026-10-14-edit")).toBeNull();
+      await fireEvent.press(screen.getByTestId("day-list-event-retro-2026-10-14-edit"));
+      await fireEvent.press(screen.getByTestId("day-list-event-retro-2026-10-14-delete"));
+
+      expect(onEditEvent).toHaveBeenCalledWith(expect.objectContaining({ id: "retro" }));
+      expect(onDeleteEvent).toHaveBeenCalledWith(expect.objectContaining({ id: "retro" }));
+    });
+
+    it("leaves the headings out on a day without events or birthdays", async () => {
+      await renderList([ENTRY]);
+
+      expect(screen.queryByText("Group events")).toBeNull();
+      expect(screen.queryByText("Away")).toBeNull();
+    });
   });
 });

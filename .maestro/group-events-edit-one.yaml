@@ -1,0 +1,86 @@
+# Group events, edit one occurrence (T-363): Edit on one date of a weekly group event, save with
+# "This event", and see only that date change. Runs after group-events-create.yaml, on
+# 18 October 2026 on an iPhone 17 Pro, signed in as owner@dev.local (lanes view, Mine scope).
+# Day cells are tapped by point, as in group-events-create.yaml.
+# The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
+# that October 2026 is showing. T-364 restores tree-based taps.
+appId: com.flexiday.app
+---
+- launchApp:
+    stopApp: false
+- swipe:
+    start: 50%, 25%
+    end: 50%, 75%
+    duration: 800
+- waitForAnimationToEnd
+- assertVisible:
+    id: calendar-title
+    text: "October 2026"
+- swipe:
+    start: 50%, 70%
+    end: 50%, 45%
+    duration: 600
+- waitForAnimationToEnd
+# Thursday 22 October.
+- tapOn:
+    point: 47%, 60%
+- tapOn:
+    id: "day-list-event-.*-2026-10-22-edit"
+# The editor waits for the day sheet to finish hiding.
+- extendedWaitUntil:
+    visible:
+      id: group-event-editor
+    timeout: 5000
+- tapOn:
+    id: group-event-editor-title
+- eraseText: 30
+- inputText: "T-363 test moved"
+- hideKeyboard
+- tapOn:
+    id: group-event-editor-save
+- extendedWaitUntil:
+    visible:
+      text: "This event"
+    timeout: 5000
+- assertVisible:
+    text: "Which dates should the change apply to?"
+- takeScreenshot: .maestro/screenshots/group-events-scope
+- tapOn:
+    text: "This event"
+- extendedWaitUntil:
+    notVisible:
+      id: group-event-editor
+    timeout: 10000
+- waitForAnimationToEnd
+# 22 October changed, alone.
+- tapOn:
+    point: 47%, 60%
+- extendedWaitUntil:
+    visible:
+      text: ".*T-363 test moved.*"
+    timeout: 10000
+- assertVisible:
+    id: "day-list-event-.*-2026-10-22"
+    text: ".*T-363 test moved.*Changed for this date only.*"
+- assertNotVisible:
+    text: ".*T-363 test weekly.*"
+- takeScreenshot: .maestro/screenshots/group-events-edited-one
+- tapOn:
+    id: day-sheet-backdrop
+- waitForAnimationToEnd
+- tapOn:
+    point: 47%, 50%
+- assertVisible:
+    id: "day-list-event-.*-2026-10-15"
+    text: ".*T-363 test weekly.*Every week on Thu.*"
+- tapOn:
+    id: day-sheet-backdrop
+- waitForAnimationToEnd
+- tapOn:
+    point: 47%, 70%
+- assertVisible:
+    id: "day-list-event-.*-2026-10-29"
+    text: ".*T-363 test weekly.*Every week on Thu.*"
+- tapOn:
+    id: day-sheet-backdrop
+- waitForAnimationToEnd
