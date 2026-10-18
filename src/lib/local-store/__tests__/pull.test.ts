@@ -754,12 +754,15 @@ describe("pull, for a teammate's redacted row", () => {
     expect(storedSyncState()).toMatchObject({ cursor: "page-1", generation: 2 });
   });
 
-  it("drops another person's row a delta sends as a tombstone, and keeps the viewer's own cancelled row", async () => {
+  it("drops another person's content-nulled tombstone, and keeps full tombstones and the viewer's own", async () => {
+    const own = { userId: "user-1", requestedDay: "2026-09-22" };
     seed(
       syncPage({
         vacations: [
-          vacationRow({ id: "bob-pending", userId: BOB }),
-          vacationRow({ id: "own-booking", userId: "user-1", requestedDay: "2026-09-22" }),
+          vacationRow({ id: "bob-redacted", userId: BOB }),
+          vacationRow({ id: "bob-cancelled", userId: BOB, requestedDay: "2026-09-23" }),
+          vacationRow({ id: "bob-rejected", userId: BOB, requestedDay: "2026-09-24" }),
+          vacationRow({ id: "own-booking", ...own }),
         ],
       }),
       1,
@@ -770,14 +773,23 @@ describe("pull, for a teammate's redacted row", () => {
         syncPage({
           cursor: "page-1",
           vacations: [
-            vacationRow({ id: "bob-pending", userId: BOB, deletedAt: TOMBSTONED }),
+            vacationRow({ id: "bob-redacted", userId: BOB, deletedAt: TOMBSTONED }),
             vacationRow({
-              id: "own-booking",
-              userId: "user-1",
-              requestedDay: "2026-09-22",
+              id: "bob-cancelled",
+              userId: BOB,
+              requestedDay: "2026-09-23",
               deletedAt: TOMBSTONED,
-              deletedByUserId: "user-1",
+              deletedByUserId: BOB,
             }),
+            vacationRow({
+              id: "bob-rejected",
+              userId: BOB,
+              requestedDay: "2026-09-24",
+              rejectedAt: TOMBSTONED,
+              rejectedBy: "user-9",
+              deletedAt: TOMBSTONED,
+            }),
+            vacationRow({ id: "own-booking", ...own, deletedAt: TOMBSTONED }),
           ],
         })
       ),
@@ -785,7 +797,12 @@ describe("pull, for a teammate's redacted row", () => {
 
     await controller.pull("foreground");
 
-    expect(storedVacation("bob-pending")).toBeUndefined();
+    expect(storedVacation("bob-redacted")).toBeUndefined();
+    expect(storedVacation("bob-cancelled")).toMatchObject({
+      deletedAt: TOMBSTONED,
+      deletedByUserId: BOB,
+    });
+    expect(storedVacation("bob-rejected")).toMatchObject({ rejectedBy: "user-9" });
     expect(storedVacation("own-booking")).toMatchObject({ deletedAt: TOMBSTONED });
   });
 });
