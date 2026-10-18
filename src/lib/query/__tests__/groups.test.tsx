@@ -480,7 +480,7 @@ describe("useJoinGroup", () => {
     const keys = [
       qk.administeredGroups(),
       qk.groupUsers("group-1"),
-      qk.dashboardSummary(),
+      qk.dashboardSummaries(),
       qk.groupUsers("group-2"),
     ];
     for (const key of keys) queryClient.setQueryData(key, []);
@@ -491,7 +491,7 @@ describe("useJoinGroup", () => {
     expect(invalidated(qk.administeredGroups())).toBe(true);
     expect(invalidated(qk.group("group-1"))).toBe(true);
     expect(invalidated(qk.groupUsers("group-1"))).toBe(true);
-    expect(invalidated(qk.dashboardSummary())).toBe(true);
+    expect(invalidated(qk.dashboardSummaries())).toBe(true);
     expect(invalidated(qk.groupUsers("group-2"))).toBe(false);
   });
 });

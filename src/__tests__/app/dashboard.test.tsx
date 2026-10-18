@@ -71,6 +71,9 @@ jest.mock("@/lib/session/auth-client", () => ({ authClient: { useSession: jest.f
 
 jest.mock("@/components/dashboard/development-card", () => ({ DevelopmentCard: () => null }));
 
+// Half past midnight on the phone, which east of UTC is still the day before in UTC.
+jest.mock("@/lib/use-today", () => ({ useToday: () => new Date(2026, 9, 14, 0, 30) }));
+
 jest.mock("expo-router", () => ({ router: { push: jest.fn(), navigate: jest.fn() } }));
 
 jest.mock("@/components/dashboard/dashboard-calendar", () => {
@@ -444,6 +447,14 @@ describe("DashboardScreen", () => {
     expect(tiles).toEqual(["stat-pending", "stat-outToday", "stat-comingUp", "stat-workingToday"]);
     expect(screen.getByTestId("stat-pending")).toHaveAccessibleName("Pending approvals: 0");
     expect(screen.getByText("approvals card for an approver")).toBeTruthy();
+  });
+
+  it("asks for the counts of the phone's own day", async () => {
+    fakeStore({ counts: { ...NO_ROWS, vacations: 1 }, hasCursor: true });
+
+    await renderDashboard();
+
+    expect(summary).toHaveBeenLastCalledWith("2026-10-14");
   });
 
   it("renders a dash in every tile while the summary can't be read", async () => {

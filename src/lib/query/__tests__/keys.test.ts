@@ -16,7 +16,8 @@ describe("qk", () => {
 
   it("returns the web's keys for approvals, the dashboard summary, request detail, group access and members, settings and notifications", () => {
     expect(qk.myApprovals()).toEqual(["my-approvals"]);
-    expect(qk.dashboardSummary()).toEqual(["dashboard-summary"]);
+    expect(qk.dashboardSummary("2026-10-14")).toEqual(["dashboard-summary", "2026-10-14"]);
+    expect(qk.dashboardSummaries()).toEqual(["dashboard-summary"]);
     expect(qk.vacation("vacation-1")).toEqual(["vacation", "vacation-1"]);
     expect(qk.vacationDetails()).toEqual(["vacation"]);
     expect(qk.group("group-1")).toEqual(["group", "group-1"]);

@@ -17,9 +17,11 @@ import { SyncingDashboard } from "@/components/dashboard/syncing-dashboard";
 import { Icon, useTone } from "@/components/ui/icon";
 import { useTranslation } from "@/i18n/use-translation";
 import { statTiles } from "@/lib/dashboard/stats";
+import { dayOfDate } from "@/lib/days";
 import { useGroupStanding, useStoreRowCounts, useSyncStatus } from "@/lib/local-store";
 import { useDashboardSummary, useRereadDashboard, useRereadDashboardOnFocus } from "@/lib/query";
 import { useRefreshPull } from "@/lib/use-refresh-pull";
+import { useToday } from "@/lib/use-today";
 import { useViewer } from "@/lib/viewer/use-viewer";
 
 const newRequest = (day?: string) =>
@@ -39,7 +41,7 @@ export default function DashboardScreen() {
   const { inFlight, hasCursor } = useSyncStatus();
   const { refreshing, refresh } = useRefreshPull();
   const standing = useGroupStanding();
-  const summary = useDashboardSummary();
+  const summary = useDashboardSummary(dayOfDate(useToday()));
   const rereadDashboard = useRereadDashboard();
   useRereadDashboardOnFocus();
   const [year, setYear] = useState(() => new Date().getFullYear());
