@@ -7,6 +7,7 @@ import type { PendingChange } from "../pending";
 import type { StoreRuntime } from "../runtime";
 import {
   bankHolidays,
+  birthdays,
   groupMirrors,
   groupUsers,
   groups,
@@ -18,6 +19,7 @@ import {
 } from "../schema";
 import {
   bankHolidayRow,
+  birthdayRow,
   fullSyncPage,
   groupMirrorRow,
   groupUserRow,
@@ -48,6 +50,7 @@ function allRows(db: StoreDatabase) {
     userYearQuotas: db.select().from(userYearQuotas).all(),
     bankHolidays: db.select().from(bankHolidays).all(),
     vacations: db.select().from(vacations).all(),
+    birthdays: db.select().from(birthdays).all(),
   };
 }
 
@@ -72,6 +75,7 @@ describe("applyPage", () => {
       "userYearQuotas",
       "bankHolidays",
       "vacations",
+      "birthdays",
     ]);
     expect(touched).toEqual([...SYNC_TABLE_NAMES]);
   });
@@ -80,7 +84,7 @@ describe("applyPage", () => {
     apply(fullSyncPage());
 
     const rows = allRows(store.getDatabase());
-    expect(Object.values(rows).map((table) => table.length)).toEqual([1, 1, 1, 1, 1, 1, 1, 1]);
+    expect(Object.values(rows).map((table) => table.length)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1]);
     expect(rows.groups[0].workingDays).toEqual([1, 2, 3, 4, 5]);
     expect(rows.groupUsers[0].viewAccess).toBe(true);
   });
@@ -150,6 +154,36 @@ describe("applyPage", () => {
     const rows = store.getDatabase().select().from(groupUsers).all();
     expect(rows.map((row) => row.id)).toEqual(["group-user-2"]);
     expect(rows[0].approverAccess).toBe(true);
+  });
+
+  it("deletes the local birthday for a birthday tombstone", () => {
+    apply(fullSyncPage());
+
+    apply(
+      syncPage({
+        birthdays: [
+          birthdayRow({
+            month: null,
+            day: null,
+            year: null,
+            shared: false,
+            deletedAt: "2026-09-20T08:00:00.000Z",
+          }),
+        ],
+      })
+    );
+
+    expect(allRows(store.getDatabase()).birthdays).toEqual([]);
+  });
+
+  it("applies a page from a backend that sends no birthdays", () => {
+    const { birthdays: _omitted, ...page } = fullSyncPage();
+
+    apply(page);
+
+    const rows = allRows(store.getDatabase());
+    expect(rows.vacations).toHaveLength(1);
+    expect(rows.birthdays).toEqual([]);
   });
 
   it("keeps a cancelled vacation as history rather than deleting it", () => {

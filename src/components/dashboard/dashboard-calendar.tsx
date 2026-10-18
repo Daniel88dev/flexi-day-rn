@@ -10,6 +10,7 @@ import { Legend } from "@/components/calendar/legend";
 import { MonthPager } from "@/components/calendar/month-pager";
 import { ScopeRow } from "@/components/calendar/scope-row";
 import { StripeMonth, stripeMonthHeight } from "@/components/calendar/stripe-month";
+import { useMonthMarks } from "@/components/calendar/use-month-marks";
 import { useMonthRanges } from "@/components/calendar/use-month-ranges";
 import { LEAVE_TYPE_ORDER } from "@/components/ui/leave-classes";
 import { openingDay } from "@/lib/calendar/day";
@@ -56,12 +57,21 @@ function MonthPage({
   ...props
 }: PageProps & { month: YearMonth }) {
   const ranges = useMonthRanges(month, scope, filter);
+  const marks = useMonthMarks(month, scope);
   return view === "stripes" ? (
-    <StripeMonth month={month} ranges={ranges} selected={selected} onDay={onDay} {...props} />
+    <StripeMonth
+      month={month}
+      ranges={ranges}
+      marks={marks}
+      selected={selected}
+      onDay={onDay}
+      {...props}
+    />
   ) : (
     <LaneMonth
       month={month}
       ranges={ranges}
+      marks={marks}
       onDay={onDay}
       onMore={onDay}
       onBar={onBar}
@@ -81,11 +91,13 @@ export function DashboardCalendar({
   onOpenRequest,
   onBook,
   onYear,
+  onSettings,
 }: {
   viewerId: string | null;
   onOpenRequest?: (vacationId: string) => void;
   onBook: (day: string) => void;
   onYear?: (year: number) => void;
+  onSettings?: () => void;
 }) {
   const { width } = useWindowDimensions();
   const now = useToday();
@@ -136,6 +148,13 @@ export function DashboardCalendar({
     setSheetDay(null);
     onBook(day);
   };
+
+  const openSettings =
+    onSettings &&
+    (() => {
+      setSheetDay(null);
+      onSettings();
+    });
 
   const openRequest =
     onOpenRequest &&
@@ -200,6 +219,7 @@ export function DashboardCalendar({
           viewerId={viewerId}
           onOpen={onOpenRequest}
           onBook={onBook}
+          onSettings={onSettings}
         />
       ) : null}
 
@@ -217,6 +237,7 @@ export function DashboardCalendar({
         viewerId={viewerId}
         onOpen={openRequest}
         onBook={book}
+        onSettings={openSettings}
       />
     </View>
   );

@@ -20,6 +20,7 @@ import { expectedVacationPatch, type PendingChange } from "./pending";
 import type { StoreRuntime, StoreTransaction } from "./runtime";
 import {
   bankHolidays,
+  birthdays,
   groupMirrors,
   groupUsers,
   groups,
@@ -54,6 +55,7 @@ const SYNC_TABLES: {
   userYearQuotas: { table: userYearQuotas, tombstones: "keep" },
   bankHolidays: { table: bankHolidays, tombstones: "keep" },
   vacations: { table: vacations, tombstones: "keep" },
+  birthdays: { table: birthdays, tombstones: "delete" },
 };
 
 function chunks<TItem>(items: TItem[], size: number): TItem[][] {
@@ -125,7 +127,8 @@ export function applyPage(
 ): void {
   for (const name of SYNC_TABLE_NAMES) {
     const { table, tombstones } = SYNC_TABLES[name];
-    applyRows(transaction, name, table, page[name], generation, tombstones);
+    // The backend deploys on its own, so a table it does not send yet reads as empty.
+    applyRows(transaction, name, table, page[name] ?? [], generation, tombstones);
   }
 }
 

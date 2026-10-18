@@ -80,12 +80,15 @@ jest.mock("@/components/dashboard/dashboard-calendar", () => {
       onOpenRequest,
       onBook,
       onYear,
+      onSettings,
     }: {
       onOpenRequest?: (vacationId: string) => void;
       onBook: (day: string) => void;
       onYear?: (year: number) => void;
+      onSettings?: () => void;
     }) => (
       <>
+        <Pressable testID="calendar-own-birthday" onPress={() => onSettings?.()} />
         <Pressable testID="calendar-book-day" onPress={() => onBook("2026-10-14")} />
         <Pressable testID="calendar-open-bar" onPress={() => onOpenRequest?.("vacation-7")}>
           <Text>month calendar</Text>
@@ -125,6 +128,7 @@ const NO_ROWS: Record<SyncTableName, number> = {
   userYearQuotas: 0,
   bankHolidays: 0,
   vacations: 0,
+  birthdays: 0,
 };
 
 beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
@@ -297,6 +301,15 @@ describe("DashboardScreen", () => {
       pathname: "/requests/new",
       params: { date: "2026-10-14" },
     });
+  });
+
+  it("opens Settings from the viewer's own birthday on the calendar", async () => {
+    fakeStore({ counts: { ...NO_ROWS, groups: 1 } });
+    await renderDashboard();
+
+    await fireEvent.press(screen.getByTestId("calendar-own-birthday"));
+
+    expect(router.push).toHaveBeenCalledWith("/settings");
   });
 
   it("renders how fresh what it shows is", async () => {

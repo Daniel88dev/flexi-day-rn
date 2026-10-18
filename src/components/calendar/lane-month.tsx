@@ -6,11 +6,13 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
+import { DayMark, markLabels } from "@/components/calendar/day-mark";
 import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
+import { laneMarkRoom, type DayMarks } from "@/lib/calendar/day-mark";
 import { placeWeek, type CalendarRange, type PlacedBar } from "@/lib/calendar/lanes";
 import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { cn } from "@/lib/cn";
@@ -37,6 +39,8 @@ type LaneMonthProps = {
   width: number;
   viewerId: string | null;
   today: string;
+  /** Birthdays and group events per day; they take no lanes. */
+  marks?: DayMarks;
   onDay: (day: string) => void;
   onBar?: (vacationId: string) => void;
   onMore: (day: string) => void;
@@ -160,6 +164,7 @@ export function LaneMonth({
   width,
   viewerId,
   today,
+  marks,
   onDay,
   onBar,
   onMore,
@@ -167,6 +172,17 @@ export function LaneMonth({
   const { t } = useTranslation();
   const cellWidth = (width - CALENDAR_GUTTER * 2 - 2) / 7;
   const weeks = monthWeeks(month);
+
+  const dayLabel = (iso: string) => {
+    const { weekday, date } = dayParts(iso);
+    return [
+      iso === today ? t.calendar.today : null,
+      t.calendar.dayTitle(weekday, date),
+      ...markLabels(t, marks?.get(iso)),
+    ]
+      .filter(Boolean)
+      .join(", ");
+  };
 
   const labelOf = (range: CalendarRange) => {
     const name =
@@ -209,13 +225,16 @@ export function LaneMonth({
             >
               {week.map(({ date, day, inMonth }, column) => {
                 const isToday = date === today;
-                const label = column === labelColumn ? monthShortName(t, date) : null;
+                const mark = marks?.get(date);
+                // A 52 pt cell holds the day number and either the month label or the mark.
+                const label = column === labelColumn && !mark ? monthShortName(t, date) : null;
                 return (
                   <Pressable
                     key={date}
                     testID={inMonth ? `calendar-day-${date}` : `calendar-adjacent-day-${date}`}
                     onPress={() => onDay(date)}
                     accessibilityRole="button"
+                    accessibilityLabel={dayLabel(date)}
                     style={{ width: cellWidth }}
                     className={cn(
                       "px-1 pt-1.5 active:bg-muted",
@@ -252,6 +271,9 @@ export function LaneMonth({
                         <Text className="text-[9.5px] font-bold text-muted-foreground uppercase">
                           {label}
                         </Text>
+                      ) : null}
+                      {mark ? (
+                        <DayMark counts={mark} room={laneMarkRoom(cellWidth)} size="lane" />
                       ) : null}
                     </View>
                   </Pressable>

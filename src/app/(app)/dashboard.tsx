@@ -29,6 +29,7 @@ const openRequest = (vacationId: string) =>
   router.push({ pathname: "/requests/[vacationId]", params: { vacationId } });
 
 const openRequests = () => router.navigate("/requests");
+const openSettings = () => router.push("/settings");
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
@@ -99,6 +100,7 @@ export default function DashboardScreen() {
             onOpenRequest={openRequest}
             onBook={newRequest}
             onYear={setYear}
+            onSettings={openSettings}
           />
         </View>
       )}

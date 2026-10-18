@@ -6,10 +6,12 @@ import {
   MonthSeam,
   monthShortName,
 } from "@/components/calendar/adjacent-days";
+import { DayMark, markLabels } from "@/components/calendar/day-mark";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { dayParts } from "@/lib/calendar/day";
+import { stripeMarkRoom, type DayMarks } from "@/lib/calendar/day-mark";
 import type { CalendarRange } from "@/lib/calendar/lanes";
 import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { placeStripeWeek } from "@/lib/calendar/stripes";
@@ -35,6 +37,7 @@ export function StripeMonth({
   viewerId,
   today,
   selected,
+  marks,
   onDay,
 }: {
   month: YearMonth;
@@ -43,6 +46,8 @@ export function StripeMonth({
   viewerId: string | null;
   today: string;
   selected: string;
+  /** Birthdays and group events per day, marked in the cell's corner. */
+  marks?: DayMarks;
   onDay: (day: string) => void;
 }) {
   const { t } = useTranslation();
@@ -64,6 +69,7 @@ export function StripeMonth({
       t.calendar.dayTitle(weekday, date),
       ...holidays,
       away > 0 ? t.dashboard.calendar.awayCount(away) : null,
+      ...markLabels(t, marks?.get(iso)),
     ]
       .filter(Boolean)
       .join(", ");
@@ -103,6 +109,7 @@ export function StripeMonth({
               const isSelected = iso === selected;
               const holiday = holidays.has(column);
               const faded = fadesNumber({ inMonth, highlighted: isToday || isSelected });
+              const mark = marks?.get(iso);
               return (
                 <Pressable
                   key={iso}
@@ -153,6 +160,9 @@ export function StripeMonth({
                       {day}
                     </Text>
                   </View>
+                  {mark ? (
+                    <DayMark counts={mark} room={stripeMarkRoom(cellWidth)} size="stripe" />
+                  ) : null}
                 </Pressable>
               );
             })}

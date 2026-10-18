@@ -4,6 +4,13 @@ export {
   useUploadAttachment,
   type AttachmentView,
 } from "./attachments";
+export {
+  BIRTHDAY_SHARE_PLAN_REQUIRED,
+  useMyBirthday,
+  useRemoveMyBirthday,
+  useSaveMyBirthday,
+  type BirthdaySettings,
+} from "./birthday";
 export { rereadAfterSelfService, rereadAttendance, type Reread } from "./attendance";
 export { useOffersPasswordChange } from "./auth-accounts";
 export {

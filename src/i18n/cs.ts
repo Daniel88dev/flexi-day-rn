@@ -16,6 +16,21 @@ const czechFew = (count: number) => Number.isInteger(count) && count >= 2 && cou
 const czechPlural = (count: number, one: string, few: string, many: string) =>
   count === 1 ? one : count >= 2 && count <= 4 ? few : many;
 
+const MONTHS_GENITIVE_CS = [
+  "ledna",
+  "února",
+  "března",
+  "dubna",
+  "května",
+  "června",
+  "července",
+  "srpna",
+  "září",
+  "října",
+  "listopadu",
+  "prosince",
+];
+
 export const cs: Dictionary = {
   nav: {
     menu: "Menu",
@@ -64,6 +79,13 @@ export const cs: Dictionary = {
       nobodyAway: "Nikdo není pryč",
       awayCount: (count: number) => `Pryč nebo z domova: ${count}`,
       book: (day: string) => `Zadat ${day}`,
+      birthdayCount: (count: number) =>
+        `${count} ${czechPlural(count, "narozeniny", "narozeniny", "narozenin")}`,
+      yourBirthday: "Vaše narozeniny",
+      yourBirthdayAge: (age: number) => `Vaše narozeniny · ${age}`,
+      nameTurns: (name: string, age: number) => `${name} slaví ${age}`,
+      namesBirthday: (name: string) => `${name} má narozeniny`,
+      birthdaySettings: "Nastavení",
     },
     stats: {
       pending: "Čekající schválení",
@@ -461,6 +483,41 @@ export const cs: Dictionary = {
     cancel: "Zrušit",
   },
   settings: {
+    birthday: {
+      title: "Narozeniny",
+      add: "Přidejte své narozeniny",
+      addAction: "Přidat",
+      editAction: "Upravit",
+      date: (day: number, month: number) => `${day}. ${MONTHS_GENITIVE_CS[month - 1]}`,
+      withYear: (year: number, age: number) => `${year}, bude vám ${age}`,
+      noYear: "Bez roku, věk skrytý",
+      whoSees: "Kdo je uvidí",
+      shareRow: "Sdílet se skupinami",
+      share: "Sdílet moje narozeniny se skupinami",
+      shareHint:
+        "Členové je uvidí v kalendáři skupiny a v týmových kalendářových kanálech bez vašeho věku. Nikdy se nedostanou do ničího kalendáře Google nebo Microsoft.",
+      who: "Kdo",
+      dateColumn: "Datum",
+      ageColumn: "Věk",
+      you: "Vy",
+      yourGroups: "Vaše skupiny",
+      teamFeeds: "Týmové kalendářové kanály",
+      providers: "Kalendáře Google nebo Microsoft",
+      shown: "Zobrazeno",
+      notShown: "Nezobrazeno",
+      noPaidGroup:
+        "Žádná z vašich skupin nemá placený tarif, takže narozeniny zatím není kde sdílet. Ve svém kalendáři je uvidíte i tak.",
+      lapsed:
+        "Vaše skupiny už nemají tarif Pro ani Enterprise. Sdílení můžete vypnout, ale znovu ho zapnete jen se skupinou na placeném tarifu.",
+      cancel: "Zrušit",
+      save: "Uložit",
+      dateField: "Datum narozenin",
+      includeYear: "Uvést rok",
+      yearHint:
+        "S rokem uvidí váš věk každý, kdo vidí vaše narozeniny. Když rok vypnete, zmizí i věk.",
+      leapNote: "V letech bez 29. února se zobrazí 28. února.",
+      remove: "Odebrat narozeniny",
+    },
     notifications: "Oznámení",
     emailNotifications: "E-mailová oznámení",
     emailNotificationsHint:

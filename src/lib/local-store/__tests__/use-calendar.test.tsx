@@ -5,6 +5,7 @@ import type { SyncEnvelope } from "../envelope";
 import type { StoreRuntime } from "../runtime";
 import {
   bankHolidayRow,
+  birthdayRow,
   groupRow,
   groupUserRow,
   syncPage,
@@ -12,7 +13,11 @@ import {
   vacationRow,
 } from "../test-support/sync-fixtures";
 import { openTestStore } from "../test-support/test-store";
-import { useCalendarBankHolidays, useCalendarVacations } from "../use-calendar";
+import {
+  useCalendarBankHolidays,
+  useCalendarBirthdays,
+  useCalendarVacations,
+} from "../use-calendar";
 
 const QUERY = {
   range: { from: "2026-09-01", until: "2026-10-01" },
@@ -56,5 +61,22 @@ describe("useCalendarBankHolidays", () => {
     await pullIn({ groups: [groupRow({ holidayCountry: "CZ" })] });
 
     expect(result.current).toEqual([{ date: "2026-09-28", name: "Statehood" }]);
+  });
+});
+
+describe("useCalendarBirthdays", () => {
+  it("returns a colleague's shared birthday once their membership lands", async () => {
+    await pullIn({
+      users: [userRow({ id: "eva", name: "Eva Novak" })],
+      birthdays: [birthdayRow({ userId: "eva", month: 9, day: 14, year: null, shared: true })],
+    });
+    const { result } = await renderHook(() => useCalendarBirthdays(QUERY));
+    expect(result.current).toEqual([]);
+
+    await pullIn({ groupUsers: [groupUserRow({ id: "gu-eva", userId: "eva" })] });
+
+    expect(result.current).toEqual([
+      { userId: "eva", userName: "Eva Novak", date: "2026-09-14", age: null, own: false },
+    ]);
   });
 });

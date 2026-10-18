@@ -2,6 +2,7 @@ import { applyPage } from "../apply";
 import type { StoreRuntime } from "../runtime";
 import type {
   SyncBankHolidayRow,
+  SyncBirthdayRow,
   SyncEnvelope,
   SyncGroupMirrorRow,
   SyncGroupRow,
@@ -28,6 +29,7 @@ export function syncPage(page: Partial<SyncEnvelope> = {}): SyncEnvelope {
     userYearQuotas: [],
     bankHolidays: [],
     vacations: [],
+    birthdays: [],
     ...page,
   };
 }
@@ -148,6 +150,21 @@ export function vacationRow(row: Partial<SyncVacationRow> = {}): SyncVacationRow
   };
 }
 
+export function birthdayRow(row: Partial<SyncBirthdayRow> = {}): SyncBirthdayRow {
+  return {
+    id: row.userId ?? "user-1",
+    userId: "user-1",
+    month: 3,
+    day: 14,
+    year: 1988,
+    shared: false,
+    deletedAt: null,
+    createdAt: STAMP,
+    updatedAt: STAMP,
+    ...row,
+  };
+}
+
 /** A page with one row in every table of the envelope. */
 export function fullSyncPage(page: Partial<SyncEnvelope> = {}): SyncEnvelope {
   return syncPage({
@@ -159,6 +176,7 @@ export function fullSyncPage(page: Partial<SyncEnvelope> = {}): SyncEnvelope {
     userYearQuotas: [userYearQuotaRow()],
     bankHolidays: [bankHolidayRow()],
     vacations: [vacationRow()],
+    birthdays: [birthdayRow()],
     ...page,
   });
 }

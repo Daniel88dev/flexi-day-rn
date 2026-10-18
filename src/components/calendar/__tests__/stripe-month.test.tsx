@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react-native
 
 import { StripeMonth, stripeMonthHeight } from "@/components/calendar/stripe-month";
 import { TranslationProvider } from "@/i18n/use-translation";
+import type { DayMarks } from "@/lib/calendar/day-mark";
 import type { CalendarRange } from "@/lib/calendar/lanes";
 import { isoDay } from "@/lib/requests/months";
 
@@ -32,7 +33,12 @@ const holiday = (day: number, name: string): CalendarRange => ({
   vacationIds: [],
 });
 
-async function renderMonth(ranges: CalendarRange[], selected = "2026-10-14", month = OCTOBER) {
+async function renderMonth(
+  ranges: CalendarRange[],
+  selected = "2026-10-14",
+  month = OCTOBER,
+  marks?: DayMarks
+) {
   const onDay = jest.fn();
   await render(
     <TranslationProvider>
@@ -43,6 +49,7 @@ async function renderMonth(ranges: CalendarRange[], selected = "2026-10-14", mon
         viewerId={VIEWER}
         today="2026-10-14"
         selected={selected}
+        marks={marks}
         onDay={onDay}
       />
     </TranslationProvider>
@@ -51,6 +58,24 @@ async function renderMonth(ranges: CalendarRange[], selected = "2026-10-14", mon
 }
 
 describe("StripeMonth", () => {
+  it("names a day's birthdays on its cell, and on no other day", async () => {
+    await renderMonth(
+      [],
+      "2026-10-14",
+      OCTOBER,
+      new Map([["2026-10-20", { birthdays: 2, events: 0 }]])
+    );
+
+    expect(screen.getByTestId("calendar-day-2026-10-20")).toHaveProp(
+      "accessibilityLabel",
+      "Tue 20 Oct, 2 birthdays"
+    );
+    expect(screen.getByTestId("calendar-day-2026-10-21")).toHaveProp(
+      "accessibilityLabel",
+      "Wed 21 Oct"
+    );
+  });
+
   it("renders a cell for every day of the month and selects a tapped one", async () => {
     const onDay = await renderMonth([]);
 

@@ -14,6 +14,7 @@ import {
 import { Linking, Pressable, ScrollView, View } from "react-native";
 
 import { StackScreen } from "@/components/shell/stack-screen";
+import { BirthdaySettings } from "@/components/settings/birthday-card";
 import {
   ClockRemindersSection,
   NotificationPermissionRow,
@@ -78,6 +79,8 @@ export function SettingsScreen() {
         contentContainerStyle={{ gap: 28, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32 }}
       >
         {viewer ? <AccountHeader viewer={viewer} /> : null}
+
+        <BirthdaySettings />
 
         {loaded.isError && !settings ? (
           <View className="gap-2">

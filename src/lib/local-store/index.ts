@@ -28,6 +28,7 @@ const store = createStore({
 
 export type { StoreDatabase } from "./adapter";
 export type { BalanceBucket } from "./balance";
+export type { CalendarBirthday } from "./birthdays";
 export type { CalendarBankHoliday, CalendarQuery } from "./calendar";
 export type { SyncTableName } from "./envelope";
 export type { StoreChannel } from "./events";
@@ -55,7 +56,11 @@ export type {
   WriteOutcome,
 } from "./writes";
 export { useBalanceBuckets } from "./use-balance";
-export { useCalendarBankHolidays, useCalendarVacations } from "./use-calendar";
+export {
+  useCalendarBankHolidays,
+  useCalendarBirthdays,
+  useCalendarVacations,
+} from "./use-calendar";
 export { useGroupStanding } from "./use-group-standing";
 export { useMyGroups } from "./use-my-groups";
 export { usePendingChanges } from "./use-pending-changes";

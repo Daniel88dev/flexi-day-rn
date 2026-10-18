@@ -11,6 +11,7 @@ import { STORE_VERSION } from "../version";
 
 const SYNCED_TABLES = [
   "bankHolidays",
+  "birthdays",
   "groupMirrors",
   "groupUsers",
   "groups",

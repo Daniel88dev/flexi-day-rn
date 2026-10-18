@@ -90,6 +90,12 @@ const STORED = {
   attendanceLocationNoticeDismissed: false,
 };
 
+const BIRTHDAY = {
+  birthday: { month: 3, day: 14, year: null, shared: false },
+  canShare: false,
+  shareGroups: [],
+};
+
 // A finished mutation waits five minutes to be collected, and that timer keeps Jest running.
 const defaults = queryClient.getDefaultOptions();
 queryClient.setDefaultOptions({
@@ -110,7 +116,8 @@ beforeEach(() => {
   listAccounts.mockResolvedValue({ data: [GOOGLE_ACCOUNT, PASSWORD_ACCOUNT], error: null });
   scopeGroups.mockReturnValue([{ groupId: "g-1", groupName: "Design" }]);
   let stored = { ...STORED };
-  mockFetch.mockImplementation(async (_url: string, init?: RequestInit) => {
+  mockFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url.endsWith("/api/users/me/birthday")) return answer(200, BIRTHDAY);
     if (init?.method === "PUT") stored = { ...stored, ...JSON.parse(String(init.body)) };
     return answer(200, stored);
   });
@@ -150,13 +157,15 @@ describe("Settings", () => {
     expect(screen.getByText("/dashboard")).toBeOnTheScreen();
   });
 
-  it("renders the account, Notifications, Dashboard calendar, Security, Language, About and Delete account in that order", async () => {
+  it("renders the account, Birthday, Notifications, Dashboard calendar, Security, Language, About and Delete account in that order", async () => {
     await renderLoaded();
     await screen.findByTestId("settings-security");
+    await screen.findByTestId("settings-birthday-notice");
 
     const tree = JSON.stringify(screen.toJSON());
     const order = [
       "settings-account",
+      "settings-birthday",
       "settings-notifications",
       "settings-dashboard",
       "settings-security",
@@ -168,6 +177,15 @@ describe("Settings", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(screen.getByText(SESSION.data.user.name)).toBeOnTheScreen();
     expect(screen.getByText(SESSION.data.user.email)).toBeOnTheScreen();
+  });
+
+  it("shows the stored birthday and the no-paid-group notice from the server's answer", async () => {
+    await renderLoaded();
+
+    expect(await screen.findByTestId("settings-birthday-notice")).toHaveTextContent(
+      /None of your groups is on a paid plan/
+    );
+    expect(screen.getByTestId("settings-birthday")).toHaveTextContent(/14 March/);
   });
 
   it("saves the email switch as soon as it changes", async () => {
@@ -308,7 +326,10 @@ describe("Settings", () => {
   });
 
   it("offers Retry while the settings cannot be read", async () => {
-    mockFetch.mockRejectedValue(new TypeError("Network request failed"));
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith("/api/users/me/birthday")) return answer(200, BIRTHDAY);
+      throw new TypeError("Network request failed");
+    });
     await renderSettings();
 
     expect(await screen.findByText(en.sync.unreachable, {}, { timeout: 5000 })).toBeOnTheScreen();
