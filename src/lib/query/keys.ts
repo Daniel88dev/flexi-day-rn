@@ -23,7 +23,9 @@ export const qk = {
     ["quotas", groupId, year, userId ?? "all"] as const,
   bankHolidayCountries: () => ["bank-holiday-countries"] as const,
   myApprovals: () => ["my-approvals"] as const,
-  dashboardSummary: () => ["dashboard-summary"] as const,
+  dashboardSummary: (today: string) => ["dashboard-summary", today] as const,
+  /** Every day's summary: the prefix a write invalidates. */
+  dashboardSummaries: () => ["dashboard-summary"] as const,
   notifications: (unreadOnly: boolean) => ["notifications", unreadOnly] as const,
   allNotifications: () => ["notifications"] as const,
   mySettings: () => ["my-settings"] as const,

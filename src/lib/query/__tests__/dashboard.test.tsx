@@ -14,6 +14,7 @@ import {
   useRereadDashboardOnFocus,
   type PendingApproval,
 } from "@/lib/query/dashboard";
+import { qk } from "@/lib/query/keys";
 import { queryClient } from "@/lib/query/runtime";
 
 const mockFetch = jest.fn();
@@ -91,6 +92,8 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
+const TODAY = "2026-10-14";
+
 const READY = { state: "ready", summary: SUMMARY };
 const FAILED = { state: "failed" };
 
@@ -100,13 +103,13 @@ const offline = () => mockFetch.mockRejectedValue(new TypeError("Network request
 const RETRY_SETTLED = { timeout: 3_000 };
 
 function reads(pathEnd: string) {
-  return mockFetch.mock.calls.filter(([url]) => String(url).endsWith(pathEnd));
+  return mockFetch.mock.calls.filter(([url]) => new URL(String(url)).pathname.endsWith(pathEnd));
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockFetch.mockImplementation(async (url: string) =>
-    String(url).endsWith("/approvals") ? answer(200, [APPROVAL]) : answer(200, SUMMARY)
+    new URL(url).pathname.endsWith("/approvals") ? answer(200, [APPROVAL]) : answer(200, SUMMARY)
   );
   approve.mockResolvedValue({ ok: true });
   reject.mockResolvedValue({ ok: true });
@@ -116,17 +119,21 @@ beforeEach(() => {
 afterEach(() => queryClient.clear());
 
 describe("useDashboardSummary", () => {
-  it("returns the counts /api/users/me/dashboard-summary answers, ready", async () => {
-    const { result } = await renderHook(() => useDashboardSummary(), { wrapper });
+  it("returns the counts /api/users/me/dashboard-summary answers for the day it names, ready", async () => {
+    const { result } = await renderHook(() => useDashboardSummary(TODAY), { wrapper });
 
     await waitFor(() => expect(result.current).toEqual(READY));
-    expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/api\/users\/me\/dashboard-summary$/);
+    expect(String(mockFetch.mock.calls[0][0])).toMatch(
+      /\/api\/users\/me\/dashboard-summary\?today=2026-10-14$/
+    );
+    expect(queryClient.getQueryData(qk.dashboardSummary(TODAY))).toEqual(SUMMARY);
+    expect(queryClient.getQueryData(qk.dashboardSummary("2026-10-13"))).toBeUndefined();
   });
 
   it("returns loading until the server answers", async () => {
     mockFetch.mockReturnValue(new Promise(() => undefined));
 
-    const { result } = await renderHook(() => useDashboardSummary(), { wrapper });
+    const { result } = await renderHook(() => useDashboardSummary(TODAY), { wrapper });
 
     expect(result.current).toEqual({ state: "loading" });
   });
@@ -134,14 +141,14 @@ describe("useDashboardSummary", () => {
   it("returns failed when the server can't be reached", async () => {
     offline();
 
-    const { result } = await renderHook(() => useDashboardSummary(), { wrapper });
+    const { result } = await renderHook(() => useDashboardSummary(TODAY), { wrapper });
 
     await waitFor(() => expect(result.current).toEqual(FAILED), RETRY_SETTLED);
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
   it("returns failed once a later read fails, not the counts it read before", async () => {
-    const { result } = await renderHook(() => useDashboardSummary(), { wrapper });
+    const { result } = await renderHook(() => useDashboardSummary(TODAY), { wrapper });
     await waitFor(() => expect(result.current).toEqual(READY));
     offline();
 
@@ -154,7 +161,7 @@ describe("useDashboardSummary", () => {
 
   it("returns the counts again once the server answers after a failure", async () => {
     offline();
-    const { result } = await renderHook(() => useDashboardSummary(), { wrapper });
+    const { result } = await renderHook(() => useDashboardSummary(TODAY), { wrapper });
     await waitFor(() => expect(result.current).toEqual(FAILED), RETRY_SETTLED);
     mockFetch.mockResolvedValue(answer(200, SUMMARY));
 
@@ -187,7 +194,7 @@ describe("useApprovalDecisions", () => {
   /** The card's reads are on screen, as they are while its buttons can be tapped. */
   async function onScreen() {
     const approvals = await renderHook(() => useMyApprovals(), { wrapper });
-    const summary = await renderHook(() => useDashboardSummary(), { wrapper });
+    const summary = await renderHook(() => useDashboardSummary(TODAY), { wrapper });
     await waitFor(() => expect(approvals.result.current.isSuccess).toBe(true));
     await waitFor(() => expect(summary.result.current).toEqual(READY));
     const { result } = await renderHook(() => useApprovalDecisions(), { wrapper });
@@ -306,7 +313,7 @@ describe("useApprovalDecisions", () => {
 describe("useRereadDashboardOnFocus", () => {
   it("reads the summary and the approvals again when the dashboard comes back into focus", async () => {
     const approvals = await renderHook(() => useMyApprovals(), { wrapper });
-    const summary = await renderHook(() => useDashboardSummary(), { wrapper });
+    const summary = await renderHook(() => useDashboardSummary(TODAY), { wrapper });
     await waitFor(() => expect(approvals.result.current.isSuccess).toBe(true));
     await waitFor(() => expect(summary.result.current).toEqual(READY));
     await renderHook(() => useRereadDashboardOnFocus(), { wrapper });
@@ -322,7 +329,7 @@ describe("useRereadDashboardOnFocus", () => {
 describe("useRereadDashboard", () => {
   it("returns a reread of the summary and the approvals, for pull-to-refresh", async () => {
     const approvals = await renderHook(() => useMyApprovals(), { wrapper });
-    const summary = await renderHook(() => useDashboardSummary(), { wrapper });
+    const summary = await renderHook(() => useDashboardSummary(TODAY), { wrapper });
     await waitFor(() => expect(approvals.result.current.isSuccess).toBe(true));
     await waitFor(() => expect(summary.result.current).toEqual(READY));
     const { result } = await renderHook(() => useRereadDashboard(), { wrapper });

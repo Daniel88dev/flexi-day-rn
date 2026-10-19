@@ -207,7 +207,7 @@ export function useJoinGroup() {
         qk.administeredGroups(),
         qk.group(groupId),
         qk.groupUsers(groupId),
-        qk.dashboardSummary(),
+        qk.dashboardSummaries(),
       ]) {
         void queryClient.invalidateQueries({ queryKey });
       }

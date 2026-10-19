@@ -38,13 +38,16 @@ export type PendingApproval = {
  * The stat tiles' counts, from the server only: the Local store lacks other members' rows in
  * groups the viewer only reports on, so counting there would disagree with the web. A failed
  * latest read is `failed` even with an earlier answer cached, so an offline strip never shows old
- * counts.
+ * counts. `today` is the phone's own day, which the server cannot know.
  */
-export function useDashboardSummary(): DashboardSummaryRead {
+export function useDashboardSummary(today: string): DashboardSummaryRead {
   const query = useQuery({
-    queryKey: qk.dashboardSummary(),
+    queryKey: qk.dashboardSummary(today),
     queryFn: ({ signal }) =>
-      apiRequest<DashboardSummary>("/api/users/me/dashboard-summary", { signal }),
+      apiRequest<DashboardSummary>(
+        `/api/users/me/dashboard-summary?today=${encodeURIComponent(today)}`,
+        { signal }
+      ),
   });
   if (query.isError) return { state: "failed" };
   if (query.data) return { state: "ready", summary: query.data };
@@ -59,7 +62,7 @@ export function useMyApprovals({ enabled = true }: { enabled?: boolean } = {}) {
   });
 }
 
-const DASHBOARD_READS = [qk.dashboardSummary(), qk.myApprovals()];
+const DASHBOARD_READS = [qk.dashboardSummaries(), qk.myApprovals()];
 
 export function useRereadDashboardOnFocus(): void {
   useRereadOnFocus(DASHBOARD_READS);
@@ -78,7 +81,7 @@ export type ApprovalDecision = "approve" | "decline";
 export function useApprovalDecisions() {
   const { busy, run } = useVacationWrite<{ id: string; decision: ApprovalDecision }>([
     qk.myApprovals(),
-    qk.dashboardSummary(),
+    qk.dashboardSummaries(),
   ]);
 
   return {
