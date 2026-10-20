@@ -194,6 +194,47 @@ describe("correctionSteps", () => {
     ]);
   });
 
+  describe("over a swept session whose times carry seconds", () => {
+    // 09:11:37 in Prague on 19 October, closed by the sweep sixteen hours later at 01:11:37,
+    // with a 12:00:41 to 12:30:05 break.
+    const swept = session({
+      id: "s1",
+      businessDate: "2026-10-19",
+      startedAt: "2026-10-19T07:11:37.482Z",
+      endedAt: "2026-10-19T23:11:37.482Z",
+      closedBy: "SWEEP",
+      open: false,
+      breaks: [
+        pause({
+          id: "lunch",
+          startedAt: "2026-10-19T10:00:41.250Z",
+          endedAt: "2026-10-19T10:30:05.999Z",
+          open: false,
+        }),
+      ],
+    });
+
+    it("sends only the clock-out when only the clock-out was corrected", () => {
+      const draft = { ...heldDraft(swept, PRAGUE), endedAt: "19:11" };
+
+      expect(correctionSteps(swept, draft, PRAGUE)).toEqual([
+        { kind: "patch-session", sessionId: "s1", patch: { endedAt: "2026-10-19T17:11:00.000Z" } },
+      ]);
+    });
+
+    it("leaves the untouched break alone when the clock-in moves", () => {
+      const draft = { ...heldDraft(swept, PRAGUE), startedAt: "09:30" };
+
+      expect(correctionSteps(swept, draft, PRAGUE)).toEqual([
+        {
+          kind: "patch-session",
+          sessionId: "s1",
+          patch: { startedAt: "2026-10-19T07:30:00.000Z" },
+        },
+      ]);
+    });
+  });
+
   it("does not delete a removed break the server no longer has", () => {
     const draft = withBreakRemoved(heldDraft(twoBreaks, PRAGUE), "coffee");
 

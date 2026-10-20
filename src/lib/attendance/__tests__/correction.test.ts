@@ -101,6 +101,53 @@ describe("toPatch", () => {
     });
   });
 
+  describe("over a session whose times carry seconds", () => {
+    // 08:05:37.482 and 17:10:12.900 in Prague: what a real clock-in and clock-out store.
+    const clocked = session({
+      startedAt: "2026-09-09T06:05:37.482Z",
+      endedAt: "2026-09-09T15:10:12.900Z",
+    });
+    const untouched = (overrides: Partial<SessionDraft> = {}): SessionDraft => ({
+      ...sessionDraft(clocked, PRAGUE),
+      ...overrides,
+    });
+
+    it("returns null while neither field was edited", () => {
+      expect(toPatch(clocked, untouched(), PRAGUE)).toBeNull();
+    });
+
+    it("sends only the edited end, on its minute", () => {
+      expect(toPatch(clocked, untouched({ endedAt: "16:45" }), PRAGUE)).toEqual({
+        endedAt: "2026-09-09T14:45:00.000Z",
+      });
+    });
+
+    it("sends only the edited start, on its minute", () => {
+      expect(toPatch(clocked, untouched({ startedAt: "08:00" }), PRAGUE)).toEqual({
+        startedAt: "2026-09-09T06:00:00.000Z",
+      });
+    });
+
+    it("leaves a swept clock-out past midnight alone while only the start moves", () => {
+      // 09:11:37 to 01:11:37 the next morning, the sixteen hours the sweep allows.
+      const swept = session({
+        startedAt: "2026-09-09T07:11:37.482Z",
+        endedAt: "2026-09-09T23:11:37.482Z",
+        closedBy: "SWEEP",
+      });
+
+      expect(
+        toPatch(swept, { ...sessionDraft(swept, PRAGUE), startedAt: "10:00" }, PRAGUE)
+      ).toEqual({ startedAt: "2026-09-09T08:00:00.000Z" });
+    });
+
+    it("still reads an edited clock-out earlier than the clock-in as the next morning", () => {
+      expect(toPatch(clocked, untouched({ endedAt: "01:30" }), PRAGUE)).toEqual({
+        endedAt: "2026-09-09T23:30:00.000Z",
+      });
+    });
+  });
+
   it("reads a clock-out earlier in the day than the clock-in as the next day", () => {
     // The sweep's 00:05 is Thursday, so typing 02:00 means Thursday too.
     const patch = toPatch(session(), draft({ endedAt: "02:00" }), PRAGUE);
@@ -269,6 +316,25 @@ describe("toBreakPatch", () => {
     expect(toBreakPatch(entry, overnight, "2026-09-09", PRAGUE)).toEqual({
       startedAt: "2026-09-09T23:00:00.000Z",
       endedAt: "2026-09-09T23:30:00.000Z",
+    });
+  });
+
+  describe("over a break whose times carry seconds", () => {
+    // 12:00:41.250 to 12:30:05.999 in Prague.
+    const tapped: AttendanceBreak = {
+      ...entry,
+      startedAt: "2026-09-09T10:00:41.250Z",
+      endedAt: "2026-09-09T10:30:05.999Z",
+    };
+
+    it("returns null while neither field was edited", () => {
+      expect(toBreakPatch(tapped, draft("12:00", "12:30"), "2026-09-09", PRAGUE)).toBeNull();
+    });
+
+    it("sends only the edited end, on its minute", () => {
+      expect(toBreakPatch(tapped, draft("12:00", "12:40"), "2026-09-09", PRAGUE)).toEqual({
+        endedAt: "2026-09-09T10:40:00.000Z",
+      });
     });
   });
 
