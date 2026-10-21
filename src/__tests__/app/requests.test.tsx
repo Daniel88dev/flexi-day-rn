@@ -37,6 +37,8 @@ const listRows = useRequestListVacations as jest.MockedFunction<typeof useReques
 const scopeGroups = useRequestScopeGroups as jest.MockedFunction<typeof useRequestScopeGroups>;
 const useSession = authClient.useSession as unknown as jest.Mock;
 
+const DEFAULT_WINDOW = { first: { year: 2026, month: 9 }, length: 3 };
+
 const GROUPS = [
   { groupId: "g-1", groupName: "Engineering" },
   { groupId: "g-2", groupName: "Support" },
@@ -168,15 +170,25 @@ describe("RequestsScreen", () => {
 
     await fireEvent.press(screen.getByTestId("requests-filter-rejected"));
 
-    expect(screen.getByText(en.requests.emptyFiltered(en.status.rejected))).toBeTruthy();
+    expect(screen.getByText("No rejected requests in Sep – Nov 2026")).toBeTruthy();
   });
 
-  it("reads this month of the first group by default", async () => {
+  it("renders the empty state naming the window when the store holds nothing in it", async () => {
+    listRows.mockReturnValue([]);
+
+    await renderRequests();
+
+    expect(screen.getByText("No requests in Sep – Nov 2026")).toBeTruthy();
+  });
+
+  it("reads this month and the next two of the first group by default", async () => {
     await renderRequests();
 
     expect(screen.getByTestId("requests-scope")).toHaveTextContent("Engineering");
+    expect(screen.getByTestId("requests-month")).toHaveTextContent("Sep – Nov 2026");
+    expect(screen.getByTestId("requests-window-3")).toBeSelected();
     expect(lastQuery()).toEqual({
-      month: { year: 2026, month: 9 },
+      months: DEFAULT_WINDOW,
       scope: { kind: "group", groupId: "g-1" },
     });
   });
@@ -187,7 +199,7 @@ describe("RequestsScreen", () => {
     await fireEvent.press(screen.getByTestId("requests-scope"));
     await act(async () => choose(GROUPS.length));
 
-    expect(lastQuery()).toEqual({ month: { year: 2026, month: 9 }, scope: { kind: "mine" } });
+    expect(lastQuery()).toEqual({ months: DEFAULT_WINDOW, scope: { kind: "mine" } });
     expect(screen.getByTestId("requests-scope")).toHaveTextContent(en.requests.scopeMine);
   });
 
@@ -197,30 +209,55 @@ describe("RequestsScreen", () => {
     await renderRequests();
 
     expect(screen.queryByTestId("requests-scope")).toBeNull();
-    expect(lastQuery()).toEqual({ month: { year: 2026, month: 9 }, scope: { kind: "mine" } });
+    expect(lastQuery()).toEqual({ months: DEFAULT_WINDOW, scope: { kind: "mine" } });
   });
 
-  it("reads the month the stepper moves to", async () => {
+  it("reads the window ‹ › move to, a month at a time", async () => {
     await renderRequests();
 
     await fireEvent.press(screen.getByTestId("requests-month-next"));
+    await fireEvent.press(screen.getByTestId("requests-month-next"));
 
-    expect(screen.getByTestId("requests-month")).toHaveTextContent("October 2026");
+    expect(screen.getByTestId("requests-month")).toHaveTextContent("Nov 2026 – Jan 2027");
     expect(lastQuery()).toEqual({
-      month: { year: 2026, month: 10 },
+      months: { first: { year: 2026, month: 11 }, length: 3 },
       scope: { kind: "group", groupId: "g-1" },
     });
   });
 
-  it("stops the stepper at January of last year", async () => {
+  it("reads one window of the length picked", async () => {
+    await renderRequests();
+
+    await fireEvent.press(screen.getByTestId("requests-window-6"));
+
+    expect(screen.getByTestId("requests-month")).toHaveTextContent("Sep 2026 – Feb 2027");
+    expect(lastQuery()).toEqual({
+      months: { first: { year: 2026, month: 9 }, length: 6 },
+      scope: { kind: "group", groupId: "g-1" },
+    });
+  });
+
+  it("stops ‹ at January of last year", async () => {
     await renderRequests();
 
     for (let step = 0; step < 24; step += 1) {
       await fireEvent.press(screen.getByTestId("requests-month-previous"));
     }
 
-    expect(screen.getByTestId("requests-month")).toHaveTextContent("January 2025");
+    expect(screen.getByTestId("requests-month")).toHaveTextContent("Jan – Mar 2025");
     expect(screen.getByTestId("requests-month-previous")).toBeDisabled();
+  });
+
+  it("returns to the default window from Back to this month, which then hides", async () => {
+    await renderRequests();
+    expect(screen.queryByTestId("requests-window-reset")).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("requests-window-1"));
+    await fireEvent.press(screen.getByTestId("requests-month-next"));
+    await fireEvent.press(screen.getByTestId("requests-window-reset"));
+
+    expect(lastQuery()?.months).toEqual(DEFAULT_WINDOW);
+    expect(screen.queryByTestId("requests-window-reset")).toBeNull();
   });
 
   it("runs a sync pull on pull-to-refresh", async () => {

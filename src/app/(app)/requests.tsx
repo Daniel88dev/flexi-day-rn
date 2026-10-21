@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
 import { FilterChips } from "@/components/requests/filter-chips";
-import { MonthStepper } from "@/components/requests/month-stepper";
+import { MonthWindowControl } from "@/components/requests/month-window-control";
 import { RequestCard } from "@/components/requests/request-card";
 import { ScopeMenu } from "@/components/requests/scope-menu";
 import { TabHeader } from "@/components/shell/tab-header";
@@ -16,8 +16,8 @@ import {
   useRequestScopeGroups,
   type RequestListScope,
 } from "@/lib/local-store";
-import { filterCounts, filterLabel, filterRuns, type RequestFilter } from "@/lib/requests/filters";
-import { currentMonth, requestMonthBounds, stepMonth } from "@/lib/requests/months";
+import { filterCounts, filterRuns, type RequestFilter } from "@/lib/requests/filters";
+import { defaultMonthWindow, monthWindowLabel, requestMonthBounds } from "@/lib/requests/months";
 import { collapseRuns, type RequestRun } from "@/lib/requests/runs";
 import { useRefreshPull } from "@/lib/use-refresh-pull";
 import { useViewer } from "@/lib/viewer/use-viewer";
@@ -31,8 +31,11 @@ export default function RequestsScreen() {
   const primary = useTone("primary");
   const { refreshing, refresh } = useRefreshPull();
 
-  const [bounds] = useState(() => requestMonthBounds(new Date()));
-  const [month, setMonth] = useState(() => currentMonth(new Date()));
+  const [{ bounds, defaultWindow }] = useState(() => {
+    const today = new Date();
+    return { bounds: requestMonthBounds(today), defaultWindow: defaultMonthWindow(today) };
+  });
+  const [months, setMonths] = useState(defaultWindow);
   const [filter, setFilter] = useState<RequestFilter>("all");
   // The default follows the first group as the menu fills in, as does a group that left it.
   const [choice, setChoice] = useState<{ kind: "default" } | RequestListScope>({
@@ -47,15 +50,12 @@ export default function RequestsScreen() {
     ? { kind: "group", groupId: selected.groupId }
     : { kind: "mine" };
 
-  const rows = useRequestListVacations({ month, scope });
+  const rows = useRequestListVacations({ months, scope });
   const runs = useMemo(() => collapseRuns(rows), [rows]);
   const counts = useMemo(() => filterCounts(runs, viewerId), [runs, viewerId]);
   const shown = useMemo(() => filterRuns(runs, filter, viewerId), [runs, filter, viewerId]);
 
-  const step = (delta: -1 | 1) => {
-    const next = stepMonth(month, delta, bounds);
-    if (next) setMonth(next);
-  };
+  const windowLabel = monthWindowLabel(months, t.calendar.monthsShort);
 
   return (
     <View className="flex-1 bg-background pt-safe">
@@ -75,11 +75,11 @@ export default function RequestsScreen() {
             </Pressable>
           }
         />
-        <MonthStepper
-          month={month}
-          canPrevious={stepMonth(month, -1, bounds) !== null}
-          canNext={stepMonth(month, 1, bounds) !== null}
-          onStep={step}
+        <MonthWindowControl
+          value={months}
+          bounds={bounds}
+          defaultWindow={defaultWindow}
+          onChange={setMonths}
         />
       </View>
 
@@ -96,7 +96,9 @@ export default function RequestsScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
         ListEmptyComponent={
           <Text className="py-16 text-center text-[15px] text-faint">
-            {filter === "all" ? t.requests.empty : t.requests.emptyFiltered(filterLabel(filter, t))}
+            {filter === "all"
+              ? t.requests.empty(windowLabel)
+              : t.requests.emptyFiltered(filter, windowLabel)}
           </Text>
         }
         refreshControl={

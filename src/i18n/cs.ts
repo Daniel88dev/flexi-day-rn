@@ -1,5 +1,6 @@
 import type { AttendanceEventType } from "@/lib/attendance/types";
 import type { WeekdayRun } from "@/lib/groups/facts";
+import type { RequestFilter } from "@/lib/requests/filters";
 
 import type { DayMonth, Dictionary } from "./en";
 
@@ -667,8 +668,20 @@ export const cs: Dictionary = {
     scopeMine: "Jen moje žádosti",
     previousMonth: "Předchozí měsíc",
     nextMonth: "Další měsíc",
-    empty: "V tomto měsíci nejsou žádné žádosti",
-    emptyFiltered: (filter: string) => `V tomto měsíci nejsou žádné žádosti (${filter})`,
+    windowLength: (months: number) =>
+      `${months} ${months === 1 ? "měsíc" : months >= 2 && months <= 4 ? "měsíce" : "měsíců"}`,
+    backToThisMonth: "Zpět na tento měsíc",
+    empty: (window: string) => `Žádné žádosti v období ${window}`,
+    emptyFiltered: (filter: Exclude<RequestFilter, "all">, window: string) =>
+      `${
+        {
+          mine: "Nemáte žádné žádosti",
+          pending: "Žádné čekající žádosti",
+          approved: "Žádné schválené žádosti",
+          rejected: "Žádné zamítnuté žádosti",
+          cancelled: "Žádné zrušené žádosti",
+        }[filter]
+      } v období ${window}`,
     you: "Vy",
     dayCount: (count: number) =>
       `${count} ${count === 1 ? "den" : count >= 2 && count <= 4 ? "dny" : "dní"}`,
