@@ -211,10 +211,11 @@ function orderBreakMoves(moves: BreakMove[]): CorrectionStep[] {
 
 /**
  * What one Save sends, measured against the session as the server last answered, so a retry after
- * a Save that landed in part sends only what is still missing. Removed breaks go first. Whatever
- * widens the session goes before the breaks move and whatever narrows it after, or the rule that
- * keeps a break inside its session refuses one of them. New breaks go last, checked against the
- * session and breaks as corrected.
+ * a Save that landed in part sends only what is still missing. Removed breaks go first. When one
+ * end widens the session and the other narrows it, both go in one patch wherever the breaks allow.
+ * Otherwise whatever widens the session goes before the breaks move and whatever narrows it after,
+ * or the rule that keeps a break inside its session refuses one of them. New breaks go last,
+ * checked against the session and breaks as corrected.
  */
 export function correctionSteps(
   session: AttendanceSession,
@@ -254,6 +255,17 @@ export function correctionSteps(
     ({ id, span }) => ({ kind: "add-break", sessionId: session.id, draftId: id, span })
   );
 
+  const removed = new Set(draft.breaks.filter((entry) => entry.removed).map((entry) => entry.id));
+  const kept = session.breaks.filter((entry) => !removed.has(entry.id));
+  const whole = widen && narrow ? { ...widen, ...narrow } : null;
+  const order = whole && wholePatchOrder(session, whole, kept, moves);
+  if (order === "before") {
+    return [...deletes, ...patchSession(whole), ...orderBreakMoves(moves), ...adds];
+  }
+  if (order === "after") {
+    return [...deletes, ...orderBreakMoves(moves), ...patchSession(whole), ...adds];
+  }
+
   return [
     ...deletes,
     ...patchSession(widen),
@@ -261,6 +273,43 @@ export function correctionSteps(
     ...patchSession(narrow),
     ...adds,
   ];
+}
+
+/**
+ * Where one patch moving both of the session's ends can go: before the breaks move, if the breaks
+ * as they stand fit the corrected session, or after, if the moved breaks fit the session as it
+ * stands. Split into a widening and a narrowing half instead, the first half can carry a session
+ * the sweep closed at the ceiling past it, and the backend refuses that.
+ */
+function wholePatchOrder(
+  session: AttendanceSession,
+  patch: CorrectionPatch,
+  kept: AttendanceBreak[],
+  moves: BreakMove[]
+): "before" | "after" | null {
+  const span = (startedAt: string, endedAt: string | null | undefined): Span => ({
+    start: Date.parse(startedAt),
+    end: endedAt ? Date.parse(endedAt) : Infinity,
+  });
+  const current = span(session.startedAt, session.endedAt);
+  const corrected = span(
+    patch.startedAt ?? session.startedAt,
+    patch.endedAt === undefined ? session.endedAt : patch.endedAt
+  );
+  // An open break counts to the session's end, as the backend reads it.
+  const fits = (entry: Span, within: Span) =>
+    entry.start >= within.start &&
+    entry.start < within.end &&
+    (entry.end === Infinity || entry.end <= within.end);
+
+  const now = kept.map((entry) => span(entry.startedAt, entry.endedAt));
+  if (now.every((entry) => fits(entry, corrected))) return "before";
+
+  const moved = kept.map((entry) => {
+    const move = moves.find(({ step }) => step.kind === "patch-break" && step.breakId === entry.id);
+    return move ? move.to : span(entry.startedAt, entry.endedAt);
+  });
+  return moved.every((entry) => fits(entry, current)) ? "after" : null;
 }
 
 export type LandedStep = { step: CorrectionStep; answer: AttendanceSession };

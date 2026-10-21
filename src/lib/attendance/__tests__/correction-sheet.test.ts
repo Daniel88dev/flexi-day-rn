@@ -194,6 +194,93 @@ describe("correctionSteps", () => {
     ]);
   });
 
+  describe("over a swept session whose times carry seconds", () => {
+    // 09:11:37 in Prague on 19 October, closed by the sweep sixteen hours later at 01:11:37,
+    // with a 12:00:41 to 12:30:05 break.
+    const swept = session({
+      id: "s1",
+      businessDate: "2026-10-19",
+      startedAt: "2026-10-19T07:11:37.482Z",
+      endedAt: "2026-10-19T23:11:37.482Z",
+      closedBy: "SWEEP",
+      open: false,
+      breaks: [
+        pause({
+          id: "lunch",
+          startedAt: "2026-10-19T10:00:41.250Z",
+          endedAt: "2026-10-19T10:30:05.999Z",
+          open: false,
+        }),
+      ],
+    });
+
+    it("sends only the clock-out when only the clock-out was corrected", () => {
+      const draft = { ...heldDraft(swept, PRAGUE), endedAt: "19:11" };
+
+      expect(correctionSteps(swept, draft, PRAGUE)).toEqual([
+        { kind: "patch-session", sessionId: "s1", patch: { endedAt: "2026-10-19T17:11:00.000Z" } },
+      ]);
+    });
+
+    it("moves both ends in one patch, so the session never passes the ceiling on the way", () => {
+      const draft = { ...heldDraft(swept, PRAGUE), startedAt: "09:00", endedAt: "18:00" };
+
+      expect(correctionSteps(swept, draft, PRAGUE)).toEqual([
+        {
+          kind: "patch-session",
+          sessionId: "s1",
+          patch: { startedAt: "2026-10-19T07:00:00.000Z", endedAt: "2026-10-19T16:00:00.000Z" },
+        },
+      ]);
+    });
+
+    it("moves both ends before a break that only fits the corrected session", () => {
+      const draft = withBreakChanged(
+        { ...heldDraft(swept, PRAGUE), startedAt: "09:00", endedAt: "18:00" },
+        "lunch",
+        { startedAt: "09:05", endedAt: "09:20" }
+      );
+
+      expect(correctionSteps(swept, draft, PRAGUE).map((step) => step.kind)).toEqual([
+        "patch-session",
+        "patch-break",
+      ]);
+    });
+
+    it("moves the breaks first when they only fit the session as it stands", () => {
+      const draft = withBreakChanged(
+        { ...heldDraft(swept, PRAGUE), startedAt: "09:00", endedAt: "11:00" },
+        "lunch",
+        { startedAt: "10:00", endedAt: "10:30" }
+      );
+
+      expect(correctionSteps(swept, draft, PRAGUE)).toEqual([
+        {
+          kind: "patch-break",
+          breakId: "lunch",
+          patch: { startedAt: "2026-10-19T08:00:00.000Z", endedAt: "2026-10-19T08:30:00.000Z" },
+        },
+        {
+          kind: "patch-session",
+          sessionId: "s1",
+          patch: { startedAt: "2026-10-19T07:00:00.000Z", endedAt: "2026-10-19T09:00:00.000Z" },
+        },
+      ]);
+    });
+
+    it("leaves the untouched break alone when the clock-in moves", () => {
+      const draft = { ...heldDraft(swept, PRAGUE), startedAt: "09:30" };
+
+      expect(correctionSteps(swept, draft, PRAGUE)).toEqual([
+        {
+          kind: "patch-session",
+          sessionId: "s1",
+          patch: { startedAt: "2026-10-19T07:30:00.000Z" },
+        },
+      ]);
+    });
+  });
+
   it("does not delete a removed break the server no longer has", () => {
     const draft = withBreakRemoved(heldDraft(twoBreaks, PRAGUE), "coffee");
 
@@ -626,19 +713,38 @@ describe("correctionSheetErrors, a break still running", () => {
 });
 
 describe("correctionSteps, mixed moves", () => {
-  it("widens the session first and narrows it last when one end does each", () => {
+  it("moves both ends in one patch before the breaks when the breaks fit the corrected session", () => {
     // Start 08:00 to 07:00 widens, end 16:00 to 15:00 narrows, and the coffee moves to 14:30.
     let draft = { ...heldDraft(twoBreaks, PRAGUE), startedAt: "07:00", endedAt: "15:00" };
     draft = withBreakChanged(draft, "coffee", { startedAt: "14:30", endedAt: "14:45" });
+
+    expect(correctionSteps(twoBreaks, draft, PRAGUE)).toEqual([
+      {
+        kind: "patch-session",
+        sessionId: "s1",
+        patch: { startedAt: "2026-09-24T05:00:00.000Z", endedAt: "2026-09-24T13:00:00.000Z" },
+      },
+      {
+        kind: "patch-break",
+        breakId: "coffee",
+        patch: { startedAt: "2026-09-24T12:30:00.000Z", endedAt: "2026-09-24T12:45:00.000Z" },
+      },
+    ]);
+  });
+
+  it("widens the session first and narrows it last when no single patch keeps the breaks inside", () => {
+    // Start 08:00 to 07:00, end 16:00 to 13:00, and the coffee moves from 14:00 to 07:15.
+    let draft = { ...heldDraft(twoBreaks, PRAGUE), startedAt: "07:00", endedAt: "13:00" };
+    draft = withBreakChanged(draft, "coffee", { startedAt: "07:15", endedAt: "07:30" });
 
     expect(correctionSteps(twoBreaks, draft, PRAGUE)).toEqual([
       { kind: "patch-session", sessionId: "s1", patch: { startedAt: "2026-09-24T05:00:00.000Z" } },
       {
         kind: "patch-break",
         breakId: "coffee",
-        patch: { startedAt: "2026-09-24T12:30:00.000Z", endedAt: "2026-09-24T12:45:00.000Z" },
+        patch: { startedAt: "2026-09-24T05:15:00.000Z", endedAt: "2026-09-24T05:30:00.000Z" },
       },
-      { kind: "patch-session", sessionId: "s1", patch: { endedAt: "2026-09-24T13:00:00.000Z" } },
+      { kind: "patch-session", sessionId: "s1", patch: { endedAt: "2026-09-24T11:00:00.000Z" } },
     ]);
   });
 

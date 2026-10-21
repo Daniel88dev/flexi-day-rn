@@ -274,8 +274,15 @@ export const correctionErrors = (
   return { ...errors, ...breakErrors(resolved.breaks, resolved) };
 };
 
-const changed = (next: string | null, current: string | null): boolean =>
-  next === null ? current !== null : current === null || next !== new Date(current).toISOString();
+const MINUTE_MS = 60_000;
+
+// A field holds `HH:mm`, but a saved instant carries the seconds of the tap that made it. Resending
+// an untouched clock-in rounded down widens the session, which over a swept one is OVER_CEILING.
+const changed = (next: string | null, current: string | null): boolean => {
+  if (next === null || current === null) return next !== current;
+  const savedMinute = Math.floor(Date.parse(current) / MINUTE_MS) * MINUTE_MS;
+  return Date.parse(next) !== savedMinute;
+};
 
 /**
  * What actually has to be sent for the session, or null when nothing moved.
