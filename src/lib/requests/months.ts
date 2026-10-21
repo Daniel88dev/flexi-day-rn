@@ -53,5 +53,63 @@ export function isoDay({ year, month }: YearMonth, day: number): string {
 
 /** The month as `YYYY-MM-DD` days, from its first up to, not including, the next month's first. */
 export function monthRange(month: YearMonth): { from: string; until: string } {
-  return { from: isoDay(month, 1), until: isoDay(addMonths(month, 1), 1) };
+  return monthWindowRange({ first: month, length: 1 });
+}
+
+export const MONTH_WINDOW_LENGTHS = [1, 3, 6] as const;
+
+export type MonthWindowLength = (typeof MONTH_WINDOW_LENGTHS)[number];
+
+export type MonthWindow = { first: YearMonth; length: MonthWindowLength };
+
+export function defaultMonthWindow(today: Date): MonthWindow {
+  return { first: currentMonth(today), length: 3 };
+}
+
+function lastOfWindow({ first, length }: MonthWindow): YearMonth {
+  return addMonths(first, length - 1);
+}
+
+const windowFits = (window: MonthWindow, bounds: MonthBounds) =>
+  index(window.first) >= index(bounds.first) && index(lastOfWindow(window)) <= index(bounds.last);
+
+/** The window moved `delta` months, or null when any of it would fall outside the bounds. */
+export function shiftMonthWindow(
+  window: MonthWindow,
+  delta: number,
+  bounds: MonthBounds
+): MonthWindow | null {
+  const next = { first: addMonths(window.first, delta), length: window.length };
+  return windowFits(next, bounds) ? next : null;
+}
+
+/** The window at a new length, moved back as far as it must be to end inside the bounds. */
+export function resizeMonthWindow(
+  window: MonthWindow,
+  length: MonthWindowLength,
+  bounds: MonthBounds
+): MonthWindow {
+  const latestFirst = addMonths(bounds.last, -(length - 1));
+  const first = index(window.first) > index(latestFirst) ? latestFirst : window.first;
+  return { first, length };
+}
+
+export function monthWindowLabel(window: MonthWindow, monthsShort: readonly string[]): string {
+  const last = lastOfWindow(window);
+  const name = (month: YearMonth) => monthsShort[month.month - 1];
+  if (window.length === 1) return `${name(last)} ${last.year}`;
+  if (window.first.year === last.year) return `${name(window.first)} – ${name(last)} ${last.year}`;
+  return `${name(window.first)} ${window.first.year} – ${name(last)} ${last.year}`;
+}
+
+/** `until` is the first day after the window. */
+export function monthWindowRange(window: MonthWindow): { from: string; until: string } {
+  return {
+    from: isoDay(window.first, 1),
+    until: isoDay(addMonths(window.first, window.length), 1),
+  };
+}
+
+export function sameMonthWindow(a: MonthWindow, b: MonthWindow): boolean {
+  return a.length === b.length && index(a.first) === index(b.first);
 }

@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { addDays } from "@/lib/days";
-import { monthRange, type YearMonth } from "@/lib/requests/months";
+import { monthWindowRange, type MonthWindow } from "@/lib/requests/months";
 import { collapseRuns, type RequestRun } from "@/lib/requests/runs";
 
 import type { StoreDatabase } from "./adapter";
@@ -20,7 +20,7 @@ export type RequestScopeGroup = { groupId: string; groupName: string };
 /** A group seen in full, or the viewer's own rows from every group. */
 export type RequestListScope = { kind: "mine" } | { kind: "group"; groupId: string };
 
-export type RequestListQuery = { month: YearMonth; scope: RequestListScope };
+export type RequestListQuery = { months: MonthWindow; scope: RequestListScope };
 
 /** A group the viewer belongs to, whatever the access: one they may book in. */
 export type MemberGroup = { groupId: string; groupName: string };
@@ -140,7 +140,7 @@ export function requestListVacations(
   changes: readonly OverlayEntry[],
   query: RequestListQuery
 ): ListedVacation[] {
-  return scopedVacations(db, changes, query.scope, monthRange(query.month));
+  return scopedVacations(db, changes, query.scope, monthWindowRange(query.months));
 }
 
 /** What the phone holds of a request when the server cannot be asked: the run its day sits in. */

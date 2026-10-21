@@ -42,17 +42,18 @@ export function useRequestScopeGroups(): RequestScopeGroup[] {
   return useStoreQuery(requestScopeGroups, SCOPE_CHANNELS);
 }
 
-export function useRequestListVacations({ month, scope }: RequestListQuery): ListedVacation[] {
+export function useRequestListVacations({ months, scope }: RequestListQuery): ListedVacation[] {
   const changes = useStoreOverlay();
-  const { year, month: monthNumber } = month;
+  const { year, month } = months.first;
+  const { length } = months;
   const groupId = scope.kind === "group" ? scope.groupId : null;
   const build = useCallback(
     (db: StoreDatabase) =>
       requestListVacations(db, changes, {
-        month: { year, month: monthNumber },
+        months: { first: { year, month }, length },
         scope: groupId === null ? { kind: "mine" } : { kind: "group", groupId },
       }),
-    [changes, year, monthNumber, groupId]
+    [changes, year, month, length, groupId]
   );
   return useStoreQuery(build, LIST_CHANNELS);
 }

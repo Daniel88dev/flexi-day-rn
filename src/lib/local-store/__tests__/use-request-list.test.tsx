@@ -63,7 +63,7 @@ describe("useRequestScopeGroups", () => {
 
 describe("useRequestListVacations", () => {
   const QUERY = {
-    month: { year: 2026, month: 9 },
+    months: { first: { year: 2026, month: 9 }, length: 1 },
     scope: { kind: "group", groupId: "group-1" },
   } as const;
 

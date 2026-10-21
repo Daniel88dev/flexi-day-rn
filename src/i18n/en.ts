@@ -1,5 +1,6 @@
 import type { AttendanceEventType } from "@/lib/attendance/types";
 import type { WeekdayRun } from "@/lib/groups/facts";
+import type { RequestFilter } from "@/lib/requests/filters";
 
 /** A calendar day without its year, `month` 1-based. */
 export type DayMonth = { day: number; month: number };
@@ -649,8 +650,19 @@ export const en = {
     scopeMine: "Only my requests",
     previousMonth: "Previous month",
     nextMonth: "Next month",
-    empty: "No requests in this month",
-    emptyFiltered: (filter: string) => `No requests in this month (${filter})`,
+    windowLength: (months: number) => (months === 1 ? "1 month" : `${months} months`),
+    backToThisMonth: "Back to this month",
+    empty: (window: string) => `No requests in ${window}`,
+    emptyFiltered: (filter: Exclude<RequestFilter, "all">, window: string) =>
+      `${
+        {
+          mine: "You have no requests",
+          pending: "No pending requests",
+          approved: "No approved requests",
+          rejected: "No rejected requests",
+          cancelled: "No cancelled requests",
+        }[filter]
+      } in ${window}`,
     you: "You",
     dayCount: (count: number) => `${count} ${count === 1 ? "day" : "days"}`,
     sending: "Sending…",

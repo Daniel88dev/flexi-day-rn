@@ -165,9 +165,9 @@ describe("requestScopeGroups", () => {
 });
 
 describe("requestListVacations", () => {
-  const SEPTEMBER = { year: 2026, month: 9 };
-  const GROUP_1 = { month: SEPTEMBER, scope: { kind: "group", groupId: "group-1" } } as const;
-  const MINE = { month: SEPTEMBER, scope: { kind: "mine" } } as const;
+  const SEPTEMBER = { first: { year: 2026, month: 9 }, length: 1 } as const;
+  const GROUP_1 = { months: SEPTEMBER, scope: { kind: "group", groupId: "group-1" } } as const;
+  const MINE = { months: SEPTEMBER, scope: { kind: "mine" } } as const;
 
   function listed(query: RequestListQuery) {
     return requestListVacations(store.getDatabase(), activePendingChanges().list(), query);
@@ -202,6 +202,22 @@ describe("requestListVacations", () => {
     });
 
     expect(idsOf(GROUP_1)).toEqual(["sep-1", "sep-30"]);
+  });
+
+  it("returns the rows of every month in the window, across the year boundary", () => {
+    pullIn({
+      vacations: [
+        vacationRow({ id: "oct-31", requestedDay: "2026-10-31" }),
+        vacationRow({ id: "nov-1", requestedDay: "2026-11-01" }),
+        vacationRow({ id: "dec-15", requestedDay: "2026-12-15" }),
+        vacationRow({ id: "jan-31", requestedDay: "2027-01-31" }),
+        vacationRow({ id: "feb-1", requestedDay: "2027-02-01" }),
+      ],
+    });
+
+    const window = { first: { year: 2026, month: 11 }, length: 3 } as const;
+
+    expect(idsOf({ ...GROUP_1, months: window })).toEqual(["nov-1", "dec-15", "jan-31"]);
   });
 
   it("returns every member's rows of the group in scope and no other group's", () => {
