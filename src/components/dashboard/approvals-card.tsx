@@ -12,7 +12,6 @@ import type { Dictionary } from "@/i18n/en";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
 import { approvalKey } from "@/lib/dashboard/approvals";
-import { businessDaysBetween } from "@/lib/days";
 import { haptic } from "@/lib/haptics";
 import { useMyAwaitingRequests } from "@/lib/local-store";
 import {
@@ -198,10 +197,7 @@ function AwaitingRequest({ run, onOpen }: { run: RequestRun; onOpen: () => void 
   const { t } = useTranslation();
   const labels = t.dashboard.approvals;
   const type = t.recordTypes[run.vacationType];
-  const span = labels.span(
-    datedRange(run, t),
-    t.requests.dayCount(businessDaysBetween(run.from, run.to))
-  );
+  const span = labels.span(datedRange(run, t), t.requests.dayCount(run.dayCount));
   const waiting = labels.waitingIn(run.groupName ?? "");
 
   return (

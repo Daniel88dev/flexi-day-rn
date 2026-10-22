@@ -214,11 +214,13 @@ describe("ApprovalsCard", () => {
 });
 
 describe("ApprovalsCard, Your requests", () => {
-  const own = (id: string, requestedDay: string) =>
-    vacationRow({ id, userId: VIEWER, groupId: "group-1", requestedDay });
+  const own = (id: string, requestedDay: string, requestId = "request-1") =>
+    vacationRow({ id, userId: VIEWER, groupId: "group-1", requestedDay, requestId });
 
   it("renders only Your requests to a viewer who approves nowhere, read-only, opening on tap", async () => {
-    await pullIn({ vacations: [own("fri", `${YEAR}-10-09`), own("mon", `${YEAR}-10-12`)] });
+    await pullIn({
+      vacations: [own("fri", `${YEAR}-10-09`, "first"), own("mon", `${YEAR}-10-12`, "second")],
+    });
     const onOpen = jest.fn();
 
     await renderCard({ onOpen, approver: false });
@@ -239,21 +241,21 @@ describe("ApprovalsCard, Your requests", () => {
     expect(onOpen).toHaveBeenCalledWith("fri");
   });
 
-  it("renders one row per date range with its business days", async () => {
+  it("renders one row per Request, counting its stored days rather than the span", async () => {
     await pullIn({
       vacations: [
-        own("tue", `${YEAR}-10-06`),
-        own("wed", `${YEAR}-10-07`),
-        own("thu", `${YEAR}-10-08`),
+        own("first", `${YEAR}-10-06`),
+        own("second", `${YEAR}-10-09`),
+        own("third", `${YEAR}-10-14`),
       ],
     });
 
     await renderCard({ approver: false });
 
-    expect(screen.getByTestId("awaiting-request-tue")).toHaveTextContent(
-      "Vacation6-8 Oct · 3 daysWaiting on approval in Engineering"
+    expect(screen.getByTestId("awaiting-request-first")).toHaveTextContent(
+      "Vacation6-14 Oct · 3 daysWaiting on approval in Engineering"
     );
-    expect(screen.queryByTestId("awaiting-request-wed")).toBeNull();
+    expect(screen.queryByTestId("awaiting-request-second")).toBeNull();
   });
 
   it("renders a nothing-pending state when none of the viewer's requests is waiting", async () => {

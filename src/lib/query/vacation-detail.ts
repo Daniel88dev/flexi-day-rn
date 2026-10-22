@@ -49,6 +49,8 @@ export type VacationDetail = {
   rangeStart: string;
   rangeEnd: string;
   vacationIds: string[];
+  /** One per stored day, a half day included. A backend that predates it leaves it out. */
+  workingDays?: number;
   vacationType: WireRecordType;
   startTime: string | null;
   endTime: string | null;

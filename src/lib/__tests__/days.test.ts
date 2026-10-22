@@ -1,6 +1,5 @@
 import {
   addDays,
-  businessDaysBetween,
   dateOfDay,
   dayNumber,
   dayOfDate,
@@ -67,18 +66,5 @@ describe("lastOfNextMonth", () => {
     expect(lastOfNextMonth("2026-09-28")).toBe("2026-10-31");
     expect(lastOfNextMonth("2026-12-30")).toBe("2027-01-31");
     expect(lastOfNextMonth("2028-01-31")).toBe("2028-02-29");
-  });
-});
-
-describe("businessDaysBetween", () => {
-  it("returns the weekdays of an inclusive range, the count the approvals list shows", () => {
-    expect(businessDaysBetween("2026-10-05", "2026-10-09")).toBe(5);
-    expect(businessDaysBetween("2026-10-09", "2026-10-12")).toBe(2);
-    expect(businessDaysBetween("2026-10-10", "2026-10-11")).toBe(0);
-    expect(businessDaysBetween("2026-10-07", "2026-10-07")).toBe(1);
-  });
-
-  it("returns 0 for a range that reads backwards", () => {
-    expect(businessDaysBetween("2026-10-09", "2026-10-05")).toBe(0);
   });
 });

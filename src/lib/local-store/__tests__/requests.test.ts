@@ -345,6 +345,69 @@ describe("storedRequest", () => {
     );
   });
 
+  it("returns the Request across a weekend, without the Request on the next day", () => {
+    pullIn({
+      vacations: [
+        vacationRow({
+          id: "trip-fri",
+          userId: "user-2",
+          requestId: "trip",
+          requestedDay: "2026-10-02",
+        }),
+        vacationRow({
+          id: "trip-mon",
+          userId: "user-2",
+          requestId: "trip",
+          requestedDay: "2026-10-05",
+        }),
+        vacationRow({
+          id: "next",
+          userId: "user-2",
+          requestId: "other",
+          requestedDay: "2026-10-06",
+        }),
+      ],
+    });
+
+    expect(storedRequest(store.getDatabase(), [], "trip-mon")).toEqual(
+      expect.objectContaining({
+        from: "2026-10-02",
+        to: "2026-10-05",
+        vacationIds: ["trip-fri", "trip-mon"],
+        dayCount: 2,
+      })
+    );
+  });
+
+  it("returns every day of a Request longer than two months", () => {
+    pullIn({
+      vacations: [
+        vacationRow({
+          id: "long-1",
+          userId: "user-2",
+          requestId: "long",
+          requestedDay: "2026-01-05",
+        }),
+        vacationRow({
+          id: "long-2",
+          userId: "user-2",
+          requestId: "long",
+          requestedDay: "2026-03-16",
+        }),
+        vacationRow({
+          id: "long-3",
+          userId: "user-2",
+          requestId: "long",
+          requestedDay: "2026-05-25",
+        }),
+      ],
+    });
+
+    expect(storedRequest(store.getDatabase(), [], "long-1")).toEqual(
+      expect.objectContaining({ from: "2026-01-05", to: "2026-05-25", dayCount: 3 })
+    );
+  });
+
   it("returns null for a day the store does not hold", () => {
     expect(storedRequest(store.getDatabase(), [], "gone")).toBeNull();
   });

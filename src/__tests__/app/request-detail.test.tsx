@@ -216,6 +216,7 @@ describe("RequestDetail route", () => {
     await renderLoaded({
       rangeEnd: "2026-09-23",
       vacationIds: ["vacation-1", "vacation-2", "vacation-3"],
+      workingDays: 3,
       startTime: "08:00:00",
       endTime: "12:00:00",
       note: "Family trip",
@@ -239,7 +240,9 @@ describe("RequestDetail route", () => {
     expect(screen.getByText(en.recordTypes.VACATION)).toBeOnTheScreen();
     expect(screen.getByText(en.status.pending)).toBeOnTheScreen();
     expect(screen.getByTestId("request-detail-dates")).toHaveTextContent("21-23 Sep 2026");
-    expect(screen.getByText("3 days · 08:00-12:00")).toBeOnTheScreen();
+    expect(screen.getByTestId("request-detail-length")).toHaveTextContent(
+      "08:00-12:00 · 3 working days"
+    );
     expect(screen.getByText("Eva Horáková")).toBeOnTheScreen();
     expect(screen.getByText("Engineering")).toBeOnTheScreen();
     expect(screen.getByText(en.requestDetail.createdBy(ADMIN.name))).toBeOnTheScreen();
@@ -291,6 +294,12 @@ describe("RequestDetail route", () => {
     expect(await screen.findByText(en.requestDetail.forbidden)).toBeOnTheScreen();
   });
 
+  it("renders a single half day as only half day, with no count", async () => {
+    await renderLoaded({ halfDay: true, workingDays: 1 });
+
+    expect(screen.getByTestId("request-detail-length")).toHaveTextContent(/^Half day$/);
+  });
+
   it("renders the phone's own copy, read-only, when the server cannot be reached", async () => {
     mockFetch.mockRejectedValue(new TypeError("Network request failed"));
     storedRequest.mockReturnValue({
@@ -301,8 +310,8 @@ describe("RequestDetail route", () => {
       groupName: "Engineering",
       vacationType: "SICK",
       status: "approved",
-      from: "2026-09-21",
-      to: "2026-09-22",
+      from: "2026-09-18",
+      to: "2026-09-21",
       startTime: null,
       endTime: null,
       halfDay: false,
@@ -317,7 +326,10 @@ describe("RequestDetail route", () => {
     expect(
       await screen.findByText(en.requestDetail.offlineBody, {}, { timeout: 5000 })
     ).toBeOnTheScreen();
-    expect(screen.getByTestId("request-detail-dates")).toHaveTextContent("21-22 Sep 2026");
+    expect(screen.getByTestId("request-detail-dates")).toHaveTextContent("18-21 Sep 2026");
+    expect(screen.getByTestId("request-detail-length")).toHaveTextContent(
+      "Full day · 2 working days"
+    );
     expect(screen.getByText(en.recordTypes.SICK)).toBeOnTheScreen();
     expect(screen.queryByTestId("request-detail-actions")).toBeNull();
   });
