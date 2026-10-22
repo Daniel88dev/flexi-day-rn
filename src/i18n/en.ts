@@ -665,6 +665,7 @@ export const en = {
       } in ${window}`,
     you: "You",
     dayCount: (count: number) => `${count} ${count === 1 ? "day" : "days"}`,
+    workingDayCount: (count: number) => `${count} ${count === 1 ? "working day" : "working days"}`,
     sending: "Sending…",
     runDates: (from: DayMonth, to: DayMonth) => {
       const month = (day: DayMonth) => MONTHS_SHORT_EN[day.month - 1];

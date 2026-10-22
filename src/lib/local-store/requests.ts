@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, max, min, or } from "drizzle-orm";
 
 import { addDays } from "@/lib/days";
 import { monthWindowRange, type MonthWindow } from "@/lib/requests/months";
@@ -146,9 +146,6 @@ export function requestListVacations(
 /** What the phone holds of a request when the server cannot be asked: the run its day sits in. */
 export type StoredRequest = RequestRun & { note: string | null };
 
-/** No run the web groups is longer than this either side of a day. */
-const RUN_REACH_DAYS = 62;
-
 export function storedRequest(
   db: StoreDatabase,
   changes: readonly OverlayEntry[],
@@ -157,12 +154,17 @@ export function storedRequest(
   const [row] = selectVacations(db).where(eq(vacations.id, vacationId)).all();
   if (!row) return null;
 
+  const span = db
+    .select({ from: min(vacations.requestedDay), to: max(vacations.requestedDay) })
+    .from(vacations)
+    .where(eq(vacations.requestId, row.requestId))
+    .get();
   const range = {
-    from: addDays(row.requestedDay, -RUN_REACH_DAYS),
-    until: addDays(row.requestedDay, RUN_REACH_DAYS + 1),
+    from: span?.from ?? row.requestedDay,
+    until: addDays(span?.to ?? row.requestedDay, 1),
   };
   const rows = mergedVacations(db, changes, range).filter(
-    (other) => other.userId === row.userId && other.groupId === row.groupId
+    (other) => other.requestId === row.requestId
   );
   const people = namesById(db, users, [row.userId]);
   const teams = namesById(db, groups, [row.groupId]);

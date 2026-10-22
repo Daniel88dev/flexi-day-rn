@@ -685,6 +685,8 @@ export const cs: Dictionary = {
     you: "Vy",
     dayCount: (count: number) =>
       `${count} ${count === 1 ? "den" : count >= 2 && count <= 4 ? "dny" : "dní"}`,
+    workingDayCount: (count: number) =>
+      `${count} ${czechPlural(count, "pracovní den", "pracovní dny", "pracovních dní")}`,
     sending: "Odesílám…",
     runDates: (from: DayMonth, to: DayMonth) => {
       if (from.month !== to.month) return `${from.day}. ${from.month}. - ${to.day}. ${to.month}.`;

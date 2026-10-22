@@ -27,6 +27,7 @@ import { Icon, useTone } from "@/components/ui/icon";
 import { Notice } from "@/components/ui/notice";
 import { PopoverMenu, type PopoverMenuItem } from "@/components/ui/popover-menu";
 import { Text } from "@/components/ui/text";
+import type { Dictionary } from "@/i18n/en";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
 import { haptic } from "@/lib/haptics";
@@ -40,9 +41,14 @@ import {
   type FailureClass,
   type VacationDetail,
 } from "@/lib/query";
-import { dayLengthLabel, runDatesLabel } from "@/lib/requests/format";
+import { requestLengthLabel, runDatesLabel } from "@/lib/requests/format";
 import { mergeTimeline } from "@/lib/requests/timeline";
-import { dayNumber } from "@/lib/days";
+
+const lengthLabels = (t: Dictionary) => ({
+  ...t.common,
+  dayCount: t.requests.dayCount,
+  workingDayCount: t.requests.workingDayCount,
+});
 
 const messageOf = (failure: FailureClass) =>
   failure.kind === "signed-out" ? null : failure.message;
@@ -96,7 +102,6 @@ function Summary({
   sending?: boolean;
 }) {
   const { t } = useTranslation();
-  const days = dayNumber(to) - dayNumber(from) + 1;
   return (
     <View className="gap-3 px-1">
       <View className="flex-row flex-wrap items-center gap-2">
@@ -112,8 +117,8 @@ function Summary({
         >
           {runDatesLabel({ from, to }, t.requests.runDates)} {to.slice(0, 4)}
         </Text>
-        <Text className="mt-1 text-[15px] text-muted-foreground">
-          {t.requests.dayCount(days)} · {length}
+        <Text testID="request-detail-length" className="mt-1 text-[15px] text-muted-foreground">
+          {length}
         </Text>
       </View>
     </View>
@@ -459,10 +464,11 @@ function DetailBody({
             to={detail.rangeEnd}
             type={detail.vacationType}
             status={status}
-            length={dayLengthLabel(detail, {
-              halfDay: t.common.halfDay,
-              fullDay: t.common.fullDay,
-            })}
+            length={requestLengthLabel(
+              detail,
+              detail.workingDays ?? detail.vacationIds.length,
+              lengthLabels(t)
+            )}
           />
           <PersonCard
             userId={detail.user.id}
@@ -574,10 +580,7 @@ function Unreachable({
               to={stored.to}
               type={stored.vacationType}
               status={stored.status}
-              length={dayLengthLabel(stored, {
-                halfDay: t.common.halfDay,
-                fullDay: t.common.fullDay,
-              })}
+              length={requestLengthLabel(stored, stored.dayCount, lengthLabels(t))}
               sending={stored.pending}
             />
             <PersonCard

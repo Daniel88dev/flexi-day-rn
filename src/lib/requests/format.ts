@@ -14,6 +14,21 @@ export function dayLengthLabel(
   return entry.halfDay ? labels.halfDay : labels.fullDay;
 }
 
+export function requestLengthLabel(
+  entry: DayLengthSource,
+  workingDays: number,
+  labels: {
+    halfDay: string;
+    fullDay: string;
+    dayCount: (count: number) => string;
+    workingDayCount: (count: number) => string;
+  }
+): string {
+  const length = dayLengthLabel(entry, labels);
+  if (!entry.halfDay) return `${length} · ${labels.workingDayCount(workingDays)}`;
+  return workingDays === 1 ? length : `${length} · ${labels.dayCount(workingDays)}`;
+}
+
 function dayMonth(iso: string): DayMonth {
   return { day: Number(iso.slice(8, 10)), month: Number(iso.slice(5, 7)) };
 }

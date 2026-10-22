@@ -1,12 +1,10 @@
-import { dayNumber } from "@/lib/days";
 import type { ListedVacation, VacationStatus, WireRecordType } from "@/lib/local-store";
 
 /**
- * One card of the Requests list: contiguous days of one person, group, type, status, times and
- * half day, collapsed the way the web's `groupVacationRequests` does. A run is not a Request in the
- * glossary's sense (one submission sharing a `requestId`): it ignores `requestId`, so one Request
- * that was partly decided splits into several runs, and two Requests on adjacent days can share
- * one. Attachments hang off `requestId`, so a run cannot own them.
+ * One card of the Requests list: the days of one Request (`requestId`) that share a person, group,
+ * type, status, times and half day, the web's `groupVacationRequests`. Membership never comes from
+ * day adjacency: a Request skips weekends and holidays, and two Requests can sit on adjacent days.
+ * A partly decided Request splits by status.
  */
 export type RequestRun = {
   id: string;
@@ -22,13 +20,13 @@ export type RequestRun = {
   endTime: string | null;
   halfDay: boolean;
   vacationIds: string[];
-  /** Calendar days in the run, not allowance days. */
+  /** Stored days in the run, a half day counted as one: the Request's working days. */
   dayCount: number;
   /** A pending change or a Provisional row holds one of its days, so the card waits. */
   pending: boolean;
 };
 
-/** What a run shares on every day: contiguous days with the same key are one run. */
+/** What a run shares on every day. The calendar's bars join contiguous days by it alone. */
 export function runKey(
   row: Pick<
     ListedVacation,
@@ -51,52 +49,39 @@ function compare(left: string, right: string): number {
 }
 
 export function collapseRuns(rows: readonly ListedVacation[]): RequestRun[] {
-  const sorted = rows
-    .map((row) => ({ row, key: runKey(row) }))
-    .sort(
-      (left, right) =>
-        compare(left.key, right.key) || compare(left.row.requestedDay, right.row.requestedDay)
-    );
+  const sorted = [...rows].sort((left, right) => compare(left.requestedDay, right.requestedDay));
 
-  const runs: RequestRun[] = [];
-  let current: RequestRun | null = null;
-  let currentKey: string | null = null;
-  let lastDay: number | null = null;
-
-  for (const { row, key } of sorted) {
-    const dayOf = dayNumber(row.requestedDay);
-    const contiguous = current !== null && key === currentKey && dayOf - (lastDay ?? 0) === 1;
-
-    if (current && contiguous) {
+  const runs = new Map<string, RequestRun>();
+  for (const row of sorted) {
+    const key = `${row.requestId}|${runKey(row)}`;
+    const current = runs.get(key);
+    if (current) {
       current.to = row.requestedDay;
       current.vacationIds.push(row.id);
       current.dayCount += 1;
       current.pending ||= row.pending;
-    } else {
-      current = {
-        id: row.id,
-        userId: row.userId,
-        userName: row.userName,
-        groupId: row.groupId,
-        groupName: row.groupName,
-        vacationType: row.vacationType,
-        status: row.status,
-        from: row.requestedDay,
-        to: row.requestedDay,
-        startTime: row.startTime,
-        endTime: row.endTime,
-        halfDay: row.halfDay,
-        vacationIds: [row.id],
-        dayCount: 1,
-        pending: row.pending,
-      };
-      runs.push(current);
+      continue;
     }
-    currentKey = key;
-    lastDay = dayOf;
+    runs.set(key, {
+      id: row.id,
+      userId: row.userId,
+      userName: row.userName,
+      groupId: row.groupId,
+      groupName: row.groupName,
+      vacationType: row.vacationType,
+      status: row.status,
+      from: row.requestedDay,
+      to: row.requestedDay,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      halfDay: row.halfDay,
+      vacationIds: [row.id],
+      dayCount: 1,
+      pending: row.pending,
+    });
   }
 
-  return runs.sort(
+  return [...runs.values()].sort(
     (left, right) =>
       compare(left.from, right.from) ||
       compare(left.groupId, right.groupId) ||

@@ -43,12 +43,12 @@ function pullIn(page: Partial<SyncEnvelope>) {
 const awaiting = () => myAwaitingRequests(store.getDatabase(), activePendingChanges().list());
 
 describe("myAwaitingRequests", () => {
-  it("returns the viewer's own rows awaiting approval, collapsed into date ranges", () => {
+  it("returns the viewer's own rows awaiting approval, one per Request", () => {
     pullIn({
       vacations: [
         vacationRow({ id: "mon", requestedDay: "2026-09-21" }),
         vacationRow({ id: "tue", requestedDay: "2026-09-22" }),
-        vacationRow({ id: "thu", requestedDay: "2026-09-24" }),
+        vacationRow({ id: "thu", requestedDay: "2026-09-24", requestId: "request-2" }),
       ],
     });
 
@@ -62,6 +62,19 @@ describe("myAwaitingRequests", () => {
         pending: false,
       }),
       expect.objectContaining({ from: "2026-09-24", to: "2026-09-24", vacationIds: ["thu"] }),
+    ]);
+  });
+
+  it("returns one range for a Request across a weekend", () => {
+    pullIn({
+      vacations: [
+        vacationRow({ id: "fri", requestedDay: "2026-09-25" }),
+        vacationRow({ id: "mon", requestedDay: "2026-09-28" }),
+      ],
+    });
+
+    expect(awaiting()).toEqual([
+      expect.objectContaining({ from: "2026-09-25", to: "2026-09-28", dayCount: 2 }),
     ]);
   });
 

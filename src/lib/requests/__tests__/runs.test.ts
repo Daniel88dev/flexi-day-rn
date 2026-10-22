@@ -74,19 +74,6 @@ describe("collapseRuns", () => {
     expect(runs[0]).toMatchObject({ halfDay: true, dayCount: 2 });
   });
 
-  it("returns two runs across a calendar gap", () => {
-    const runs = collapseRuns([
-      day({ id: "a", requestedDay: "2026-09-14" }),
-      day({ id: "b", requestedDay: "2026-09-15" }),
-      day({ id: "c", requestedDay: "2026-09-17" }),
-    ]);
-
-    expect(runs.map((run) => [run.from, run.to])).toEqual([
-      ["2026-09-14", "2026-09-15"],
-      ["2026-09-17", "2026-09-17"],
-    ]);
-  });
-
   it("returns a run per status, so a partly approved Request splits", () => {
     const runs = collapseRuns([
       day({ id: "a", requestedDay: "2026-09-14", status: "approved" }),
@@ -135,13 +122,29 @@ describe("collapseRuns", () => {
     expect(runs).toHaveLength(2);
   });
 
-  it("returns one run across two Requests on adjacent days, ignoring requestId", () => {
+  it("returns one run for a Request across a weekend, counting its stored days", () => {
+    const runs = collapseRuns([
+      day({ id: "fri", requestedDay: "2026-09-18" }),
+      day({ id: "mon", requestedDay: "2026-09-21" }),
+      day({ id: "tue", requestedDay: "2026-09-22" }),
+    ]);
+
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({
+      from: "2026-09-18",
+      to: "2026-09-22",
+      dayCount: 3,
+      vacationIds: ["fri", "mon", "tue"],
+    });
+  });
+
+  it("returns a run per Request on adjacent days", () => {
     const runs = collapseRuns([
       day({ id: "a", requestedDay: "2026-09-14", requestId: "request-1" }),
       day({ id: "b", requestedDay: "2026-09-15", requestId: "request-2" }),
     ]);
 
-    expect(runs).toHaveLength(1);
+    expect(runs.map((run) => run.vacationIds)).toEqual([["a"], ["b"]]);
   });
 
   it("returns a pending run when a change holds any one of its days", () => {
