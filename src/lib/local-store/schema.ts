@@ -38,6 +38,8 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   image: text("image"),
+  /** False when the pull comes from a backend that predates Deleted accounts. */
+  accountDeleted: integer("accountDeleted", { mode: "boolean" }).notNull().default(false),
   updatedAt: text("updatedAt").notNull(),
   generation: generation(),
 });

@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import type { StoreAdapter, StoreDatabase } from "../adapter";
 import { createStoreLifecycle } from "../lifecycle";
-import { organizations, syncState } from "../schema";
+import { organizations, syncState, users } from "../schema";
 import { createBetterSqlite3Adapter } from "../test-support/better-sqlite3-adapter";
 import { STORE_VERSION } from "../version";
 
@@ -111,6 +111,31 @@ describe("openStore", () => {
     expect(tableNames(next.getDatabase())).toEqual([...SYNCED_TABLES, "syncState"].sort());
     await next.closeStore();
     expect(userVersion()).toBe(STORE_VERSION + 1);
+  });
+
+  it("recreates a file from before accountDeleted with the column and none of its rows", async () => {
+    const old = adapter.open();
+    old.execute(
+      "CREATE TABLE `users` (`id` text PRIMARY KEY NOT NULL, `name` text NOT NULL, `image` text, `updatedAt` text NOT NULL, `generation` integer DEFAULT 0 NOT NULL)"
+    );
+    old.execute(
+      "INSERT INTO `users` (`id`, `name`, `updatedAt`) VALUES ('user-2', '', '2026-10-25T10:00:00.000Z')"
+    );
+    old.setUserVersion(5);
+    old.close();
+
+    const store = createStoreLifecycle(adapter);
+    await store.openStore("user-1");
+    const db = store.getDatabase();
+
+    expect(db.select().from(users).all()).toEqual([]);
+    expect(
+      db.all<{ name: string }>(sql`select name from pragma_table_info('users')`).map((c) => c.name)
+    ).toContain("accountDeleted");
+    expect(tableNames(db)).toEqual([...SYNCED_TABLES, "syncState"].sort());
+    await store.closeStore();
+    expect(userVersion()).toBe(STORE_VERSION);
+    expect(STORE_VERSION).toBeGreaterThan(5);
   });
 
   it("wipes the file and starts over when a different user opens it", async () => {

@@ -117,6 +117,7 @@ export function TabsFailed({ onRetry }: { onRetry: () => void }) {
 function MemberRow({ member, managerUserId }: { member: GroupMember; managerUserId: string }) {
   const { t } = useTranslation();
   const { roles, tracked } = memberBadges(member, managerUserId);
+  const deleted = member.accountDeleted === true;
   return (
     <View testID={`group-member-${member.userId}`} className="flex-row gap-3 px-4 py-3.5">
       <PersonAvatar userId={member.userId} name={member.user.name} size={36} />
@@ -124,11 +125,20 @@ function MemberRow({ member, managerUserId }: { member: GroupMember; managerUser
         <Text className="text-[15.5px] font-semibold text-foreground" numberOfLines={1}>
           {member.user.name}
         </Text>
-        <Text className="text-[13px] text-faint" numberOfLines={1}>
-          {member.email}
-        </Text>
-        {roles.length > 0 || !tracked ? (
+        {deleted ? null : (
+          <Text className="text-[13px] text-faint" numberOfLines={1}>
+            {member.email}
+          </Text>
+        )}
+        {deleted || roles.length > 0 || !tracked ? (
           <View className="mt-1.5 flex-row flex-wrap gap-1.5">
+            {deleted ? (
+              <Pill
+                testID="member-badge-account-deleted"
+                tone="muted"
+                label={t.groups.members.accountDeleted}
+              />
+            ) : null}
             {roles.map((role) => (
               <Pill key={role} testID={`member-badge-${role}`} label={t.groups.roles[role]} />
             ))}

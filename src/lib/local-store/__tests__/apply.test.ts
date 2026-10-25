@@ -25,6 +25,7 @@ import {
   groupEventRow,
   groupMirrorRow,
   groupUserRow,
+  userRow,
   groupRow,
   storeVacations,
   syncPage,
@@ -275,6 +276,22 @@ describe("applyPage", () => {
     apply(syncPage({ bankHolidays: holidays }));
 
     expect(store.getDatabase().select().from(bankHolidays).all()).toHaveLength(400);
+  });
+
+  it("keeps a Deleted account's frozen name and its accountDeleted flag", () => {
+    apply(fullSyncPage());
+
+    apply(syncPage({ users: [userRow({ name: "Jana Nováková", accountDeleted: true })] }));
+
+    expect(store.getDatabase().select().from(users).all()).toEqual([
+      expect.objectContaining({ id: "user-1", name: "Jana Nováková", accountDeleted: true }),
+    ]);
+  });
+
+  it("stores a users row from a backend that predates accountDeleted as not deleted", () => {
+    apply(syncPage({ users: [userRow()] }));
+
+    expect(store.getDatabase().select().from(users).all()[0].accountDeleted).toBe(false);
   });
 
   it("leaves a table the page carries empty alone", () => {

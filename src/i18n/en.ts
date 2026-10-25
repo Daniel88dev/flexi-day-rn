@@ -954,6 +954,7 @@ export const en = {
       tab: "Members",
       heading: (count: number) => `${count} ${count === 1 ? "person" : "people"}`,
       notTracked: "Not tracked",
+      accountDeleted: "Account deleted",
     },
     quotas: {
       tab: "Quotas",

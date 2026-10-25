@@ -57,6 +57,8 @@ export type GroupMember = {
   controlledUser: boolean;
   deletedAt: string | null;
   email: string;
+  /** Absent from a backend that predates Deleted accounts. */
+  accountDeleted?: boolean;
   user: UserSummary;
 };
 
