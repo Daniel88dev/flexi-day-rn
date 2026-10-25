@@ -7,6 +7,7 @@ import {
   TimerIcon,
   TrashIcon,
   TrayArrowDownIcon,
+  UserMinusIcon,
   type Icon as PhosphorIcon,
 } from "phosphor-react-native";
 import { useRef } from "react";
@@ -30,6 +31,7 @@ const KIND_ICON: Record<string, PhosphorIcon> = {
   session_auto_closed: TimerIcon,
   calendar_conflict: CalendarXIcon,
   balance_low: BatteryLowIcon,
+  account_deleted: UserMinusIcon,
 };
 
 function DeleteAction({
