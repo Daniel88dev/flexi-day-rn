@@ -112,14 +112,21 @@ export function newRequestDraft(
   };
 }
 
-/** Who an admin may book for, as the web offers them: never themselves, never a former member. */
+/**
+ * Who an admin may book for, as the web offers them: never themselves, never a former member,
+ * never a Deleted account.
+ */
 export function bookableMembers(
   members: readonly GroupMember[],
   viewerId: string | null
 ): GroupMember[] {
   if (!viewerId) return [];
   return members.filter(
-    (member) => member.controlledUser && member.deletedAt === null && member.userId !== viewerId
+    (member) =>
+      member.controlledUser &&
+      member.deletedAt === null &&
+      !member.accountDeleted &&
+      member.userId !== viewerId
   );
 }
 

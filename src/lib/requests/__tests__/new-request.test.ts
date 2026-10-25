@@ -316,6 +316,14 @@ describe("bookableMembers", () => {
     expect(bookableMembers([eva, left, outside, admin], "user-9")).toEqual([eva]);
   });
 
+  it("leaves out a Deleted account, which the backend refuses to book for", () => {
+    const eva = member({});
+    const deleted = member({ userId: "user-5", accountDeleted: true });
+    const older = member({ userId: "user-6", accountDeleted: undefined });
+
+    expect(bookableMembers([eva, deleted, older], "user-9")).toEqual([eva, older]);
+  });
+
   it("returns nobody while the viewer is not known, so the admin cannot pick themselves", () => {
     expect(bookableMembers([member({})], null)).toEqual([]);
   });
