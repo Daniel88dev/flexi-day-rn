@@ -1,4 +1,5 @@
-import { Image, View } from "react-native";
+import { router } from "expo-router";
+import { Image, Pressable, View } from "react-native";
 
 import { Text } from "@/components/ui/text";
 import type { Dictionary } from "@/i18n";
@@ -7,6 +8,7 @@ import { cn } from "@/lib/cn";
 import {
   directoryDate,
   rowMarkers,
+  rowPicture,
   type DirectoryPerson,
   type FormerDirectoryPerson,
   type RowMarker,
@@ -22,11 +24,23 @@ const MARKER_TONE: Record<RowMarker, { surface: string; text: string }> = {
   YOU: { surface: "bg-ok-soft", text: "text-ok" },
 };
 
-/** The Account picture when there is one, otherwise the initials in the person's colour. */
-export function DirectoryAvatar({ person, size = 40 }: { person: DirectoryPerson; size?: number }) {
+/**
+ * The directory's picture: the Profile photo, then the Account picture, then the initials in the
+ * person's colour. `uri` overrides the list's small link, as the profile header's full size does.
+ */
+export function DirectoryAvatar({
+  person,
+  uri: override,
+  size = 40,
+}: {
+  person: DirectoryPerson;
+  uri?: string | null;
+  size?: number;
+}) {
   const round = { width: size, height: size, borderRadius: size / 2 };
-  if (person.image) {
-    return <Image source={{ uri: person.image }} style={round} accessibilityIgnoresInvertColors />;
+  const uri = override === undefined ? rowPicture(person) : override;
+  if (uri) {
+    return <Image source={{ uri }} style={round} accessibilityIgnoresInvertColors />;
   }
   return (
     <View
@@ -40,14 +54,23 @@ export function DirectoryAvatar({ person, size = 40 }: { person: DirectoryPerson
   );
 }
 
-function Markers({ markers, t }: { markers: RowMarker[]; t: Dictionary }) {
+/** `withTestIDs` only outside a pressable, where iOS would hide them; a row's label reads them. */
+export function Markers({
+  markers,
+  t,
+  withTestIDs = false,
+}: {
+  markers: RowMarker[];
+  t: Dictionary;
+  withTestIDs?: boolean;
+}) {
   if (markers.length === 0) return null;
   return (
     <View className="mt-1 flex-row flex-wrap gap-1">
       {markers.map((marker) => (
         <View
           key={marker}
-          testID={`directory-marker-${marker}`}
+          testID={withTestIDs ? `directory-marker-${marker}` : undefined}
           className={cn("rounded-full px-2 py-0.5", MARKER_TONE[marker].surface)}
         >
           <Text className={cn("text-[11.5px] font-semibold", MARKER_TONE[marker].text)}>
@@ -59,15 +82,21 @@ function Markers({ markers, t }: { markers: RowMarker[]; t: Dictionary }) {
   );
 }
 
+/** Opens one spell's profile over the directory. */
+export const openProfile = (organizationId: string, employmentId: string) =>
+  router.push({ pathname: "/directory/[employmentId]", params: { employmentId, organizationId } });
+
 function Row({
   testID,
   person,
+  organizationId,
   lines,
   markers,
   first,
 }: {
   testID: string;
   person: DirectoryPerson;
+  organizationId: string;
   lines: string[];
   markers: RowMarker[];
   first: boolean;
@@ -75,11 +104,15 @@ function Row({
   const { t } = useTranslation();
   const label = [person.name, ...lines, ...markers.map((marker) => t.directory.markers[marker])];
   return (
-    <View
+    <Pressable
       testID={testID}
-      accessible
+      onPress={() => openProfile(organizationId, person.employmentId)}
+      accessibilityRole="button"
       accessibilityLabel={label.join(", ")}
-      className={cn("flex-row items-center gap-3 px-4 py-3", !first && "border-t border-border")}
+      className={cn(
+        "flex-row items-center gap-3 px-4 py-3 active:opacity-70",
+        !first && "border-t border-border"
+      )}
     >
       <DirectoryAvatar person={person} />
       <View className="flex-1">
@@ -91,16 +124,18 @@ function Row({
         ))}
         <Markers markers={markers} t={t} />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 export function PersonRow({
   person,
+  organizationId,
   viewerUserId,
   first,
 }: {
   person: DirectoryPerson;
+  organizationId: string;
   viewerUserId: string | null;
   first: boolean;
 }) {
@@ -109,6 +144,7 @@ export function PersonRow({
     <Row
       testID={`directory-row-${person.employmentId}`}
       person={person}
+      organizationId={organizationId}
       lines={detail ? [detail] : []}
       markers={rowMarkers(person, viewerUserId)}
       first={first}
@@ -118,10 +154,12 @@ export function PersonRow({
 
 export function FormerRow({
   person,
+  organizationId,
   viewerUserId,
   first,
 }: {
   person: FormerDirectoryPerson;
+  organizationId: string;
   viewerUserId: string | null;
   first: boolean;
 }) {
@@ -142,6 +180,7 @@ export function FormerRow({
     <Row
       testID={`directory-former-row-${person.employmentId}`}
       person={person}
+      organizationId={organizationId}
       lines={lines}
       markers={rowMarkers(person, viewerUserId)}
       first={first}

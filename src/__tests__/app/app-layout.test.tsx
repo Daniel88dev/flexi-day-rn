@@ -392,6 +392,16 @@ describe("AppLayout, the People section", () => {
     expect(router.push).toHaveBeenCalledWith("/directory");
   });
 
+  it("opens My directory profile from the viewer block for a viewer in a directory", async () => {
+    answerDirectory([directoryOrganization("o-1")]);
+    await renderShell("signed-in");
+    await openMore();
+
+    const block = await screen.findByTestId("more-my-profile");
+    await act(async () => fireEvent.press(block));
+    expect(router.push).toHaveBeenCalledWith("/directory/mine");
+  });
+
   it("shows no People section on Free or Pro, where no directory is on, and no upsell", async () => {
     answerDirectory([directoryOrganization("o-1", { enabled: false, role: "OWNER" })]);
     await renderShell("signed-in");
@@ -400,6 +410,7 @@ describe("AppLayout, the People section", () => {
 
     expect(screen.queryByTestId("more-directory")).toBeNull();
     expect(screen.queryByText("People")).toBeNull();
+    expect(screen.queryByTestId("more-my-profile")).toBeNull();
     expect(screen.queryByText(/Enterprise/)).toBeNull();
   });
 

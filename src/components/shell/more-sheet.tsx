@@ -1,4 +1,4 @@
-import { SignOutIcon } from "phosphor-react-native";
+import { CaretRightIcon, SignOutIcon } from "phosphor-react-native";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 
 import { Icon } from "@/components/ui/icon";
@@ -37,9 +37,10 @@ function Row({ link, onPress }: { link: NavLink; onPress: (link: NavLink) => voi
   );
 }
 
-function ViewerBlock({ viewer }: { viewer: Viewer }) {
-  return (
-    <View className="flex-row items-center gap-3 px-3 py-2">
+function ViewerBlock({ viewer, onOpenProfile }: { viewer: Viewer; onOpenProfile?: () => void }) {
+  const { t } = useTranslation();
+  const body = (
+    <>
       <View className="h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-accent">
         <Text className="font-display text-[12px] font-bold text-primary">
           {initials(viewer.name)}
@@ -48,10 +49,23 @@ function ViewerBlock({ viewer }: { viewer: Viewer }) {
       <View className="flex-1">
         <Text className="text-[14.5px] font-semibold text-foreground">{viewer.name}</Text>
         <Text className="text-[12.5px] text-faint" numberOfLines={1}>
-          {viewer.email}
+          {onOpenProfile ? t.directory.profile.mine : viewer.email}
         </Text>
       </View>
-    </View>
+    </>
+  );
+  if (!onOpenProfile) return <View className="flex-row items-center gap-3 px-3 py-2">{body}</View>;
+  return (
+    <Pressable
+      testID="more-my-profile"
+      onPress={onOpenProfile}
+      accessibilityRole="button"
+      accessibilityLabel={`${t.directory.profile.mine}, ${viewer.name}`}
+      className="flex-row items-center gap-3 rounded-2xl px-3 py-2 active:opacity-70"
+    >
+      {body}
+      <Icon icon={CaretRightIcon} tone="faint" size={16} />
+    </Pressable>
   );
 }
 
@@ -67,6 +81,7 @@ export function MoreSheet({
   viewer,
   onNavigate,
   onSignOut,
+  onOpenProfile,
   className,
 }: {
   open: boolean;
@@ -76,6 +91,8 @@ export function MoreSheet({
   viewer: Viewer | null;
   onNavigate: (link: NavLink) => void;
   onSignOut: () => void;
+  /** Only for a viewer in a directory organization: opens "My directory profile". */
+  onOpenProfile?: () => void;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -121,7 +138,7 @@ export function MoreSheet({
             </Pressable>
             {viewer ? (
               <View className="mt-1 border-t border-border pt-1">
-                <ViewerBlock viewer={viewer} />
+                <ViewerBlock viewer={viewer} onOpenProfile={onOpenProfile} />
               </View>
             ) : null}
           </ScrollView>

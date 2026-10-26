@@ -1,0 +1,31 @@
+# Directory profiles, a colleague (T-517): Bob's profile shows only the Sections a colleague
+# reads (Card and Work contact), with no Job, no Record and no edit control. Alice's own row
+# opens her profile with the notice that sends edits to the web.
+# Signed in as alice@dev.local on the setup in directory-profile-owner.yaml:
+#   npm run dev:login:rn -- alice@dev.local --to /directory --udid <udid>
+appId: com.flexiday.app
+---
+- openLink: flexiday:///directory
+- tapOn:
+    id: "directory-row-.*"
+    text: "Bob Dvorak.*"
+- assertVisible:
+    id: directory-profile-section-card
+- assertVisible:
+    id: directory-profile-section-workContact
+- assertNotVisible:
+    id: directory-profile-section-job
+- assertNotVisible:
+    id: directory-profile-section-record
+- assertNotVisible:
+    id: directory-profile-self
+- assertNotVisible: "(?i)edit.*"
+- takeScreenshot: colleague-bob
+- tapOn:
+    id: stack-back
+- tapOn:
+    id: "directory-row-.*"
+    text: "Alice Novak.*"
+- assertVisible:
+    id: directory-profile-self
+- takeScreenshot: colleague-own

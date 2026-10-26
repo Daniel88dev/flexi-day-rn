@@ -1,0 +1,86 @@
+# Directory profiles, the owner (T-517): a row opens the read-only profile, Reports to opens the
+# next one, a work phone offers Call and Copy, and former profiles carry removal dates and the
+# Retention block. "My directory profile" opens from the More sheet's viewer block.
+# Signed in as owner@dev.local on the setup in directory-former.yaml, plus:
+#   Alice: job title, Reports to Bob, work email and phone; Bob: work phone, no work email;
+#   Frank ended with a work email and phone (Work contact 30 days) and a Photo retention purge;
+#   Erin ended under a retention hold.
+#   npm run dev:login:rn -- owner@dev.local --to /directory --udid <udid>
+appId: com.flexiday.app
+---
+- openLink: flexiday:///directory
+- tapOn:
+    id: "directory-row-.*"
+    text: "Alice Novak.*"
+- assertVisible:
+    id: directory-profile-contact-row
+- assertVisible: "Support specialist"
+- assertVisible:
+    id: directory-profile-value-workEmail
+- assertNotVisible: "(?i)edit.*"
+- takeScreenshot: profile-alice
+- tapOn:
+    id: directory-profile-value-workPhone
+- assertVisible: "Copy"
+- takeScreenshot: profile-alice-phone-sheet
+- tapOn: "Cancel"
+- tapOn:
+    id: directory-profile-reports-to
+- assertVisible: "Team lead"
+- assertVisible:
+    id: directory-profile-email
+    enabled: false
+- assertVisible:
+    id: directory-profile-call
+    enabled: true
+- takeScreenshot: profile-bob
+- tapOn:
+    id: stack-back
+- tapOn:
+    id: stack-back
+- tapOn:
+    id: directory-segment-former
+- tapOn:
+    id: "directory-former-row-.*"
+    text: "Frank Benes.*"
+- assertVisible: "Removed on 26 Nov 2026"
+- assertNotVisible:
+    id: directory-profile-contact-row
+- takeScreenshot: profile-frank-former
+- scrollUntilVisible:
+    element:
+      id: directory-profile-retention
+    direction: DOWN
+- assertVisible: "Removed by retention on 26 Oct 2026"
+- assertVisible: "No retention hold."
+- takeScreenshot: profile-frank-retention
+- tapOn:
+    id: stack-back
+- tapOn:
+    id: "directory-former-row-.*"
+    text: "Erin Kral.*"
+- scrollUntilVisible:
+    element:
+      id: directory-profile-retention
+    direction: DOWN
+- assertVisible: "Retention hold set by Olivia Owner on 26 Oct 2026"
+- assertVisible: "Kept by the retention hold"
+- takeScreenshot: profile-erin-hold
+- tapOn:
+    id: stack-back
+- tapOn:
+    id: stack-back
+- tapOn:
+    id: tab-more
+- tapOn:
+    id: more-my-profile
+- assertVisible:
+    id: directory-profile-self
+- assertVisible: "This is your profile at Olivia Owner. You change it on the web."
+- takeScreenshot: profile-mine
+- tapOn:
+    id: directory-profile-edit-on-web
+- takeScreenshot: profile-mine-web-sheet
+# The browser sheet's Done button, top left; the web edit page is on the web only.
+- tapOn:
+    point: "9%,11%"
