@@ -19,12 +19,15 @@ import { apiRequest } from "./runtime";
 const NOT_KEPT = { gcTime: 0 } as const;
 
 /** The shell's People section and the directory's organization picker both read this. */
-export function useDirectoryOrganizations(enabled = true) {
+export function useDirectoryOrganizations() {
   return useQuery({
     queryKey: qk.directoryOrganizations(),
-    queryFn: ({ signal }) =>
-      apiRequest<DirectoryOrganization[]>("/api/directory/organizations", { signal }),
-    enabled,
+    queryFn: async ({ signal }) => {
+      const answer = await apiRequest<unknown>("/api/directory/organizations", { signal });
+      // An older backend may answer another shape, which must not take the shell down.
+      if (!Array.isArray(answer)) throw new Error("The directory organizations are not a list.");
+      return answer as DirectoryOrganization[];
+    },
   });
 }
 
@@ -61,7 +64,7 @@ export function useDirectoryProfile(
   language: Locale
 ) {
   return useQuery({
-    queryKey: [...qk.directoryProfile(organizationId ?? "", employmentId ?? ""), language],
+    queryKey: qk.directoryProfile(organizationId ?? "", employmentId ?? "", language),
     queryFn: ({ signal }) =>
       apiRequest<DirectoryProfile>(
         `/api/directory/${encodeURIComponent(organizationId ?? "")}/people/${encodeURIComponent(employmentId ?? "")}?language=${language}`,

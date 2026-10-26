@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n";
 import type { ReportFilters } from "@/lib/report";
 
 import { reportFiltersToQuery } from "./report-filters";
@@ -58,6 +59,6 @@ export const qk = {
   directoryOrganizations: () => ["directory", "organizations"] as const,
   directoryPeople: (organizationId: string) => ["directory", "people", organizationId] as const,
   directoryFormer: (organizationId: string) => ["directory", "former", organizationId] as const,
-  directoryProfile: (organizationId: string, employmentId: string) =>
-    ["directory", "profile", organizationId, employmentId] as const,
+  directoryProfile: (organizationId: string, employmentId: string, language: Locale) =>
+    ["directory", "profile", organizationId, employmentId, language] as const,
 };

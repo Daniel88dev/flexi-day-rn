@@ -44,6 +44,8 @@ export type AttendanceState = {
   selfService?: SelfServiceWindow;
   /** The reader is an admin over their own Employment, so their writes clear the flag. */
   administersOwnAttendance?: boolean;
+  /** Optional, as an older backend sends none; true comes with `active: false`. */
+  externalWorker?: boolean;
   timezone: string | null;
   businessDate: string | null;
   openSession: AttendanceSession | null;

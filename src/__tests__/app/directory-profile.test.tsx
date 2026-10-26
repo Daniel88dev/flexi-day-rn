@@ -73,8 +73,13 @@ const EVA: DirectoryProfile = profileOf("eva", "Eva Horáková", {
     card: {
       level: "READ",
       jobTitle: "Support specialist",
-      department: { id: "d-sup", name: "Customer support" },
-      location: { id: "l-prg", name: "Prague HQ", country: { code: "CZ", name: "Czechia" } },
+      department: { id: "d-sup", name: "Customer support", archived: false },
+      location: {
+        id: "l-prg",
+        name: "Prague HQ",
+        archived: false,
+        country: { code: "CZ", name: "Czechia" },
+      },
       reportsTo: { employmentId: "e-marketa", name: "Markéta Černá" },
     },
     photo: {
@@ -88,7 +93,13 @@ const EVA: DirectoryProfile = profileOf("eva", "Eva Horáková", {
 const ONDREJ: DirectoryProfile = profileOf("ondrej", "Ondřej Malý", {
   ended: true,
   sections: {
-    card: { level: "WRITE", jobTitle: "Accountant", reportsTo: null },
+    card: {
+      level: "WRITE",
+      jobTitle: "Accountant",
+      reportsTo: null,
+      department: null,
+      location: null,
+    },
     workContact: { level: "WRITE", workEmail: null, workPhone: null },
     job: {
       level: "WRITE",
@@ -261,7 +272,7 @@ describe("Directory profile route", () => {
 
     await fireEvent.press(screen.getByTestId("directory-profile-photo"));
 
-    expect(screen.getByTestId("directory-profile-photo-viewer")).toBeOnTheScreen();
+    expect(screen.getByTestId("image-viewer")).toBeOnTheScreen();
   });
 
   it("shows the viewer's own profile with the notice that opens the web edit page", async () => {

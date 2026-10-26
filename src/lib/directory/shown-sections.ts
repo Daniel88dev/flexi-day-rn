@@ -12,16 +12,18 @@ import {
   type ShownSection,
 } from "@/lib/directory";
 import { holdPrivacyCover } from "@/lib/privacy-cover";
-import { apiRequest } from "@/lib/query";
+import { apiRequest, classifyFailure } from "@/lib/query";
 
 type Opened = { contact?: ContactValues; personal?: PersonalValues };
-type Asking = Partial<Record<SensitiveSectionKey, "pending" | "failed">>;
+/** A refused Show fails the same way on a second tap, so only a lost or 5xx answer is retried. */
+type Asking = Partial<Record<SensitiveSectionKey, "pending" | "refused" | "retryable">>;
 type Shown = { person: string; opened: Opened; asking: Asking };
 
 export type ShownSectionState<K extends SensitiveSectionKey> = {
   values: Opened[K];
   pending: boolean;
-  failed: boolean;
+  /** Set when the Show failed; `retryable` says whether Retry may help. */
+  failure: { retryable: boolean } | null;
   show: () => void;
 };
 
@@ -75,7 +77,13 @@ export function useShownSections(profile: DirectoryProfile, language: Locale) {
             opened: { ...state.opened, [section]: answer },
             asking: { ...state.asking, [section]: undefined },
           })),
-        () => update((state) => ({ ...state, asking: { ...state.asking, [section]: "failed" } }))
+        (failure: unknown) => {
+          const retryable = classifyFailure(failure).kind === "retryable";
+          update((state) => ({
+            ...state,
+            asking: { ...state.asking, [section]: retryable ? "retryable" : "refused" },
+          }));
+        }
       );
     },
     [person, profile.organizationId, profile.employmentId, language]
@@ -99,10 +107,14 @@ export function useShownSections(profile: DirectoryProfile, language: Locale) {
   }, [profile, focused, current, show]);
 
   return function stateOf<K extends SensitiveSectionKey>(section: K): ShownSectionState<K> {
+    const asking = current.asking[section];
     return {
       values: current.opened[section] as Opened[K],
-      pending: current.asking[section] === "pending",
-      failed: current.asking[section] === "failed",
+      pending: asking === "pending",
+      failure:
+        asking === "retryable" || asking === "refused"
+          ? { retryable: asking === "retryable" }
+          : null,
       show: () => show(section),
     };
   };

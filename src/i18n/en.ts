@@ -157,6 +157,9 @@ export const en = {
       "Attendance is paused for your organization, so there is nothing to clock. Your history stays readable. Ask an org admin about it.",
     inactiveOpenBody:
       "Attendance is paused for your organization. You can still close the session you left running, and nothing new can be started. Ask an org admin about it.",
+    externalTitle: "No attendance for external workers",
+    externalBody:
+      "You work here as an external worker, so there is nothing to clock and no required time. Your earlier history stays readable.",
     employmentEndedTitle: "Your employment here has ended",
     employmentEndedBody: "The clock is closed. Your history stays readable.",
     alreadyOpen: (time: string) => `Clocked in since ${time}`,
@@ -316,6 +319,7 @@ export const en = {
       SESSION_ALREADY_OPEN: "Another session is still open, so this one cannot reopen.",
       SESSION_OVERLAPS: "Another session already covers that time.",
       BREAK_ALREADY_OPEN: "Another break on this session is still open.",
+      EXTERNAL_WORKER: "External workers keep no attendance.",
       SELF_SERVICE_OFF:
         "Your organization manages attendance corrections through an admin. Ask a group admin, or an organization admin.",
       SELF_SERVICE_DELETE:
@@ -400,6 +404,11 @@ export const en = {
     failed: "The server didn't accept that.",
     refused: "That changed on the server in the meantime. The screen shows the latest now.",
     retry: "Retry",
+    codes: {
+      EXTERNAL_WORKER_ALLOWANCE:
+        "As an external worker you can book only leave that draws on no allowance, such as non-paid leave.",
+      EXTERNAL_WORKER: "External workers keep no attendance.",
+    } as Record<string, string>,
   },
   auth: {
     workEmail: "Work email",
@@ -1302,7 +1311,6 @@ export const en = {
       noOwnProfile: "You have no profile in this organization's directory.",
       mine: "My directory profile",
       photo: "Profile photo",
-      closePhoto: "Close the photo",
       call: "Call",
       message: "Message",
       email: "Email",
@@ -1315,7 +1323,6 @@ export const en = {
       selfNoticeLapsed: (organization: string) =>
         `${organization}'s plan no longer includes the directory. On the web you can still clear your details.`,
       editOnWeb: "Edit on the web",
-      name: "Name",
       jobTitle: "Job title",
       reportsTo: "Reports to",
       reportsHidden: "Someone you can't see",
@@ -1342,7 +1349,6 @@ export const en = {
       type: "Type",
       employee: "Employee",
       externalWorker: "External worker",
-      employment: "Employment",
       started: "Started",
       ended: "Ended",
       current: "Current",
@@ -1370,6 +1376,7 @@ export const en = {
       show: "Show",
       showing: "Opening…",
       showFailed: "Couldn't load this section.",
+      showRefused: "This section can't be opened for you now.",
       recorded: "Your view of this section is recorded in the read log.",
     },
   },

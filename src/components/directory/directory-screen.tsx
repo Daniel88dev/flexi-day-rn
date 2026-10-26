@@ -1,4 +1,4 @@
-import { CaretDownIcon, MagnifyingGlassIcon, XCircleIcon } from "phosphor-react-native";
+import { MagnifyingGlassIcon, XCircleIcon } from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 
@@ -16,6 +16,7 @@ import {
   directoryFiltersMoved,
   directoryOrganizations,
   formerNewestFirst,
+  labelName,
   visibleDirectoryPeople,
   type DirectoryFilters,
   type DirectoryOrganization,
@@ -23,7 +24,7 @@ import {
   type FormerDirectoryPerson,
 } from "@/lib/directory";
 import {
-  ApiError,
+  refusedRead,
   useDirectoryOrganizations,
   useDirectoryPeople,
   useFormerDirectoryPeople,
@@ -39,45 +40,10 @@ import {
   DirectorySkeleton,
   LapsedBanner,
 } from "./directory-states";
+import { OrganizationPicker } from "./organization-picker";
 
 type Segment = "current" | "former";
-type Sheet = "organization" | "department" | "location" | "type" | null;
-
-/** A refusal (off, not a member, gone) is no outage: Retry would answer the same. */
-const refused = (error: unknown) =>
-  error instanceof ApiError && error.status >= 400 && error.status < 500;
-
-export function OrganizationLine({
-  organization,
-  pickable,
-  onPick,
-}: {
-  organization: DirectoryOrganization;
-  pickable: boolean;
-  onPick: () => void;
-}) {
-  const { t } = useTranslation();
-  if (!pickable) {
-    return (
-      <Text testID="directory-organization" className="mt-0.5 text-[14px] text-muted-foreground">
-        {organization.name}
-      </Text>
-    );
-  }
-  return (
-    <Pressable
-      testID="directory-organization-picker"
-      onPress={onPick}
-      accessibilityRole="button"
-      accessibilityLabel={`${t.directory.pickOrganization}, ${organization.name}`}
-      hitSlop={6}
-      className="mt-0.5 flex-row items-center gap-1 self-start active:opacity-70"
-    >
-      <Text className="text-[14.5px] font-semibold text-primary">{organization.name}</Text>
-      <Icon icon={CaretDownIcon} tone="primary" size={12} weight="bold" />
-    </Pressable>
-  );
-}
+type Sheet = "department" | "location" | "type" | null;
 
 function SegmentSwitch({ value, onChange }: { value: Segment; onChange: (next: Segment) => void }) {
   const { t } = useTranslation();
@@ -260,15 +226,12 @@ function Directory({ organizations }: { organizations: DirectoryOrganization[] }
   const clear = () => setFilters(NO_DIRECTORY_FILTERS);
   const patch = (next: Partial<DirectoryFilters>) =>
     setFilters((current) => ({ ...current, ...next }));
-  const pickOrganization = (id: string | null) => {
-    if (id) setPickedId(id);
+  const pickOrganization = (id: string) => {
+    setPickedId(id);
     setSegment("current");
     clear();
-    setSheet(null);
   };
 
-  const lapsed = organization.enabled && !organization.writable;
-  const admin = organization.role !== "MEMBER";
   const viewerUserId = viewer?.id ?? null;
 
   const labelOf = (list: { id: string; name: string }[], id: string | null) =>
@@ -304,10 +267,9 @@ function Directory({ organizations }: { organizations: DirectoryOrganization[] }
 
   let body;
   if (read.isPending && read.fetchStatus !== "idle") body = <DirectorySkeleton />;
-  else if (read.isError && refused(read.error))
+  else if (read.isError && refusedRead(read.error))
     body = <DirectoryNote testID="directory-unavailable" message={t.directory.unavailable} />;
-  else if (read.isError || !read.data)
-    body = <DirectoryOffline onRetry={() => void read.refetch()} />;
+  else if (!read.data) body = <DirectoryOffline onRetry={() => void read.refetch()} />;
   else if (showFormer)
     body = (
       <FormerList
@@ -346,18 +308,13 @@ function Directory({ organizations }: { organizations: DirectoryOrganization[] }
         >
           {t.directory.title}
         </Text>
-        <OrganizationLine
+        <OrganizationPicker
+          organizations={organizations}
           organization={organization}
-          pickable={organizations.length > 1}
-          onPick={() => setSheet("organization")}
+          onPick={pickOrganization}
         />
         <View className="h-3" />
-        {lapsed ? (
-          <LapsedBanner
-            message={t.directory.lapsed(organization.name)}
-            adminLine={admin ? t.directory.lapsedAdmin : null}
-          />
-        ) : null}
+        <LapsedBanner organization={organization} />
         {formerAllowed ? (
           <SegmentSwitch
             value={segment}
@@ -400,34 +357,29 @@ function Directory({ organizations }: { organizations: DirectoryOrganization[] }
             onPress={() => setSheet("type")}
           />
         </ScrollView>
+        {read.isError && read.data ? (
+          <DirectoryOffline onRetry={() => void read.refetch()} />
+        ) : null}
         {body}
       </ScrollView>
 
-      {organizations.length > 1 ? (
-        <OptionSheet
-          testID="directory-organizations"
-          open={sheet === "organization"}
-          onClose={() => setSheet(null)}
-          title={t.directory.pickOrganization}
-          options={organizations.map((candidate) => ({
-            value: candidate.organizationId,
-            label: candidate.name,
-          }))}
-          picked={[organization.organizationId]}
-          onPick={pickOrganization}
-        />
-      ) : null}
       {filterSheet(
         "department",
         t.directory.department,
-        options.departments.map(({ id, name }) => ({ value: id, label: name })),
+        options.departments.map((entry) => ({
+          value: entry.id,
+          label: labelName(entry, t.directory.archived),
+        })),
         filters.departmentId,
         (departmentId) => patch({ departmentId })
       )}
       {filterSheet(
         "location",
         t.directory.location,
-        options.locations.map(({ id, name }) => ({ value: id, label: name })),
+        options.locations.map((entry) => ({
+          value: entry.id,
+          label: labelName(entry, t.directory.archived),
+        })),
         filters.locationId,
         (locationId) => patch({ locationId })
       )}
@@ -472,7 +424,7 @@ function DirectoryBody() {
       </View>
     );
   }
-  if (organizations.isError || !Array.isArray(organizations.data)) {
+  if (organizations.isError) {
     return (
       <View>
         <Title />
@@ -494,7 +446,6 @@ function DirectoryBody() {
   return <Directory organizations={open} />;
 }
 
-/** Pushed from the More sheet's People section; read only, live from the server. */
 export function DirectoryScreen() {
   const { t } = useTranslation();
   return (

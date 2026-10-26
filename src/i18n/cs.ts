@@ -177,6 +177,9 @@ export const cs: Dictionary = {
       "Docházka je pro tvoji organizaci pozastavená, takže není co zaznamenávat. Historie zůstává čitelná. Zeptej se správce organizace.",
     inactiveOpenBody:
       "Docházka je pro tvoji organizaci pozastavená. Směnu, která ti zůstala otevřená, ještě uzavřít můžeš, novou už nezačneš. Zeptej se správce organizace.",
+    externalTitle: "Externí pracovníci docházku nevedou",
+    externalBody:
+      "Pracuješ tu jako externí pracovník, takže není co zaznamenávat a nemáš povinný čas. Dřívější historie zůstává čitelná.",
     employmentEndedTitle: "Tvůj pracovní poměr tady skončil",
     employmentEndedBody: "Docházka je uzavřená. Historie zůstává čitelná.",
     alreadyOpen: (time: string) => `Příchod zaznamenán v ${time}`,
@@ -335,6 +338,7 @@ export const cs: Dictionary = {
       SESSION_ALREADY_OPEN: "Jiná směna je stále otevřená, tuhle proto nelze znovu otevřít.",
       SESSION_OVERLAPS: "Jiná směna už tento čas pokrývá.",
       BREAK_ALREADY_OPEN: "Jiná pauza této směny je stále otevřená.",
+      EXTERNAL_WORKER: "Externí pracovníci docházku nevedou.",
       SELF_SERVICE_OFF:
         "Opravy docházky ve tvé organizaci řeší správce. Obrať se na správce skupiny nebo organizace.",
       SELF_SERVICE_DELETE:
@@ -419,6 +423,11 @@ export const cs: Dictionary = {
     failed: "Server tento požadavek nepřijal.",
     refused: "Na serveru se to mezitím změnilo. Obrazovka už ukazuje aktuální stav.",
     retry: "Zkusit znovu",
+    codes: {
+      EXTERNAL_WORKER_ALLOWANCE:
+        "Jako externí pracovník můžeš čerpat jen volno, které z žádného nároku neubírá, třeba neplacené volno.",
+      EXTERNAL_WORKER: "Externí pracovníci docházku nevedou.",
+    },
   },
   auth: {
     workEmail: "Pracovní e-mail",
@@ -1362,7 +1371,6 @@ export const cs: Dictionary = {
       noOwnProfile: "V adresáři této organizace nemáte profil.",
       mine: "Můj profil v adresáři",
       photo: "Profilová fotografie",
-      closePhoto: "Zavřít fotografii",
       call: "Volat",
       message: "Zpráva",
       email: "E-mail",
@@ -1375,7 +1383,6 @@ export const cs: Dictionary = {
       selfNoticeLapsed: (organization: string) =>
         `Tarif ${organization} už adresář nezahrnuje. Na webu můžete své údaje stále vymazat.`,
       editOnWeb: "Upravit na webu",
-      name: "Jméno",
       jobTitle: "Pracovní pozice",
       reportsTo: "Nadřízený",
       reportsHidden: "Někdo, koho nevidíte",
@@ -1402,7 +1409,6 @@ export const cs: Dictionary = {
       type: "Typ",
       employee: "Zaměstnanec",
       externalWorker: "Externí spolupracovník",
-      employment: "Pracovní vztah",
       started: "Nástup",
       ended: "Odchod",
       current: "Trvá",
@@ -1430,6 +1436,7 @@ export const cs: Dictionary = {
       show: "Zobrazit",
       showing: "Otevírám…",
       showFailed: "Sekci se nepodařilo načíst.",
+      showRefused: "Tuto sekci teď otevřít nemůžete.",
       recorded: "Vaše zobrazení této sekce se zapisuje do záznamu o čtení.",
     },
   },

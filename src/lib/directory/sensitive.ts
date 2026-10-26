@@ -9,7 +9,6 @@ export const showSectionPath = (
 ) =>
   `/api/directory/${encodeURIComponent(organizationId)}/people/${encodeURIComponent(employmentId)}/show/${section}?language=${language}`;
 
-/** An address as the lines an envelope carries, empty parts left out. */
 export function addressLines(address: HomeAddress): string[] {
   return [
     address.line1,

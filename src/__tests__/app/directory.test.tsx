@@ -61,12 +61,12 @@ const ACME_PEOPLE = {
   people: [
     person("eva", "Eva Horáková", {
       jobTitle: "Support specialist",
-      department: { id: "d-sup", name: "Customer support" },
+      department: { id: "d-sup", name: "Customer support", archived: false },
     }),
     person("jonas", "Jonas Weber", {
       jobTitle: "Product designer",
       markers: ["EXTERNAL_WORKER"],
-      department: { id: "d-eng", name: "Engineering" },
+      department: { id: "d-eng", name: "Engineering", archived: false },
     }),
     person("me", "Jakub Procházka", { jobTitle: "Backend developer" }),
   ],
@@ -324,6 +324,43 @@ describe("Directory screen", () => {
 
     expect(screen.getByText("Nikdo neodpovídá")).toBeOnTheScreen();
     expect(screen.getByText("Vymazat hledání a filtry")).toBeOnTheScreen();
+  });
+
+  it("keeps the rows when a re-read fails, with the offline line above them", async () => {
+    await renderDirectory();
+    await screen.findByTestId("directory-row-e-eva");
+
+    answer("/api/directory/o-acme/people", "offline");
+    const scroll = screen.getByTestId("directory-scroll");
+    await act(async () => scroll.props.refreshControl.props.onRefresh());
+
+    expect(await screen.findByTestId("directory-offline", {}, { timeout: 5000 })).toBeOnTheScreen();
+    expect(screen.getByTestId("directory-row-e-eva")).toBeOnTheScreen();
+  });
+
+  it("marks an archived department on the row and in its filter sheet", async () => {
+    answer("/api/directory/o-acme/people", {
+      status: 200,
+      body: {
+        ...ACME_PEOPLE,
+        people: [
+          person("eva", "Eva Horáková", {
+            jobTitle: "Support specialist",
+            department: { id: "d-old", name: "Helpdesk", archived: true },
+          }),
+        ],
+      },
+    });
+    await renderDirectory();
+
+    const eva = await screen.findByTestId("directory-row-e-eva");
+    expect(within(eva).getByText("Support specialist · Helpdesk (archived)")).toBeOnTheScreen();
+    await act(async () => fireEvent.press(screen.getByTestId("directory-filter-department")));
+    expect(
+      within(screen.getByTestId("directory-department-sheet-d-old")).getByText(
+        "Helpdesk (archived)"
+      )
+    ).toBeOnTheScreen();
   });
 
   it("filters by type, and by department only once the server sends departments", async () => {

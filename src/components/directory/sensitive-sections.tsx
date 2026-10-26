@@ -17,7 +17,7 @@ import {
 } from "@/lib/directory";
 
 import { Facts, Section, type Fact } from "./profile-parts";
-import type { ShownSectionState } from "./shown-sections";
+import type { ShownSectionState } from "@/lib/directory/shown-sections";
 import { showValueSheet } from "./value-sheet";
 
 function Gate<K extends SensitiveSectionKey>({
@@ -48,7 +48,18 @@ function Gate<K extends SensitiveSectionKey>({
     );
   }
 
-  if (state.failed) {
+  if (state.failure && !state.failure.retryable) {
+    return (
+      <View
+        testID={`directory-profile-refused-${section}`}
+        className="flex-row items-center gap-3 rounded-[16px] bg-card px-4 py-3"
+      >
+        <Text className="flex-1 text-[14.5px] text-muted-foreground">{copy.showRefused}</Text>
+      </View>
+    );
+  }
+
+  if (state.failure) {
     return (
       <View className="flex-row items-center gap-3 rounded-[16px] bg-card px-4 py-3">
         <Text className="flex-1 text-[14.5px] text-danger">{copy.showFailed}</Text>

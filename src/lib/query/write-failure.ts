@@ -3,7 +3,7 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { Dictionary } from "@/i18n";
 import type { PullOutcome, PullReason } from "@/lib/local-store";
 
-import { classifyFailure, type FailureClass } from "./failure";
+import { classifyFailure, refusalCode, type FailureClass } from "./failure";
 
 export type FailureToast = {
   error(message: string, options?: { action: { label: string; onClick: () => void } }): void;
@@ -32,13 +32,15 @@ export function createWriteFailureHandler({
 }: WriteFailureDeps): WriteFailureHandler {
   return (failure, { queryKeys, retry }) => {
     const failureClass = classifyFailure(failure);
+    const code = refusalCode(failure);
+    const worded = code !== null ? t.request.codes[code] : undefined;
 
     if (failureClass.kind === "refusal") {
-      toast.error(failureClass.message ?? t.request.refused);
+      toast.error(worded ?? failureClass.message ?? t.request.refused);
       for (const queryKey of queryKeys) void queryClient.invalidateQueries({ queryKey });
       void pull("refresh").catch(() => undefined);
     } else if (failureClass.kind === "failed") {
-      toast.error(failureClass.message ?? t.request.failed);
+      toast.error(worded ?? failureClass.message ?? t.request.failed);
     } else if (failureClass.kind === "retryable") {
       toast.error(failureClass.message ?? t.sync.unreachable, {
         action: { label: t.request.retry, onClick: retry },

@@ -56,4 +56,17 @@ describe("qk", () => {
     expect(qk.memberReport("u-erin", 2025)).toEqual(["member-report", "u-erin", 2025]);
     expect(qk.memberReports()).toEqual(["member-report"]);
   });
+
+  it("returns the web's directory keys, the profile's with its language", () => {
+    expect(qk.directoryOrganizations()).toEqual(["directory", "organizations"]);
+    expect(qk.directoryPeople("o-a")).toEqual(["directory", "people", "o-a"]);
+    expect(qk.directoryFormer("o-a")).toEqual(["directory", "former", "o-a"]);
+    expect(qk.directoryProfile("o-a", "e-1", "cs")).toEqual([
+      "directory",
+      "profile",
+      "o-a",
+      "e-1",
+      "cs",
+    ]);
+  });
 });

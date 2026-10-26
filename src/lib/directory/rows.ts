@@ -27,5 +27,7 @@ export function rowMarkers(
 }
 
 export function formerNewestFirst(rows: readonly FormerDirectoryPerson[]): FormerDirectoryPerson[] {
-  return [...rows].sort((a, b) => b.endedAt.localeCompare(a.endedAt));
+  return [...rows].sort((a, b) =>
+    a.endedAt && b.endedAt ? b.endedAt.localeCompare(a.endedAt) : 0
+  );
 }

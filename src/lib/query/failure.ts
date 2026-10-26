@@ -45,6 +45,18 @@ function answerOf(failure: unknown): { status: number; message: string | null } 
   return null;
 }
 
+/** The machine-readable reason a refusal names in its public context, `code` or `reason`. */
+export function refusalCode(failure: unknown): string | null {
+  const context =
+    failure instanceof ApiError
+      ? failure.context
+      : isFailedWrite(failure) && failure.reason === "rejected"
+        ? failure.context
+        : undefined;
+  const code = context?.code ?? context?.reason;
+  return typeof code === "string" ? code : null;
+}
+
 export function classifyFailure(failure: unknown): FailureClass {
   const answer = answerOf(failure);
   if (!answer) return { kind: "retryable", message: null };
@@ -53,3 +65,9 @@ export function classifyFailure(failure: unknown): FailureClass {
   if (answer.status < 500) return { kind: "failed", message: answer.message };
   return { kind: "retryable", message: answer.message };
 }
+
+/** A read the server turned down, such as a directory that is off: Retry would answer the same. */
+export const refusedRead = (error: unknown) => {
+  const { kind } = classifyFailure(error);
+  return kind === "refusal" || kind === "failed";
+};

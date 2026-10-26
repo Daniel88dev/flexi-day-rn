@@ -4,12 +4,12 @@ import {
   EnvelopeIcon,
   PencilSimpleIcon,
   PhoneIcon,
-  XIcon,
   type Icon as PhosphorIcon,
 } from "phosphor-react-native";
 import { useState, type ReactNode } from "react";
-import { Image, Linking, Modal, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
 
+import { ImageViewer } from "@/components/requests/attachments/image-viewer";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import type { Dictionary } from "@/i18n";
@@ -18,8 +18,10 @@ import { cn } from "@/lib/cn";
 import {
   contactButtons,
   directoryDate,
+  directoryLapsed,
   headerPicture,
   isExternalWorker,
+  labelName,
   retentionLines,
   rowMarkers,
   sectionRetention,
@@ -27,11 +29,10 @@ import {
   type DirectoryLabel,
   type DirectoryOrganization,
   type DirectoryProfile,
-  type DirectorySectionKey,
   type SectionRetention,
 } from "@/lib/directory";
 import {
-  ApiError,
+  refusedRead,
   useDirectoryOrganizations,
   useDirectoryProfile,
   useRereadDirectoryOnFocus,
@@ -43,14 +44,10 @@ import { DirectoryAvatar, Markers, openProfile } from "./directory-row";
 import { DirectoryNote, DirectoryOffline, LapsedBanner } from "./directory-states";
 import { Facts, Section, type Fact } from "./profile-parts";
 import { SensitiveSections } from "./sensitive-sections";
-import { useShownSections } from "./shown-sections";
+import { useShownSections } from "@/lib/directory/shown-sections";
 import { showValueSheet } from "./value-sheet";
 
-const refused = (error: unknown) =>
-  error instanceof ApiError && error.status >= 400 && error.status < 500;
-
-const entryName = (entry: DirectoryLabel, t: Dictionary) =>
-  entry.archived ? t.directory.archived(entry.name) : entry.name;
+const entryName = (entry: DirectoryLabel, t: Dictionary) => labelName(entry, t.directory.archived);
 
 function ContactButton({
   testID,
@@ -162,7 +159,8 @@ function Header({
   const { t } = useTranslation();
   const picture = headerPicture(profile);
   const card = profile.sections.card;
-  const subtitle = [card?.jobTitle ?? profile.jobTitle, card?.department?.name]
+  const department = card?.department ?? null;
+  const subtitle = [card?.jobTitle ?? profile.jobTitle, department && entryName(department, t)]
     .filter(Boolean)
     .join(" · ");
   const avatar = <DirectoryAvatar person={profile} uri={picture.uri} size={84} />;
@@ -190,35 +188,6 @@ function Header({
       {subtitle ? <Text className="text-[15px] text-muted-foreground">{subtitle}</Text> : null}
       <Markers markers={rowMarkers(profile, viewerUserId)} t={t} withTestIDs />
     </View>
-  );
-}
-
-function PhotoViewer({ uri, onClose }: { uri: string | null; onClose: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <Modal visible={uri !== null} animationType="fade" onRequestClose={onClose}>
-      <View testID="directory-profile-photo-viewer" className="flex-1 bg-black pt-safe pb-safe">
-        <Pressable
-          testID="directory-profile-photo-close"
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel={t.directory.profile.closePhoto}
-          hitSlop={8}
-          className="m-3 h-10 w-10 items-center justify-center self-end rounded-full active:opacity-70"
-        >
-          <XIcon color="#fff" size={22} weight="bold" />
-        </Pressable>
-        {uri ? (
-          <Image
-            source={{ uri }}
-            resizeMode="contain"
-            className="flex-1"
-            accessibilityLabel={t.directory.profile.photo}
-            accessibilityIgnoresInvertColors
-          />
-        ) : null}
-      </View>
-    </Modal>
   );
 }
 
@@ -387,7 +356,7 @@ function RetentionBlock({ profile }: { profile: DirectoryProfile }) {
         {lines.map(({ section, retention: line }) => (
           <View key={section} className="border-t border-border px-4 py-2.5">
             <Text className="text-[12.5px] text-muted-foreground">
-              {t.directory.sections[section as DirectorySectionKey]}
+              {t.directory.sections[section]}
             </Text>
             <Text className={cn("text-[14.5px] font-semibold", retentionTone(line))}>
               {retentionText(line, t)}
@@ -448,6 +417,7 @@ export function ProfileView({
   profile,
   organization,
   top,
+  notice,
   refreshing,
   onRefresh,
 }: {
@@ -455,14 +425,15 @@ export function ProfileView({
   organization: DirectoryOrganization | undefined;
   /** Above the header, such as the organization picker on "My directory profile". */
   top?: ReactNode;
+  /** Between `top` and the header, such as the offline line after a failed re-read. */
+  notice?: ReactNode;
   refreshing: boolean;
   onRefresh: () => void;
 }) {
-  const { t, locale } = useTranslation();
+  const { locale } = useTranslation();
   const viewer = useViewer();
   const [photo, setPhoto] = useState<string | null>(null);
   const stateOf = useShownSections(profile, locale);
-  const lapsed = organization ? organization.enabled && !organization.writable : false;
   return (
     <>
       <ScrollView
@@ -472,17 +443,15 @@ export function ProfileView({
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {top}
+        {notice}
         <Header
           profile={profile}
           viewerUserId={viewer?.id ?? null}
           onOpenPhoto={() => setPhoto(profile.sections.photo?.photo?.fullUrl ?? null)}
         />
-        {lapsed && organization ? (
+        {directoryLapsed(organization) ? (
           <View className="mt-4">
-            <LapsedBanner
-              message={t.directory.lapsed(organization.name)}
-              adminLine={organization.role !== "MEMBER" ? t.directory.lapsedAdmin : null}
-            />
+            <LapsedBanner organization={organization} />
           </View>
         ) : null}
         <SelfNotice profile={profile} organization={organization} />
@@ -493,7 +462,10 @@ export function ProfileView({
         <SensitiveSections profile={profile} stateOf={stateOf} />
         <RecordSection profile={profile} />
       </ScrollView>
-      <PhotoViewer uri={photo} onClose={() => setPhoto(null)} />
+      <ImageViewer
+        image={photo ? { url: photo, fileName: profile.name } : null}
+        onClose={() => setPhoto(null)}
+      />
     </>
   );
 }
@@ -516,7 +488,6 @@ export function ProfileSkeleton() {
   );
 }
 
-/** One spell's profile, read live and never kept. */
 export function ProfileBody({
   organizationId,
   employmentId,
@@ -530,9 +501,9 @@ export function ProfileBody({
   const read = useDirectoryProfile(organizationId, employmentId, locale);
   const organizations = useDirectoryOrganizations();
   useRereadDirectoryOnFocus();
-  const organization = Array.isArray(organizations.data)
-    ? organizations.data.find((candidate) => candidate.organizationId === organizationId)
-    : undefined;
+  const organization = organizations.data?.find(
+    (candidate) => candidate.organizationId === organizationId
+  );
 
   if (read.isPending) {
     return (
@@ -542,7 +513,7 @@ export function ProfileBody({
       </View>
     );
   }
-  if (read.isError && refused(read.error)) {
+  if (read.isError && refusedRead(read.error)) {
     return (
       <View>
         {top ? <View className="px-4">{top}</View> : null}
@@ -553,19 +524,23 @@ export function ProfileBody({
       </View>
     );
   }
-  if (read.isError || !read.data) {
+  const offline = <DirectoryOffline onRetry={() => void read.refetch()} />;
+  if (!read.data) {
     return (
       <View className="px-4">
         {top}
-        <DirectoryOffline onRetry={() => void read.refetch()} />
+        {offline}
       </View>
     );
   }
+  // A failed re-read keeps the profile, and with it every Section the viewer opened: closing
+  // them would make the next Show write a second read-log row for the same visit.
   return (
     <ProfileView
       profile={read.data}
       organization={organization}
       top={top}
+      notice={read.isError ? offline : null}
       refreshing={read.isRefetching}
       onRefresh={() => void read.refetch()}
     />

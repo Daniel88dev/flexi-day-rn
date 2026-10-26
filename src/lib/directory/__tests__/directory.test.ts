@@ -4,7 +4,11 @@ import {
   directoryEntry,
   directoryFilterOptions,
   directoryFiltersMoved,
+  directoryLapsed,
+  directoryOrganizations,
   formerNewestFirst,
+  isExternalWorker,
+  labelName,
   rowMarkers,
   visibleDirectoryPeople,
 } from "@/lib/directory";
@@ -52,18 +56,18 @@ describe("directoryEntry", () => {
 const people = [
   person("eva", "Eva Horáková", {
     jobTitle: "Support specialist",
-    department: { id: "d-sup", name: "Support" },
-    location: { id: "l-brn", name: "Brno" },
+    department: { id: "d-sup", name: "Support", archived: false },
+    location: { id: "l-brn", name: "Brno", archived: false },
   }),
   person("jonas", "Jonas Weber", {
     jobTitle: "Product designer",
     markers: ["EXTERNAL_WORKER"],
-    department: { id: "d-eng", name: "Engineering" },
-    location: { id: "l-ber", name: "Berlin" },
+    department: { id: "d-eng", name: "Engineering", archived: false },
+    location: { id: "l-ber", name: "Berlin", archived: false },
   }),
   person("jakub", "Jakub Procházka", {
     jobTitle: "Backend developer",
-    department: { id: "d-eng", name: "Engineering" },
+    department: { id: "d-eng", name: "Engineering", archived: false },
   }),
   person("ada", "Ada Novak"),
 ];
@@ -129,12 +133,12 @@ describe("directoryFilterOptions", () => {
   it("returns each department and location the list carries once, by name", () => {
     expect(directoryFilterOptions(people)).toEqual({
       departments: [
-        { id: "d-eng", name: "Engineering" },
-        { id: "d-sup", name: "Support" },
+        { id: "d-eng", name: "Engineering", archived: false },
+        { id: "d-sup", name: "Support", archived: false },
       ],
       locations: [
-        { id: "l-ber", name: "Berlin" },
-        { id: "l-brn", name: "Brno" },
+        { id: "l-ber", name: "Berlin", archived: false },
+        { id: "l-brn", name: "Brno", archived: false },
       ],
     });
   });
@@ -147,7 +151,51 @@ describe("directoryFilterOptions", () => {
   });
 });
 
+describe("directoryOrganizations", () => {
+  it("returns only the organizations whose directory is on, in their order", () => {
+    const rows = [org("o-a"), org("o-b", { enabled: false }), org("o-c", { writable: false })];
+
+    expect(directoryOrganizations(rows).map((row) => row.organizationId)).toEqual(["o-a", "o-c"]);
+  });
+});
+
+describe("directoryLapsed", () => {
+  it("returns true only for a directory that is on under a plan that fails the gate", () => {
+    expect(directoryLapsed(org("o-a", { writable: false }))).toBe(true);
+    expect(directoryLapsed(org("o-a"))).toBe(false);
+    expect(directoryLapsed(org("o-a", { enabled: false, writable: false }))).toBe(false);
+    expect(directoryLapsed(undefined)).toBe(false);
+  });
+});
+
+describe("isExternalWorker", () => {
+  it("returns true only with the External worker marker", () => {
+    expect(isExternalWorker(person("eli", "Eli", { markers: ["EXTERNAL_WORKER"] }))).toBe(true);
+    expect(isExternalWorker(person("ada", "Ada", { markers: ["NO_ACCOUNT"] }))).toBe(false);
+  });
+});
+
+describe("labelName", () => {
+  const archived = (name: string) => `${name} (archived)`;
+
+  it("returns the name, marked when the entry is archived", () => {
+    expect(labelName({ id: "d-1", name: "Sales", archived: false }, archived)).toBe("Sales");
+    expect(labelName({ id: "d-1", name: "Sales", archived: true }, archived)).toBe(
+      "Sales (archived)"
+    );
+  });
+});
+
 describe("formerNewestFirst", () => {
+  it("returns the server's order when the viewer gets no end dates", () => {
+    const rows = [
+      former("frank", "Frank", "x", { startedAt: null, endedAt: null }),
+      former("carol", "Carol", "x", { startedAt: null, endedAt: null }),
+    ];
+
+    expect(formerNewestFirst(rows).map((row) => row.name)).toEqual(["Frank", "Carol"]);
+  });
+
   it("returns the ended spells latest end first, one row per spell", () => {
     const rows = [
       former("carol", "Carol", "2026-06-30T00:00:00.000Z"),

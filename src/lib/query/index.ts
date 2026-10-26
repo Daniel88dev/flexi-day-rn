@@ -41,7 +41,7 @@ export {
   useFormerDirectoryPeople,
   useRereadDirectoryOnFocus,
 } from "./directory";
-export { ApiError, classifyFailure, type FailureClass } from "./failure";
+export { ApiError, classifyFailure, refusedRead, type FailureClass } from "./failure";
 export {
   useAdministeredGroups,
   useGroupDetail,

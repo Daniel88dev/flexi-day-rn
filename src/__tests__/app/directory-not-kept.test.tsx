@@ -96,7 +96,13 @@ const ANSWERS: Record<string, unknown> = {
     sections: {
       contact: { level: "READ" },
       personal: { level: "READ" },
-      card: { level: "READ", jobTitle: SENTINELS[1], reportsTo: null },
+      card: {
+        level: "READ",
+        jobTitle: SENTINELS[1],
+        reportsTo: null,
+        department: null,
+        location: null,
+      },
       workContact: {
         level: "READ",
         workEmail: SENTINELS[3],
