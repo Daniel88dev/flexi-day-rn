@@ -47,7 +47,7 @@ type Sheet = "organization" | "department" | "location" | "type" | null;
 const refused = (error: unknown) =>
   error instanceof ApiError && error.status >= 400 && error.status < 500;
 
-function OrganizationLine({
+export function OrganizationLine({
   organization,
   pickable,
   onPick,
@@ -159,11 +159,13 @@ function ListHeading({ count, byEndDate }: { count: number; byEndDate: boolean }
 
 function PeopleList({
   people,
+  organizationId,
   filters,
   onClear,
   viewerUserId,
 }: {
   people: DirectoryPerson[];
+  organizationId: string;
   filters: DirectoryFilters;
   onClear: () => void;
   viewerUserId: string | null;
@@ -182,6 +184,7 @@ function PeopleList({
           <PersonRow
             key={person.employmentId}
             person={person}
+            organizationId={organizationId}
             viewerUserId={viewerUserId}
             first={index === 0}
           />
@@ -193,11 +196,13 @@ function PeopleList({
 
 function FormerList({
   rows,
+  organizationId,
   filters,
   onClear,
   viewerUserId,
 }: {
   rows: FormerDirectoryPerson[];
+  organizationId: string;
   filters: DirectoryFilters;
   onClear: () => void;
   viewerUserId: string | null;
@@ -216,6 +221,7 @@ function FormerList({
           <FormerRow
             key={row.employmentId}
             person={row}
+            organizationId={organizationId}
             viewerUserId={viewerUserId}
             first={index === 0}
           />
@@ -306,6 +312,7 @@ function Directory({ organizations }: { organizations: DirectoryOrganization[] }
     body = (
       <FormerList
         rows={former.data ?? []}
+        organizationId={organization.organizationId}
         filters={filters}
         onClear={clear}
         viewerUserId={viewerUserId}
@@ -315,6 +322,7 @@ function Directory({ organizations }: { organizations: DirectoryOrganization[] }
     body = (
       <PeopleList
         people={people.data?.people ?? []}
+        organizationId={organization.organizationId}
         filters={filters}
         onClear={clear}
         viewerUserId={viewerUserId}

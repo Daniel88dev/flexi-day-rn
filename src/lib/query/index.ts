@@ -37,6 +37,7 @@ export {
 export {
   useDirectoryOrganizations,
   useDirectoryPeople,
+  useDirectoryProfile,
   useFormerDirectoryPeople,
   useRereadDirectoryOnFocus,
 } from "./directory";

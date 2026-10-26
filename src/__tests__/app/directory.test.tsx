@@ -238,6 +238,33 @@ describe("Directory screen", () => {
     expect(screen.getByText("by end date")).toBeOnTheScreen();
   });
 
+  it("opens a row's profile, and a former row's", async () => {
+    answer("/api/directory/o-acme/people", {
+      status: 200,
+      body: { ...ACME_PEOPLE, formerList: true },
+    });
+    answer("/api/directory/o-acme/former", {
+      status: 200,
+      body: [former("ondrej", "Ondřej Malý", "2026-09-30T00:00:00.000Z")],
+    });
+    await renderDirectory();
+
+    await act(async () => fireEvent.press(await screen.findByTestId("directory-row-e-eva")));
+    expect(router.push).toHaveBeenLastCalledWith({
+      pathname: "/directory/[employmentId]",
+      params: { employmentId: "e-eva", organizationId: "o-acme" },
+    });
+
+    await act(async () => fireEvent.press(screen.getByTestId("directory-segment-former")));
+    await act(async () =>
+      fireEvent.press(await screen.findByTestId("directory-former-row-e-ondrej"))
+    );
+    expect(router.push).toHaveBeenLastCalledWith({
+      pathname: "/directory/[employmentId]",
+      params: { employmentId: "e-ondrej", organizationId: "o-acme" },
+    });
+  });
+
   it("says the directory is read live and offers Retry when the server can't be reached", async () => {
     answer("/api/directory/o-acme/people", "offline");
 

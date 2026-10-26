@@ -58,4 +58,6 @@ export const qk = {
   directoryOrganizations: () => ["directory", "organizations"] as const,
   directoryPeople: (organizationId: string) => ["directory", "people", organizationId] as const,
   directoryFormer: (organizationId: string) => ["directory", "former", organizationId] as const,
+  directoryProfile: (organizationId: string, employmentId: string) =>
+    ["directory", "profile", organizationId, employmentId] as const,
 };

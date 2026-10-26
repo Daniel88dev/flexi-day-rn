@@ -11,7 +11,7 @@ import { MoreSheet } from "@/components/shell/more-sheet";
 import { TabButton } from "@/components/shell/tab-button";
 import { useTranslation } from "@/i18n/use-translation";
 import { useClockRead } from "@/lib/attendance";
-import { directoryEntry } from "@/lib/directory";
+import { directoryEntry, type DirectoryEntry } from "@/lib/directory";
 import { openStore } from "@/lib/local-store";
 import {
   attendanceLinkShown,
@@ -99,7 +99,7 @@ export default function AppLayout() {
       ) : null}
       <View className="flex-1 bg-background">
         <ShellLinks>
-          {({ bar, sheet, hiddenTabs }) => (
+          {({ bar, sheet, hiddenTabs, directory }) => (
             <>
               {storeOpen ? (
                 <Tabs>
@@ -141,6 +141,14 @@ export default function AppLayout() {
                 viewer={viewer}
                 onNavigate={go}
                 onSignOut={() => void signOut(wipe)}
+                onOpenProfile={
+                  directory?.shown
+                    ? () => {
+                        setMoreOpen(false);
+                        router.push("/directory/mine");
+                      }
+                    : undefined
+                }
               />
             </>
           )}
@@ -174,7 +182,9 @@ function barSlot(link: NavLink, onNavigate: (link: NavLink) => void) {
 function ShellLinks({
   children,
 }: {
-  children: (links: ReturnType<typeof splitForTabBar>) => ReactNode;
+  children: (
+    links: ReturnType<typeof splitForTabBar> & { directory: DirectoryEntry | undefined }
+  ) => ReactNode;
 }) {
   const { t } = useTranslation();
   const { view } = useClockRead();
@@ -183,7 +193,8 @@ function ShellLinks({
   const directory = Array.isArray(organizations.data)
     ? directoryEntry(organizations.data)
     : undefined;
-  return children(
-    splitForTabBar(buildSections(t, { attendanceLink: attendanceLinkShown(view), directory }))
-  );
+  return children({
+    ...splitForTabBar(buildSections(t, { attendanceLink: attendanceLinkShown(view), directory })),
+    directory,
+  });
 }

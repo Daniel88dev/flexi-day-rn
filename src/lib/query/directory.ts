@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 
+import type { Locale } from "@/i18n";
 import type {
   DirectoryOrganization,
   DirectoryPeople,
+  DirectoryProfile,
   FormerDirectoryPerson,
 } from "@/lib/directory";
 
@@ -48,6 +50,24 @@ export function useFormerDirectoryPeople(organizationId: string | null, enabled:
         { signal }
       ),
     enabled: enabled && organizationId !== null,
+    ...NOT_KEPT,
+  });
+}
+
+/** `language` names the countries and phone regions in the answer, as the web asks. */
+export function useDirectoryProfile(
+  organizationId: string | null,
+  employmentId: string | null,
+  language: Locale
+) {
+  return useQuery({
+    queryKey: [...qk.directoryProfile(organizationId ?? "", employmentId ?? ""), language],
+    queryFn: ({ signal }) =>
+      apiRequest<DirectoryProfile>(
+        `/api/directory/${encodeURIComponent(organizationId ?? "")}/people/${encodeURIComponent(employmentId ?? "")}?language=${language}`,
+        { signal }
+      ),
+    enabled: organizationId !== null && employmentId !== null,
     ...NOT_KEPT,
   });
 }

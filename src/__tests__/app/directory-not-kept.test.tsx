@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import DirectoryRoute from "@/app/directory";
+import ProfileRoute from "@/app/directory/[employmentId]";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { destroyStore } from "@/lib/local-store";
 import { openTestStore } from "@/lib/local-store/test-support/test-store";
@@ -13,6 +14,7 @@ import { RootRouteProvider } from "@/lib/session/root-route-context";
 import {
   directoryOrganization,
   directoryPerson,
+  directoryProfile,
   formerDirectoryPerson,
 } from "@/test-support/directory";
 import { fakeFiles } from "@/test-support/fake-file-system";
@@ -35,6 +37,7 @@ jest.mock("expo-router", () => ({
   router: { back: jest.fn(), replace: jest.fn(), push: jest.fn() },
   useNavigation: () => ({ canGoBack: () => true }),
   useFocusEffect: () => undefined,
+  useLocalSearchParams: () => ({ employmentId: "e-quillon", organizationId: "o-acme" }),
   Redirect: jest.requireActual("@/test-support/expo-router").RedirectShim,
 }));
 jest.mock("expo-localization", () => ({
@@ -61,7 +64,13 @@ jest.mock("@/lib/viewer/use-viewer", () => ({
 }));
 
 /** Strings that appear only in the directory's answers, so finding one anywhere is a leak. */
-const SENTINELS = ["Quillon Vantablack", "Senior sentinel engineer", "Zephyrine Oakhollow"];
+const SENTINELS = [
+  "Quillon Vantablack",
+  "Senior sentinel engineer",
+  "Zephyrine Oakhollow",
+  "quillon.sentinel@acme.test",
+  "+420 777 000 123",
+];
 
 const ANSWERS: Record<string, unknown> = {
   "/api/directory/organizations": [directoryOrganization("o-acme", { role: "OWNER" })],
@@ -72,6 +81,17 @@ const ANSWERS: Record<string, unknown> = {
       directoryPerson("me", "Me"),
     ],
   },
+  "/api/directory/o-acme/people/e-quillon": directoryProfile("quillon", SENTINELS[0], {
+    organizationId: "o-acme",
+    sections: {
+      card: { level: "READ", jobTitle: SENTINELS[1], reportsTo: null },
+      workContact: {
+        level: "READ",
+        workEmail: SENTINELS[3],
+        workPhone: { e164: "+420777000123", display: SENTINELS[4], country: null },
+      },
+    },
+  }),
   "/api/directory/o-acme/former": [
     formerDirectoryPerson("zephyrine", SENTINELS[2], "2026-08-15T10:00:00.000Z"),
   ],
@@ -143,6 +163,30 @@ describe("Directory screen, what the phone keeps", () => {
       expect(queryClient.getQueryData(["directory", "people", "o-acme"])).toBeUndefined();
       expect(queryClient.getQueryData(["directory", "former", "o-acme"])).toBeUndefined();
     });
+  });
+
+  it("shows a profile and keeps none of it once the profile closes", async () => {
+    const view = await render(
+      <RootRouteProvider route="signed-in">
+        <TranslationProvider>
+          <ProfileRoute />
+        </TranslationProvider>
+      </RootRouteProvider>
+    );
+
+    expect(await screen.findByText(SENTINELS[3])).toBeOnTheScreen();
+    expect(screen.getByText(SENTINELS[4])).toBeOnTheScreen();
+
+    expect(storeBytes()).toContain("u-me");
+    expect(leaks(storeBytes())).toEqual([]);
+    expect(leaks(mockKeychainWrites.join("\n"))).toEqual([]);
+    expect(leaks(JSON.stringify(kvWrites.mock.calls))).toEqual([]);
+    expect(fakeFiles.under("file://")).toEqual([]);
+
+    const profileKey = ["directory", "profile", "o-acme", "e-quillon", "en"];
+    expect(queryClient.getQueryData(profileKey)).toBeDefined();
+    await view.unmount();
+    await waitFor(() => expect(queryClient.getQueryData(profileKey)).toBeUndefined());
   });
 
   it("ships no query cache persister, so nothing writes the cache to disk", () => {

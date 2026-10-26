@@ -1,6 +1,7 @@
 import type {
   DirectoryOrganization,
   DirectoryPerson,
+  DirectoryProfile,
   FormerDirectoryPerson,
 } from "@/lib/directory";
 
@@ -50,6 +51,22 @@ export function formerDirectoryPerson(
     ...directoryPerson(id, name),
     startedAt: "2024-01-01T00:00:00.000Z",
     endedAt,
+    ...patch,
+  };
+}
+
+/** A profile of someone else in `o-a`, open, with no Section unless the patch names one. */
+export function directoryProfile(
+  id: string,
+  name: string,
+  patch: Partial<DirectoryProfile> = {}
+): DirectoryProfile {
+  return {
+    ...directoryPerson(id, name),
+    organizationId: "o-a",
+    self: false,
+    ended: false,
+    sections: {},
     ...patch,
   };
 }
