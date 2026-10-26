@@ -13,7 +13,7 @@ import { notificationRoute, type NotificationRoute } from "./route";
  * screen pushes a second shell.
  */
 export function followNotificationRoute(route: NotificationRoute): void {
-  if (route.kind === "request" || route.kind === "group") {
+  if (route.kind === "request" || route.kind === "group" || route.kind === "profile") {
     router.push(route.href);
   } else if (route.kind === "web") {
     void openWebPage(route.path);
@@ -46,7 +46,7 @@ export function openNotification(
  * first, and a link the phone has no screen for opens the notification list.
  */
 export function followPushRoute(route: NotificationRoute): void {
-  if (route.kind === "request" || route.kind === "group") {
+  if (route.kind === "request" || route.kind === "group" || route.kind === "profile") {
     router.push(route.href);
   } else if (route.kind === "web") {
     router.navigate("/notifications");

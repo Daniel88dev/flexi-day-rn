@@ -42,6 +42,22 @@ describe("notificationRoute", () => {
     });
   });
 
+  it("returns the member's own profile for the directory notice's link", () => {
+    expect(notificationRoute("/directory/person/?organizationId=o-1&employmentId=e%2D1")).toEqual({
+      kind: "profile",
+      employmentId: "e-1",
+      href: {
+        pathname: "/directory/[employmentId]",
+        params: { employmentId: "e-1", organizationId: "o-1" },
+      },
+    });
+  });
+
+  it("returns the list for a profile link missing either id", () => {
+    expect(notificationRoute("/directory/person/?organizationId=o-1")).toEqual(LIST);
+    expect(notificationRoute("/directory/person/?employmentId=e-1")).toEqual(LIST);
+  });
+
   it("returns the list for a group or organization link without its id", () => {
     expect(notificationRoute("/groups/detail/?tab=members")).toEqual(LIST);
     expect(notificationRoute("/organization/")).toEqual(LIST);

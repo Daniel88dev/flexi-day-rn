@@ -1,0 +1,21 @@
+# The members' notice (T-515): the owner turns the directory on with Tell members, and a member
+# opens the notice from the notification list onto their own directory profile.
+# Setup: an Enterprise organization with the member in a group, then the owner enables with
+#   {"agreementVersion": 1, "tellMembers": true}
+#   npm run dev:login:rn -- <member email> --to /notifications --udid <udid>
+appId: com.flexiday.app
+---
+- openLink: flexiday:///notifications
+- assertVisible:
+    id: "notification-.*"
+    text: ".*turned on the people directory.*"
+- takeScreenshot: notice-in-list
+- tapOn:
+    id: "notification-.*"
+    text: ".*turned on the people directory.*"
+    index: 0
+- assertVisible:
+    id: directory-profile-self
+- assertVisible:
+    id: directory-profile-section-card
+- takeScreenshot: notice-own-profile

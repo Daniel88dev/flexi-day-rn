@@ -1,4 +1,5 @@
 import {
+  AddressBookIcon,
   BatteryLowIcon,
   BellIcon,
   CalendarXIcon,
@@ -32,6 +33,7 @@ const KIND_ICON: Record<string, PhosphorIcon> = {
   calendar_conflict: CalendarXIcon,
   balance_low: BatteryLowIcon,
   account_deleted: UserMinusIcon,
+  directory_enabled: AddressBookIcon,
 };
 
 function DeleteAction({
