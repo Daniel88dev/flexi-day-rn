@@ -1,0 +1,81 @@
+# Sensitive sections, the owner (T-518): Contact and Personal start closed behind Show, each Show
+# opens one Section with the read-log line, private and emergency values offer Call or Email but
+# no Copy, and opening Reports to closes them. Count `read_log` rows before and after: two Shows
+# write two rows, and the pull-to-refresh writes none.
+# Signed in as owner@dev.local on the setup in directory-profile-owner.yaml, with Alice's Contact
+# (private phone, private email, emergency contact 1) and Personal filled on the web:
+#   npm run dev:login:rn -- owner@dev.local --to /directory --udid <udid>
+# The app-switcher cover is checked by hand: press Home with a Section open and convert the
+# newest `Library/SplashBoard/Snapshots/**/*.ktx` in the app's data container with `sips`.
+appId: com.flexiday.app
+---
+- openLink: flexiday:///directory
+- extendedWaitUntil:
+    visible:
+      id: "directory-row-.*"
+      text: "Alice Novak.*"
+    timeout: 15000
+- tapOn:
+    id: "directory-row-.*"
+    text: "Alice Novak.*"
+- assertVisible: "Support specialist"
+- scrollUntilVisible:
+    element:
+      id: directory-profile-show-contact
+    direction: DOWN
+- assertVisible: "Hidden until you open it."
+- tapOn:
+    id: directory-profile-show-contact
+- scrollUntilVisible:
+    element: "Your view of this section is recorded in the read log."
+    direction: DOWN
+- takeScreenshot: sensitive-contact-open
+- tapOn:
+    id: directory-profile-value-privatePhone
+- assertVisible: "Call"
+- assertNotVisible: "Copy"
+- tapOn: "Cancel"
+- tapOn:
+    id: directory-profile-value-emergencyContact1
+- assertNotVisible: "Copy"
+- tapOn: "Cancel"
+- scrollUntilVisible:
+    element:
+      id: directory-profile-show-personal
+    direction: DOWN
+- tapOn:
+    id: directory-profile-show-personal
+- extendedWaitUntil:
+    visible: "Date of birth"
+    timeout: 10000
+- takeScreenshot: sensitive-personal-open
+- scrollUntilVisible:
+    element: "Alice Novak"
+    direction: UP
+- swipe:
+    start: 50%, 30%
+    end: 50%, 80%
+- scrollUntilVisible:
+    element:
+      id: directory-profile-value-privatePhone
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: directory-profile-reports-to
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: directory-profile-reports-to
+- assertVisible: "Team lead"
+- tapOn:
+    id: stack-back
+- assertVisible: "Support specialist"
+- scrollUntilVisible:
+    element:
+      id: directory-profile-show-contact
+    direction: DOWN
+- assertNotVisible:
+    id: directory-profile-value-privatePhone
+- takeScreenshot: sensitive-closed-after-reports-to
+- tapOn:
+    id: stack-back

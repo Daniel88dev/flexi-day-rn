@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Toaster } from "sonner-native";
 
+import { PrivacyCover } from "@/components/privacy-cover";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { loadDeviceId } from "@/lib/session/device-id";
 import { rootRoute } from "@/lib/session/root-route";
@@ -61,6 +62,7 @@ export default function RootLayout() {
         </TranslationProvider>
       </RootRouteProvider>
       <Toaster />
+      <PrivacyCover />
     </GestureHandlerRootView>
   );
 }

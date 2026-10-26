@@ -72,6 +72,16 @@ const SENTINELS = [
   "+420 777 000 123",
 ];
 
+/** Contact and Personal values, which only a Show answer carries. */
+const SENSITIVE = [
+  "+420 606 999 404",
+  "quillon@private.test",
+  "Ysolde Brackenridge",
+  "+420 603 888 202",
+  "Wolkerova 1337",
+  "1987-05-23",
+];
+
 const ANSWERS: Record<string, unknown> = {
   "/api/directory/organizations": [directoryOrganization("o-acme", { role: "OWNER" })],
   "/api/directory/o-acme/people": {
@@ -84,6 +94,8 @@ const ANSWERS: Record<string, unknown> = {
   "/api/directory/o-acme/people/e-quillon": directoryProfile("quillon", SENTINELS[0], {
     organizationId: "o-acme",
     sections: {
+      contact: { level: "READ" },
+      personal: { level: "READ" },
       card: { level: "READ", jobTitle: SENTINELS[1], reportsTo: null },
       workContact: {
         level: "READ",
@@ -92,6 +104,32 @@ const ANSWERS: Record<string, unknown> = {
       },
     },
   }),
+  "/api/directory/o-acme/people/e-quillon/show/contact": {
+    section: "CONTACT",
+    level: "READ",
+    recorded: true,
+    privatePhone: { e164: "+420606999404", display: SENSITIVE[0], country: null },
+    privateEmail: SENSITIVE[1],
+    emergencyContact1: {
+      name: SENSITIVE[2],
+      phone: { e164: "+420603888202", display: SENSITIVE[3], country: null },
+    },
+    emergencyContact2: null,
+  },
+  "/api/directory/o-acme/people/e-quillon/show/personal": {
+    section: "PERSONAL",
+    level: "READ",
+    recorded: true,
+    homeAddress: {
+      line1: SENSITIVE[4],
+      line2: null,
+      postalCode: null,
+      city: "Brno",
+      region: null,
+      country: { code: "CZ", name: "Czechia" },
+    },
+    dateOfBirth: SENSITIVE[5],
+  },
   "/api/directory/o-acme/former": [
     formerDirectoryPerson("zephyrine", SENTINELS[2], "2026-08-15T10:00:00.000Z"),
   ],
@@ -132,7 +170,21 @@ function storeBytes(): string {
     .join("");
 }
 
-const leaks = (haystack: string) => SENTINELS.filter((sentinel) => haystack.includes(sentinel));
+const leaks = (haystack: string) =>
+  [...SENTINELS, ...SENSITIVE].filter((sentinel) => haystack.includes(sentinel));
+
+/** Everything the query client holds: every query's answer and every mutation's. */
+const queryClientContents = () =>
+  JSON.stringify([
+    queryClient
+      .getQueryCache()
+      .getAll()
+      .map((query) => query.state),
+    queryClient
+      .getMutationCache()
+      .getAll()
+      .map((mutation) => mutation.state),
+  ]);
 
 describe("Directory screen, what the phone keeps", () => {
   it("shows the directory and writes none of it to the Local store, the Keychain, the kv-store or a file", async () => {
@@ -187,6 +239,36 @@ describe("Directory screen, what the phone keeps", () => {
     expect(queryClient.getQueryData(profileKey)).toBeDefined();
     await view.unmount();
     await waitFor(() => expect(queryClient.getQueryData(profileKey)).toBeUndefined());
+  });
+
+  it("opens Contact and Personal into screen memory only, never the query cache or the Local store", async () => {
+    const view = await render(
+      <RootRouteProvider route="signed-in">
+        <TranslationProvider>
+          <ProfileRoute />
+        </TranslationProvider>
+      </RootRouteProvider>
+    );
+    await screen.findByText(SENTINELS[3]);
+
+    await act(async () => fireEvent.press(screen.getByTestId("directory-profile-show-contact")));
+    await act(async () => fireEvent.press(screen.getByTestId("directory-profile-show-personal")));
+    expect(await screen.findByText(SENSITIVE[0])).toBeOnTheScreen();
+    expect(await screen.findByText(new RegExp(SENSITIVE[4]))).toBeOnTheScreen();
+
+    const sensitiveIn = (haystack: string) =>
+      SENSITIVE.filter((sentinel) => haystack.includes(sentinel));
+    // The profile read sits in the cache, so an empty find there is real.
+    expect(queryClientContents()).toContain(SENTINELS[3]);
+    expect(sensitiveIn(queryClientContents())).toEqual([]);
+    expect(storeBytes()).toContain("u-me");
+    expect(sensitiveIn(storeBytes())).toEqual([]);
+    expect(sensitiveIn(mockKeychainWrites.join("\n"))).toEqual([]);
+    expect(sensitiveIn(JSON.stringify(kvWrites.mock.calls))).toEqual([]);
+    expect(fakeFiles.under("file://")).toEqual([]);
+
+    await view.unmount();
+    expect(sensitiveIn(queryClientContents())).toEqual([]);
   });
 
   it("ships no query cache persister, so nothing writes the cache to disk", () => {
