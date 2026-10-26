@@ -86,6 +86,35 @@ export type DirectoryPhotoView = SectionView & {
   photo: { smallUrl: string; fullUrl: string } | null;
 };
 
+export type SensitiveSectionKey = "contact" | "personal";
+
+export type EmergencyContact = { name: string; phone: DirectoryPhone };
+
+/** Contact's values, only ever in a Show answer. */
+export type ContactValues = {
+  privatePhone: DirectoryPhone | null;
+  privateEmail: string | null;
+  emergencyContact1: EmergencyContact | null;
+  emergencyContact2: EmergencyContact | null;
+};
+
+export type HomeAddress = {
+  line1: string;
+  line2: string | null;
+  postalCode: string | null;
+  city: string;
+  region: string | null;
+  country: DirectoryCountry;
+};
+
+/** Personal's values, only ever in a Show answer. `dateOfBirth` is a `YYYY-MM-DD`. */
+export type PersonalValues = { homeAddress: HomeAddress | null; dateOfBirth: string | null };
+
+/** `POST /api/directory/{organizationId}/people/{employmentId}/show/{contact|personal}`. */
+export type ShownSection =
+  | ({ section: "CONTACT"; level: DirectorySectionLevel; recorded: boolean } & ContactValues)
+  | ({ section: "PERSONAL"; level: DirectorySectionLevel; recorded: boolean } & PersonalValues);
+
 /** `date` is a `YYYY-MM-DD`: the nightly run that empties the Section, or the day a purge did. */
 export type SectionRetention =
   | { status: "REMOVES_ON" | "REMOVED_ON"; date: string }

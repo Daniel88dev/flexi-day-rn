@@ -24,7 +24,9 @@ export {
   type ValueAction,
 } from "./profile";
 export { formerNewestFirst, rowMarkers, type RowMarker } from "./rows";
+export { addressLines, showSectionPath } from "./sensitive";
 export type {
+  ContactValues,
   ContractType,
   DirectoryAccountStatus,
   DirectoryCountry,
@@ -39,5 +41,10 @@ export type {
   DirectoryPeople,
   DirectoryPerson,
   DirectorySectionKey,
+  EmergencyContact,
+  HomeAddress,
+  PersonalValues,
+  SensitiveSectionKey,
+  ShownSection,
   FormerDirectoryPerson,
 } from "./types";
