@@ -8,8 +8,9 @@ import { notificationRoute, type NotificationRoute } from "./route";
 
 /**
  * Leaves the notification list for where a notification points. A request or a group stacks over
- * the list, so Back returns to it, and a web page opens in a sheet over it. My attendance is a tab of the shell under the list, so the list leaves
- * first: navigating to a tab from a root-stack screen pushes a second shell.
+ * the list, so Back returns to it, and a web page opens in a sheet over it. My attendance is a tab
+ * of the shell under the list, so the list leaves first: navigating to a tab from a root-stack
+ * screen pushes a second shell.
  */
 export function followNotificationRoute(route: NotificationRoute): void {
   if (route.kind === "request" || route.kind === "group") {
