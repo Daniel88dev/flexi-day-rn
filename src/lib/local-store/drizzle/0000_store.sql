@@ -137,6 +137,7 @@ CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`image` text,
+	`accountDeleted` integer DEFAULT false NOT NULL,
 	`updatedAt` text NOT NULL,
 	`generation` integer DEFAULT 0 NOT NULL
 );

@@ -1002,6 +1002,7 @@ export const cs: Dictionary = {
       heading: (count: number) =>
         `${count} ${count === 1 ? "člověk" : count >= 2 && count <= 4 ? "lidé" : "lidí"}`,
       notTracked: "Mimo evidenci",
+      accountDeleted: "Účet smazán",
     },
     quotas: {
       tab: "Nároky",

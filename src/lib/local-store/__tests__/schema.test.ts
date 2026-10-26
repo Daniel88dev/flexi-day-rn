@@ -22,7 +22,10 @@ import {
  */
 const SYNC_ROWS: Record<string, [Table, Record<string, string>]> = {
   organizations: [organizations, { id: "text", name: "text", sickDayBenefitEnabled: "boolean?" }],
-  users: [users, { id: "text", name: "text", image: "text?", updatedAt: "text" }],
+  users: [
+    users,
+    { id: "text", name: "text", image: "text?", accountDeleted: "boolean", updatedAt: "text" },
+  ],
   groups: [
     groups,
     {
