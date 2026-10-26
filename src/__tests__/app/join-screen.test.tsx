@@ -52,6 +52,7 @@ jest.mock("expo-router", () => ({
     back: jest.fn(),
     replace: jest.fn(),
     push: jest.fn(),
+    dismissTo: jest.fn(),
     canGoBack: () => mockRouterCanGoBack(),
   },
   useNavigation: () => ({ canGoBack: mockCanGoBack, getState: mockGetState, reset: mockReset }),
@@ -655,6 +656,101 @@ const signInOpened = () => {
   expect(router.replace).not.toHaveBeenCalled();
   expect(router.push).not.toHaveBeenCalled();
 };
+
+describe("JoinScreen directory invite", () => {
+  const DIRECTORY_INVITE = {
+    groupId: null,
+    groupName: null,
+    organizationName: "Northwind",
+    personName: "Alice Novak",
+  };
+  const CLAIMED = { groupId: null, claimed: { employmentId: "emp-9", organizationId: "org-1" } };
+
+  beforeEach(() => {
+    openWith(DIRECTORY_INVITE);
+    joinReply = () => answer(201, CLAIMED);
+  });
+
+  it("titles the screen by the organization and never shows a group", async () => {
+    await renderInvite();
+
+    expect(screen.getByText("Olivia Owner invited you to join")).toBeOnTheScreen();
+    expect(screen.getByText("Northwind")).toBeOnTheScreen();
+    expect(screen.getByTestId("join-submit")).toHaveTextContent("Join Northwind");
+    expect(screen.queryByText(/Dev Support/)).toBeNull();
+  });
+
+  it("offers Join to a viewer who already holds groups, since it names none", async () => {
+    myGroups.mockReturnValue([storeGroup("group-1"), storeGroup("group-2")]);
+
+    await renderInvite();
+
+    expect(screen.getByTestId("join-submit")).toBeOnTheScreen();
+    expect(screen.queryByTestId("join-already-member")).toBeNull();
+  });
+
+  it("joins, reads no group, toasts the organization and lands on the dashboard", async () => {
+    await renderInvite();
+
+    await press("join-submit");
+
+    await waitFor(() => expect(router.dismissTo).toHaveBeenCalledWith("/dashboard"));
+    expect(JSON.parse(requests(JOIN)[0][1].body)).toEqual({ token: TOKEN });
+    expect(toast.success).toHaveBeenCalledWith("You joined Northwind");
+    expect(requests(/\/api\/group\//)).toHaveLength(0);
+    expect(pullStore).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("says inline that the account already has a record there on a 409 ALREADY_EMPLOYED", async () => {
+    joinReply = () => refusal(409, { code: "ALREADY_EMPLOYED" }, "Already employed");
+    await renderInvite();
+
+    await press("join-submit");
+
+    expect(await screen.findByTestId("join-error")).toHaveTextContent(
+      "You already belong to this organization under another record. Ask its admin to sort out the duplicate, then open this invite again."
+    );
+    expect(toastError).not.toHaveBeenCalled();
+    expect(router.dismissTo).not.toHaveBeenCalled();
+  });
+
+  it("turns into the withdrawn state naming the organization on a 410 INVITE_REVOKED", async () => {
+    joinReply = () => refusal(410, { code: "INVITE_REVOKED" });
+    await renderInvite();
+
+    await press("join-submit");
+
+    const dead = await screen.findByTestId("join-dead");
+    expect(dead).toHaveTextContent(labels.dead.revoked, { exact: false });
+    expect(dead).toHaveTextContent(
+      "Your record at Northwind changed after this invite was sent, or a newer invite replaced it. Ask Olivia Owner for a new one.",
+      { exact: false }
+    );
+    expect(screen.getByTestId("join-done")).toBeOnTheScreen();
+    expect(screen.queryByTestId("join-submit")).toBeNull();
+  });
+
+  it("asks for a new invite for the organization when the preview says it expired", async () => {
+    openWith({ ...DIRECTORY_INVITE, status: "expired" });
+
+    await renderScreen("welcome");
+
+    expect(await screen.findByTestId("join-dead")).toHaveTextContent(
+      "Ask Olivia Owner to send you a new one for Northwind.",
+      { exact: false }
+    );
+  });
+
+  it("titles the signed-out screen by the organization, offering sign-in", async () => {
+    mockViewer = null;
+
+    await renderScreen("welcome");
+
+    expect(await screen.findByText("Northwind")).toBeOnTheScreen();
+    expect(screen.getByTestId("join-sign-in")).toBeOnTheScreen();
+  });
+});
 
 describe("JoinScreen signed out", () => {
   it("masks the invited address and offers Sign in to join with Create your account", async () => {

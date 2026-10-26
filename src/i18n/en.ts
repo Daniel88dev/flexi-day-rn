@@ -1022,6 +1022,15 @@ export const en = {
         inviter
           ? `Ask ${inviter} to send you a new one for ${group}.`
           : `Ask the group's manager to send you a new one for ${group}.`,
+      invitedToOrganization: (inviter: string | null) =>
+        inviter ? `${inviter} invited you to join` : "You're invited to join",
+      joinOrganization: (organization: string) => `Join ${organization}`,
+      askForNewToOrganization: (inviter: string | null, organization: string) =>
+        inviter
+          ? `Ask ${inviter} to send you a new one for ${organization}.`
+          : `Ask an admin of ${organization} to send you a new one.`,
+      directoryRevoked: (inviter: string | null, organization: string) =>
+        `Your record at ${organization} changed after this invite was sent, or a newer invite replaced it. ${inviter ? `Ask ${inviter} for a new one.` : "Ask an admin there for a new one."}`,
       done: "Done",
       alreadyMember: (group: string) => `You're already in ${group}.`,
       openGroup: "Open the group",
@@ -1047,8 +1056,12 @@ export const en = {
       emailMismatch: "This invite was sent to a different email address.",
       unverified: "Use the Join button in your invite email.",
       malformedCode: "That doesn't look like an invite code. Codes look like 7KQ2-M9PX-4HRT.",
+      alreadyEmployed:
+        "You already belong to this organization under another record. Ask its admin to sort out the duplicate, then open this invite again.",
     },
     joined: (group: string | null) => (group ? `You joined ${group}` : "You joined the group"),
+    joinedOrganization: (organization: string | null) =>
+      organization ? `You joined ${organization}` : "You joined the organization",
     alreadyMember: (group: string | null) =>
       group ? `You're already in ${group}` : "You're already in this group",
   },

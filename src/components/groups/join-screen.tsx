@@ -12,11 +12,13 @@ import { useTranslation } from "@/i18n/use-translation";
 import { dayAndMonth } from "@/lib/format";
 import {
   closedInvite,
+  inviteCopy,
   inviteMissing,
   joinRefusal,
   joinScreenAction,
   maskEmail,
   type ClosedInvite,
+  type InviteCopy,
 } from "@/lib/groups/invites";
 import { useMyGroups, useStoreOpen, useSyncStatus } from "@/lib/local-store";
 import { useShellUnderneath } from "@/lib/navigation/use-shell-underneath";
@@ -27,7 +29,7 @@ import {
   useOnline,
   useWriteFailure,
   type InvitePreview,
-  type JoinedGroup,
+  type Joined,
 } from "@/lib/query";
 import { clearHeldInvite, holdInvite } from "@/lib/session/held-invite";
 import { useSetRootRoute } from "@/lib/session/root-route-context";
@@ -145,10 +147,15 @@ function InviteScreen({ token, viewer }: { token: string; viewer: JoinViewer }) 
       },
     ]);
 
-  const joined = ({ groupId, groupName, alreadyMember }: JoinedGroup) => {
-    if (alreadyMember) toast.info(t.join.alreadyMember(groupName));
-    else toast.success(t.join.joined(groupName));
-    openGroup(groupId);
+  const joined = (outcome: Joined) => {
+    if (outcome.groupId === null) {
+      toast.success(t.join.joinedOrganization(preview.data?.organizationName ?? null));
+      router.dismissTo("/dashboard");
+      return;
+    }
+    if (outcome.alreadyMember) toast.info(t.join.alreadyMember(outcome.groupName));
+    else toast.success(t.join.joined(outcome.groupName));
+    openGroup(outcome.groupId);
   };
 
   const send = () => {
@@ -192,6 +199,7 @@ function InviteScreen({ token, viewer }: { token: string; viewer: JoinViewer }) 
     );
   } else {
     const invite = preview.data;
+    const copy = inviteCopy(invite, t);
     const status = closedOnJoin ?? invite.status;
     const action = viewer
       ? joinScreenAction(invite, viewer.memberGroupIds, viewer.email)
@@ -202,16 +210,11 @@ function InviteScreen({ token, viewer }: { token: string; viewer: JoinViewer }) 
     if (status !== "open" && action !== "already-member" && viewer && !viewer.membershipKnown) {
       body = <PreviewSkeleton />;
     } else if (status !== "open" && action !== "already-member") {
-      body = (
-        <DeadInvite
-          title={labels.dead[status]}
-          body={labels.askForNew(invite.inviterName, invite.groupName)}
-        />
-      );
+      body = <DeadInvite title={labels.dead[status]} body={copy.dead[status]} />;
       footer = done;
     } else {
       const masked = action === "sign-in" || action === "wrong-account";
-      body = <InviteDetails invite={invite} masked={masked} />;
+      body = <InviteDetails invite={invite} copy={copy} masked={masked} />;
       if (action === "sign-in") {
         footer = (
           <View className="gap-1">
@@ -254,16 +257,17 @@ function InviteScreen({ token, viewer }: { token: string; viewer: JoinViewer }) 
             />
           </View>
         );
-      } else if (action === "already-member") {
+      } else if (action === "already-member" && invite.groupId !== null) {
+        const groupId = invite.groupId;
         footer = (
           <View className="gap-3">
             <View testID="join-already-member">
-              <Notice tone="success" message={labels.alreadyMember(invite.groupName)} />
+              <Notice tone="success" message={labels.alreadyMember(copy.name)} />
             </View>
             <Button
               testID="join-open-group"
               label={labels.openGroup}
-              onPress={() => openGroup(invite.groupId)}
+              onPress={() => openGroup(groupId)}
             />
           </View>
         );
@@ -282,7 +286,7 @@ function InviteScreen({ token, viewer }: { token: string; viewer: JoinViewer }) 
             )}
             <Button
               testID="join-submit"
-              label={join.isPending ? t.join.sheet.joining : labels.join(invite.groupName)}
+              label={join.isPending ? t.join.sheet.joining : copy.join}
               loading={join.isPending}
               disabled={!online}
               onPress={send}
@@ -317,23 +321,29 @@ function InviteScreen({ token, viewer }: { token: string; viewer: JoinViewer }) 
   );
 }
 
-function InviteDetails({ invite, masked }: { invite: InvitePreview; masked: boolean }) {
+function InviteDetails({
+  invite,
+  copy,
+  masked,
+}: {
+  invite: InvitePreview;
+  copy: InviteCopy;
+  masked: boolean;
+}) {
   const { t } = useTranslation();
   const labels = t.join.screen;
   return (
     <View testID="join-preview" className="gap-7">
       <View className="gap-4">
-        <Monogram name={invite.groupName} size={64} />
+        <Monogram name={copy.name} size={64} />
         <View className="gap-1">
-          <Text className="text-[15.5px] text-muted-foreground">
-            {labels.invitedBy(invite.inviterName)}
-          </Text>
+          <Text className="text-[15.5px] text-muted-foreground">{copy.invitedBy}</Text>
           <Text
             accessibilityRole="header"
             className="font-display text-[34px] leading-[40px] font-semibold text-foreground"
             style={{ letterSpacing: -0.7 }}
           >
-            {invite.groupName}
+            {copy.name}
           </Text>
         </View>
       </View>

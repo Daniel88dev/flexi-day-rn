@@ -1,0 +1,34 @@
+# Directory invite that names no group (T-530): the Join screen is titled by the organization,
+# Join claims the record and lands on the dashboard with a toast naming the organization.
+# Setup: an owner on Enterprise with the directory on adds a person without an account whose email
+# is the invitee's, then sends the invite with no group (`POST .../people/{emp}/invite` `{}`).
+# Local mail is suppressed, so give the open invite a known secret:
+#   update invite_link set link_secret_hash = encode(sha256('t530-directory-invite-0000000000000000000000'), 'hex')
+#   where employment_id = '<emp>' and revoked_at is null;
+# Then sign the invitee in: npm run dev:login:rn -- <invitee> --udid <udid>
+appId: com.flexiday.app
+---
+- extendedWaitUntil:
+    visible:
+      id: dashboard
+    timeout: 20000
+- openLink: flexiday:///join?token=t530-directory-invite-0000000000000000000000
+- extendedWaitUntil:
+    visible:
+      id: join-preview
+    timeout: 15000
+- assertVisible: "Olga T509 invited you to join"
+- assertVisible: "Olga T509"
+- assertVisible:
+    id: join-submit
+- takeScreenshot: join-directory-preview
+- tapOn:
+    id: join-submit
+- extendedWaitUntil:
+    visible: "You joined Olga T509"
+    timeout: 15000
+- takeScreenshot: join-directory-joined
+- assertVisible:
+    id: dashboard
+- assertNotVisible:
+    id: join-screen
