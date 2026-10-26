@@ -121,6 +121,17 @@ describe("followNotificationRoute", () => {
     });
   });
 
+  it("pushes the member's own profile over the list", () => {
+    const route = notificationRoute("/directory/person/?organizationId=o-1&employmentId=e-1");
+
+    followNotificationRoute(route);
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: "/directory/[employmentId]",
+      params: { employmentId: "e-1", organizationId: "o-1" },
+    });
+  });
+
   it("opens the People card on the web in a sheet over the list", () => {
     followNotificationRoute(
       notificationRoute("/organization/?organizationId=o-1&employmentId=e-1")
@@ -200,6 +211,15 @@ describe("followPushRoute", () => {
     expect(push).toHaveBeenCalledWith({
       pathname: "/groups/[groupId]",
       params: { groupId: "g-1" },
+    });
+  });
+
+  it("pushes the member's own profile over whatever is open", () => {
+    followPushRoute(notificationRoute("/directory/person/?organizationId=o-1&employmentId=e-1"));
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: "/directory/[employmentId]",
+      params: { employmentId: "e-1", organizationId: "o-1" },
     });
   });
 

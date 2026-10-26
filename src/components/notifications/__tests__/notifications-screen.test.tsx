@@ -234,6 +234,34 @@ describe("NotificationsScreen", () => {
     await settled();
   });
 
+  it("opens the member's own directory profile from the directory notice", async () => {
+    serve([
+      {
+        id: "n-directory",
+        type: "directory_enabled",
+        title: "Acme turned on the people directory",
+        body: "Check your profile and add your contact details.",
+        href: "/directory/person/?organizationId=o-1&employmentId=e-1",
+        readAt: null,
+        createdAt: ago(HOUR),
+      },
+    ]);
+    await renderScreen();
+
+    expect(await screen.findByText("Acme turned on the people directory")).toBeTruthy();
+    expect(screen.getByText("Check your profile and add your contact details.")).toBeTruthy();
+    await fireEvent.press(screen.getByTestId("notification-n-directory"));
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: "/directory/[employmentId]",
+      params: { employmentId: "e-1", organizationId: "o-1" },
+    });
+    await waitFor(() =>
+      expect(calls("POST", "/api/notifications/n-directory/read")).toHaveLength(1)
+    );
+    await settled();
+  });
+
   it("stays on the list for a read notification with nowhere to go, and sends nothing", async () => {
     serve();
     await renderScreen();

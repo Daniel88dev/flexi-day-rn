@@ -4,6 +4,7 @@ export type NotificationRoute =
   | { kind: "request"; vacationId: string; href: Href }
   | { kind: "attendance"; date: string; href: Href }
   | { kind: "group"; groupId: string; href: Href }
+  | { kind: "profile"; employmentId: string; href: Href }
   /** `href` is where the phone itself stays while the web page opens over it. */
   | { kind: "web"; path: string; href: Href }
   | { kind: "list"; href: Href };
@@ -43,8 +44,9 @@ function parseWebLink(href: string): WebLink | null {
 
 /**
  * Where a notification's web link opens on the phone: a request link opens its detail, a My
- * attendance link opens that day, a group's member list opens the group, the People card opens on
- * the web (the phone has no screen for it), and anything else stays on the notification list.
+ * attendance link opens that day, a group's member list opens the group, a directory profile opens
+ * on the phone, the People card opens on the web (the phone has no screen for it), and anything
+ * else stays on the notification list.
  */
 export function notificationRoute(href: string | null | undefined): NotificationRoute {
   const link = href ? parseWebLink(href) : null;
@@ -70,8 +72,16 @@ export function notificationRoute(href: string | null | undefined): Notification
   }
 
   const organizationId = link.params.get("organizationId");
+  const employmentId = link.params.get("employmentId");
+  if (link.path === "/directory/person" && organizationId && employmentId) {
+    return {
+      kind: "profile",
+      employmentId,
+      href: { pathname: "/directory/[employmentId]", params: { employmentId, organizationId } },
+    };
+  }
+
   if (link.path === "/organization" && organizationId) {
-    const employmentId = link.params.get("employmentId");
     const query = [
       `organizationId=${encodeURIComponent(organizationId)}`,
       ...(employmentId ? [`employmentId=${encodeURIComponent(employmentId)}`] : []),
