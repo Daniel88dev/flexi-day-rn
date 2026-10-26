@@ -1,4 +1,5 @@
 import {
+  AddressBookIcon,
   CalendarBlankIcon,
   ChartBarIcon,
   GearIcon,
@@ -10,6 +11,7 @@ import {
 
 import type { Dictionary } from "@/i18n";
 import type { ClockView } from "@/lib/attendance/clock";
+import type { DirectoryEntry } from "@/lib/directory";
 
 export type NavLink = {
   key: string;
@@ -22,13 +24,19 @@ export type NavLink = {
   tabHref?: string;
   /** Kept off the bar and the sheet, and still reachable by a link. */
   hidden?: boolean;
+  /** A short state beside the label in the sheet, such as a lapsed directory's "read only". */
+  chip?: string;
 };
 
-export type NavSectionId = "timeOff" | "attendance";
+export type NavSectionId = "timeOff" | "attendance" | "people";
 
 export type NavSection = { id: NavSectionId; label: string; links: NavLink[] };
 
-export type ShellAccess = { attendanceLink: boolean };
+export type ShellAccess = {
+  attendanceLink: boolean;
+  /** From `GET /api/directory/organizations`; absent until it answers, which shows nothing. */
+  directory?: DirectoryEntry;
+};
 
 /**
  * The web's rule for the My attendance link: attendance active, or a session still open, which a
@@ -49,7 +57,7 @@ export function buildSections(
   t: Dictionary,
   access: ShellAccess = { attendanceLink: true }
 ): NavSection[] {
-  return [
+  const sections: NavSection[] = [
     {
       id: "timeOff",
       label: t.nav.sections.timeOff,
@@ -93,6 +101,22 @@ export function buildSections(
       ],
     },
   ];
+  if (access.directory?.shown) {
+    sections.push({
+      id: "people",
+      label: t.nav.sections.people,
+      links: [
+        {
+          key: "directory",
+          label: t.nav.directory,
+          icon: AddressBookIcon,
+          href: "/directory",
+          ...(access.directory.readOnly ? { chip: t.nav.readOnly } : {}),
+        },
+      ],
+    });
+  }
+  return sections;
 }
 
 /** The links below the sections: the viewer's own settings. */

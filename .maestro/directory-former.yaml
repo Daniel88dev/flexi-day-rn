@@ -1,0 +1,47 @@
+# Directory, a viewer of the Former list (T-516): the More sheet's People section opens the
+# directory, the Current/Former switch lists the ended spells, and an empty search offers to clear.
+# The Former list goes to the owner, org admins and HR alike, and HR roles land with T-506, so the
+# owner stands in for HR here.
+# Signed in as owner@dev.local after dev:scenario, with the owner's organization on Enterprise and
+# its directory turned on, and Frank removed from Dev Support so his spell ended:
+#   dev_set_plan ENTERPRISE, POST /api/organization/directory/enable { "agreementVersion": 1 },
+#   DELETE /api/group-user/<Dev Support>/<Frank>
+#   npm run dev:login:rn -- owner@dev.local --to /dashboard --udid <udid>
+appId: com.flexiday.app
+---
+- openLink: flexiday:///dashboard
+- tapOn:
+    id: tab-more
+- assertVisible: "(?i)people"
+- tapOn:
+    id: more-directory
+- assertVisible:
+    id: directory-segment-current
+- assertVisible:
+    id: "directory-row-.*"
+    text: "Alice Novak.*"
+- assertVisible:
+    id: "directory-row-.*"
+    text: "Olivia Owner.*You"
+- assertNotVisible:
+    id: "directory-row-.*"
+    text: "Frank Benes.*"
+- takeScreenshot: .maestro/screenshots/directory-current-owner
+- tapOn:
+    id: directory-segment-former
+- assertVisible: "by end date"
+- assertVisible:
+    id: "directory-former-row-.*"
+    text: "Frank Benes, Ended .*"
+- takeScreenshot: .maestro/screenshots/directory-former-owner
+- tapOn:
+    id: directory-segment-current
+- tapOn:
+    id: directory-search
+- inputText: "nobody here"
+- assertVisible: "No one matches"
+- tapOn:
+    id: directory-clear-filters
+- assertVisible:
+    id: "directory-row-.*"
+    text: "Alice Novak.*"

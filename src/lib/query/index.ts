@@ -34,6 +34,12 @@ export {
   type GroupEventDeleteRequest,
   type GroupEventGroup,
 } from "./group-events";
+export {
+  useDirectoryOrganizations,
+  useDirectoryPeople,
+  useFormerDirectoryPeople,
+  useRereadDirectoryOnFocus,
+} from "./directory";
 export { ApiError, classifyFailure, type FailureClass } from "./failure";
 export {
   useAdministeredGroups,
