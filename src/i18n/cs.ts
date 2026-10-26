@@ -1069,6 +1069,13 @@ export const cs: Dictionary = {
       notFoundBody: "Zkontrolujte odkaz v e-mailu, nebo požádejte o novou pozvánku.",
       askForNew: (inviter: string | null, group: string) =>
         `Novou pozvánku do skupiny ${group} vám může poslat ${inviter ?? "manažer skupiny"}.`,
+      invitedToOrganization: (inviter: string | null) =>
+        inviter ? `${inviter} vás zve do organizace` : "Máte pozvánku do organizace",
+      joinOrganization: (organization: string) => `Připojit se k organizaci ${organization}`,
+      askForNewToOrganization: (inviter: string | null, organization: string) =>
+        `Novou pozvánku do organizace ${organization} vám může poslat ${inviter ?? "správce organizace"}.`,
+      directoryRevoked: (inviter: string | null, organization: string) =>
+        `Váš záznam v organizaci ${organization} se po odeslání pozvánky změnil, nebo ji nahradila novější. Novou vám může poslat ${inviter ?? "správce organizace"}.`,
       done: "Hotovo",
       alreadyMember: (group: string) => `Do skupiny ${group} už patříte.`,
       openGroup: "Otevřít skupinu",
@@ -1094,9 +1101,15 @@ export const cs: Dictionary = {
       emailMismatch: "Pozvánka byla poslána na jinou e-mailovou adresu.",
       unverified: "Použijte tlačítko pro připojení v e-mailu s pozvánkou.",
       malformedCode: "Tohle nevypadá jako kód pozvánky. Kódy vypadají jako 7KQ2-M9PX-4HRT.",
+      alreadyEmployed:
+        "V této organizaci už máte jiný záznam. Požádejte jejího správce, ať duplicitu vyřeší, a pak pozvánku otevřete znovu.",
     },
     joined: (group: string | null) =>
       group ? `Připojili jste se ke skupině ${group}` : "Připojili jste se ke skupině",
+    joinedOrganization: (organization: string | null) =>
+      organization
+        ? `Připojili jste se k organizaci ${organization}`
+        : "Připojili jste se k organizaci",
     alreadyMember: (group: string | null) =>
       group ? `Do skupiny ${group} už patříte` : "Do této skupiny už patříte",
   },

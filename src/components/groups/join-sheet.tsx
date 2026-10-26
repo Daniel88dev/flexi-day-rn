@@ -12,7 +12,7 @@ import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
 import { joinRefusal, parseInviteInput, type JoinInput } from "@/lib/groups/invites";
-import { qk, useJoinGroup, useOnline, useWriteFailure, type JoinedGroup } from "@/lib/query";
+import { qk, useJoinGroup, useOnline, useWriteFailure, type Joined } from "@/lib/query";
 
 /** The Join sheet's body: one field for an invite code or a pasted invite link. */
 export function JoinSheet() {
@@ -34,12 +34,16 @@ export function JoinSheet() {
   const joining = join.isPending;
   const locked = !online || joining;
 
-  const openGroup = ({ groupId, groupName, alreadyMember }: JoinedGroup) => {
+  const openGroup = (joined: Joined) => {
     // The sheet goes first, so the detail is not left under it.
     router.back();
-    if (alreadyMember) toast.info(t.join.alreadyMember(groupName));
-    else toast.success(t.join.joined(groupName));
-    router.push({ pathname: "/groups/[groupId]", params: { groupId } });
+    if (joined.groupId === null) {
+      toast.success(t.join.joinedOrganization(null));
+      return;
+    }
+    if (joined.alreadyMember) toast.info(t.join.alreadyMember(joined.groupName));
+    else toast.success(t.join.joined(joined.groupName));
+    router.push({ pathname: "/groups/[groupId]", params: { groupId: joined.groupId } });
   };
 
   const send = (input: JoinInput) => {

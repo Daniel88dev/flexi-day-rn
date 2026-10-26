@@ -127,8 +127,12 @@ export function useQuotas(groupId: string | null, year: number) {
 
 /** `POST /api/auth/invite/preview`: what an invite link's holder sees before joining. */
 export type InvitePreview = {
-  groupId: string;
-  groupName: string;
+  /** Null, with `groupName`, on a directory invite that names no group. */
+  groupId: string | null;
+  groupName: string | null;
+  organizationName: string;
+  /** The name the organization holds for the record the invite would claim. */
+  personName: string | null;
   inviterName: string | null;
   /** Null only on invites older than email invites, which anyone with the link may use. */
   invitedEmail: string | null;
@@ -162,13 +166,22 @@ export type JoinedGroup = {
   alreadyMember: boolean;
 };
 
+/** A directory invite that names no group: the Claim was all it did. */
+export type JoinedOrganization = { groupId: null; organizationId: string };
+
+export type Joined = JoinedGroup | JoinedOrganization;
+
+type Claimed = { employmentId: string; organizationId: string };
+type JoinAnswer =
+  { groupId: string; claimed?: Claimed | null } | { groupId: null; claimed: Claimed };
+
 function sendJoin(input: JoinInput) {
   return input.kind === "link"
-    ? apiRequest<{ groupId: string }>("/api/auth/invite/join", {
+    ? apiRequest<JoinAnswer>("/api/auth/invite/join", {
         method: "POST",
         body: { token: input.token },
       })
-    : apiRequest<{ groupId: string }>(`/api/group-user/code/${encodeURIComponent(input.code)}`, {
+    : apiRequest<JoinAnswer>(`/api/group-user/code/${encodeURIComponent(input.code)}`, {
         method: "POST",
       });
 }
@@ -185,26 +198,33 @@ async function groupNameOf(queryClient: QueryClient, groupId: string): Promise<s
  * Joining is a sync reset trigger, so the after-write pull brings the group in as a snapshot
  * before the mutation settles. A pull that fails still counts as joined: the group arrives on a
  * later pull, and the detail takes its header from the server until then. A 409
- * `ALREADY_MEMBER` resolves to its group instead of failing.
+ * `ALREADY_MEMBER` resolves to its group instead of failing. A directory invite that names no
+ * group joins no group, so nothing synced changes and it neither pulls nor reads a name.
  */
 export function useJoinGroup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: JoinInput): Promise<JoinedGroup> => {
-      let groupId: string;
+    mutationFn: async (input: JoinInput): Promise<Joined> => {
+      let answer: JoinAnswer;
       try {
-        ({ groupId } = await sendJoin(input));
+        answer = await sendJoin(input);
       } catch (failure) {
         const memberOf = alreadyMemberGroup(failure);
         if (!memberOf) throw failure;
         const groupName = await groupNameOf(queryClient, memberOf);
         return { groupId: memberOf, groupName, alreadyMember: true };
       }
+      if (answer.claimed) void queryClient.invalidateQueries({ queryKey: ["directory"] });
+      if (answer.groupId === null) {
+        return { groupId: null, organizationId: answer.claimed.organizationId };
+      }
+      const { groupId } = answer;
       await pull("after-write").catch(() => undefined);
       return { groupId, groupName: await groupNameOf(queryClient, groupId), alreadyMember: false };
     },
-    onSuccess: ({ groupId, alreadyMember }) => {
-      if (alreadyMember) return;
+    onSuccess: (joined) => {
+      if (joined.groupId === null || joined.alreadyMember) return;
+      const { groupId } = joined;
       for (const queryKey of [
         qk.administeredGroups(),
         qk.group(groupId),

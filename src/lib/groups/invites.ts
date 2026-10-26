@@ -108,6 +108,8 @@ export function joinRefusal(failure: unknown, via: JoinInput["kind"], t: Diction
       return inline(errors.emailMismatch);
     case "EMAIL_NOT_VERIFIED_USE_INVITE_LINK":
       return inline(errors.unverified);
+    case "ALREADY_EMPLOYED":
+      return inline(errors.alreadyEmployed);
     case null:
       break;
     default:
@@ -141,13 +143,54 @@ export type JoinScreenAction = "already-member" | "join" | "wrong-account";
  * `ALREADY_MEMBER`.
  */
 export function joinScreenAction(
-  invite: { groupId: string; invitedEmail: string | null },
+  invite: { groupId: string | null; invitedEmail: string | null },
   memberGroupIds: readonly string[],
   viewerEmail: string | null
 ): JoinScreenAction {
-  if (memberGroupIds.includes(invite.groupId)) return "already-member";
+  if (invite.groupId !== null && memberGroupIds.includes(invite.groupId)) return "already-member";
   if (invite.invitedEmail === null || viewerEmail === null) return "join";
   return invite.invitedEmail.toLowerCase() === viewerEmail.toLowerCase() ? "join" : "wrong-account";
+}
+
+type InviteNames = {
+  groupId: string | null;
+  groupName: string | null;
+  organizationName: string;
+  inviterName: string | null;
+};
+
+export type InviteCopy = {
+  name: string;
+  invitedBy: string;
+  join: string;
+  dead: Record<ClosedInvite, string>;
+};
+
+/** The Join screen's lines: a directory invite that names no group speaks of its organization. */
+export function inviteCopy(invite: InviteNames, t: Dictionary): InviteCopy {
+  const labels = t.join.screen;
+  const inviter = invite.inviterName;
+  if (invite.groupId === null || invite.groupName === null) {
+    const organization = invite.organizationName;
+    const askForNew = labels.askForNewToOrganization(inviter, organization);
+    return {
+      name: organization,
+      invitedBy: labels.invitedToOrganization(inviter),
+      join: labels.joinOrganization(organization),
+      dead: {
+        used: askForNew,
+        expired: askForNew,
+        revoked: labels.directoryRevoked(inviter, organization),
+      },
+    };
+  }
+  const askForNew = labels.askForNew(inviter, invite.groupName);
+  return {
+    name: invite.groupName,
+    invitedBy: labels.invitedBy(inviter),
+    join: labels.join(invite.groupName),
+    dead: { used: askForNew, expired: askForNew, revoked: askForNew },
+  };
 }
 
 /** `dana@northwind.co` → `d…@northwind.co`, as the web shows it: enough to pick the right account. */

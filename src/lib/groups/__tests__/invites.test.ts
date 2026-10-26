@@ -3,6 +3,7 @@ import { en } from "@/i18n/en";
 import {
   alreadyMemberGroup,
   closedInvite,
+  inviteCopy,
   inviteMissing,
   joinRefusal,
   joinScreenAction,
@@ -96,6 +97,20 @@ describe("joinRefusal", () => {
       expect(joinRefusal(failure, "link", en)).toEqual({ kind: "inline", message: line });
       expect(joinRefusal(failure, "code", en)).toEqual({ kind: "inline", message: line });
     }
+  });
+
+  it("returns the duplicate-record line for a 409 ALREADY_EMPLOYED, on a link and on a code", () => {
+    const failure = refused(409, { code: "ALREADY_EMPLOYED" });
+    const line =
+      "You already belong to this organization under another record. Ask its admin to sort out the duplicate, then open this invite again.";
+
+    expect(joinRefusal(failure, "link", en)).toEqual({ kind: "inline", message: line });
+    expect(joinRefusal(failure, "code", en)).toEqual({ kind: "inline", message: line });
+    expect(joinRefusal(failure, "code", cs)).toEqual({
+      kind: "inline",
+      message:
+        "V této organizaci už máte jiný záznam. Požádejte jejího správce, ať duplicitu vyřeší, a pak pozvánku otevřete znovu.",
+    });
   });
 
   it("returns the not-found line for a 404 on a code without an invite code", () => {
@@ -223,6 +238,12 @@ describe("joinScreenAction", () => {
     expect(joinScreenAction(invite, ["group-2"], "bob@dev.local")).toBe("already-member");
   });
 
+  it("returns join for a directory invite that names no group, whatever groups the viewer holds", () => {
+    expect(joinScreenAction({ ...invite, groupId: null }, ["group-2"], "alice@dev.local")).toBe(
+      "join"
+    );
+  });
+
   it("returns join for the invited address, compared without letter case", () => {
     expect(joinScreenAction(invite, ["group-1"], "alice@dev.local")).toBe("join");
     expect(joinScreenAction(invite, [], "Alice@Dev.Local")).toBe("join");
@@ -238,6 +259,70 @@ describe("joinScreenAction", () => {
 
   it("returns join while the viewer's address is unknown, leaving the check to the backend", () => {
     expect(joinScreenAction(invite, [], null)).toBe("join");
+  });
+});
+
+describe("inviteCopy", () => {
+  const group = {
+    groupId: "group-2",
+    groupName: "Dev Support",
+    organizationName: "Northwind",
+    inviterName: "Olivia Owner",
+  };
+  const directory = { ...group, groupId: null, groupName: null };
+
+  it("returns the group's lines for a group invite", () => {
+    expect(inviteCopy(group, en)).toEqual({
+      name: "Dev Support",
+      invitedBy: "Olivia Owner invited you to join",
+      join: "Join Dev Support",
+      dead: {
+        used: "Ask Olivia Owner to send you a new one for Dev Support.",
+        expired: "Ask Olivia Owner to send you a new one for Dev Support.",
+        revoked: "Ask Olivia Owner to send you a new one for Dev Support.",
+      },
+    });
+  });
+
+  it("returns the organization's lines for a directory invite that names no group", () => {
+    expect(inviteCopy(directory, en)).toEqual({
+      name: "Northwind",
+      invitedBy: "Olivia Owner invited you to join",
+      join: "Join Northwind",
+      dead: {
+        used: "Ask Olivia Owner to send you a new one for Northwind.",
+        expired: "Ask Olivia Owner to send you a new one for Northwind.",
+        revoked:
+          "Your record at Northwind changed after this invite was sent, or a newer invite replaced it. Ask Olivia Owner for a new one.",
+      },
+    });
+  });
+
+  it("asks an admin of the organization when the directory invite names no inviter", () => {
+    const copy = inviteCopy({ ...directory, inviterName: null }, en);
+
+    expect(copy.invitedBy).toBe("You're invited to join");
+    expect(copy.dead.expired).toBe("Ask an admin of Northwind to send you a new one.");
+    expect(copy.dead.revoked).toBe(
+      "Your record at Northwind changed after this invite was sent, or a newer invite replaced it. Ask an admin there for a new one."
+    );
+  });
+
+  it("returns the Czech lines that say organization, not group", () => {
+    expect(inviteCopy(directory, cs)).toEqual({
+      name: "Northwind",
+      invitedBy: "Olivia Owner vás zve do organizace",
+      join: "Připojit se k organizaci Northwind",
+      dead: {
+        used: "Novou pozvánku do organizace Northwind vám může poslat Olivia Owner.",
+        expired: "Novou pozvánku do organizace Northwind vám může poslat Olivia Owner.",
+        revoked:
+          "Váš záznam v organizaci Northwind se po odeslání pozvánky změnil, nebo ji nahradila novější. Novou vám může poslat Olivia Owner.",
+      },
+    });
+    expect(inviteCopy({ ...directory, inviterName: null }, cs).dead.revoked).toBe(
+      "Váš záznam v organizaci Northwind se po odeslání pozvánky změnil, nebo ji nahradila novější. Novou vám může poslat správce organizace."
+    );
   });
 });
 

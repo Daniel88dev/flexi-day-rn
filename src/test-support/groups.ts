@@ -96,6 +96,8 @@ export function invitePreview(patch: Partial<InvitePreview> = {}): InvitePreview
   return {
     groupId: "group-2",
     groupName: "Dev Support",
+    organizationName: "Olivia Owner",
+    personName: null,
     inviterName: "Olivia Owner",
     invitedEmail: "alice@dev.local",
     status: "open",

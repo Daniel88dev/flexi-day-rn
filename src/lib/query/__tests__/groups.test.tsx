@@ -476,6 +476,40 @@ describe("useJoinGroup", () => {
     expect(pullStore).not.toHaveBeenCalled();
   });
 
+  it("resolves a directory invite that names no group to its organization, with no pull and no name read", async () => {
+    writeReply = () =>
+      answer(201, { groupId: null, claimed: { employmentId: "emp-9", organizationId: "org-1" } });
+
+    expect(await join({ kind: "link", token: "dev-directory" })).toEqual({
+      groupId: null,
+      organizationId: "org-1",
+    });
+    expect(steps).toEqual(["write"]);
+    expect(pullStore).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the directory reads after a join that claimed a record, and only then", async () => {
+    const invalidated = (key: readonly unknown[]) => queryClient.getQueryState(key)?.isInvalidated;
+    queryClient.setQueryData(qk.directoryOrganizations(), []);
+
+    await join({ kind: "code", code: "6TBX-R4MJ-9CPG" });
+    expect(invalidated(qk.directoryOrganizations())).toBe(false);
+
+    writeReply = () =>
+      answer(201, {
+        ...joinedMembership(),
+        claimed: { employmentId: "emp-9", organizationId: "org-1" },
+      });
+    await join({ kind: "code", code: "6TBX-R4MJ-9CPG" });
+    expect(invalidated(qk.directoryOrganizations())).toBe(true);
+
+    queryClient.setQueryData(qk.directoryOrganizations(), []);
+    writeReply = () =>
+      answer(201, { groupId: null, claimed: { employmentId: "emp-9", organizationId: "org-1" } });
+    await join({ kind: "link", token: "dev-directory" });
+    expect(invalidated(qk.directoryOrganizations())).toBe(true);
+  });
+
   it("invalidates the administered read, the group's detail and members and the dashboard summary", async () => {
     const keys = [
       qk.administeredGroups(),

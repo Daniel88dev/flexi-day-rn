@@ -217,6 +217,12 @@ describe("JoinSheet", () => {
       () => refusal(403, { code: "EMAIL_NOT_VERIFIED_USE_INVITE_LINK" }),
       errors.unverified,
     ],
+    [
+      "ALREADY_EMPLOYED",
+      "code",
+      () => refusal(409, { code: "ALREADY_EMPLOYED" }),
+      "You already belong to this organization under another record. Ask its admin to sort out the duplicate, then open this invite again.",
+    ],
     ["a 400 on a code", "code", () => refusal(400), errors.malformedCode],
     ["a 422 on a link cut short", "link", () => refusal(422), errors.brokenLink],
     [
@@ -302,6 +308,20 @@ describe("JoinSheet", () => {
     );
     expect(router.back).toHaveBeenCalledTimes(1);
     expect(toast.success).toHaveBeenCalledWith("You joined Dev Team");
+  });
+
+  it("closes the sheet and toasts the organization for a directory invite that names no group", async () => {
+    writeReply = () =>
+      answer(201, { groupId: null, claimed: { employmentId: "emp-9", organizationId: "org-1" } });
+    await renderSheet();
+    await type("6TBX-R4MJ-9CPG");
+
+    await pressJoin();
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("You joined the organization"));
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.push).not.toHaveBeenCalled();
+    expect(mockFetch.mock.calls.filter(([url]) => DETAIL.test(String(url)))).toHaveLength(0);
   });
 
   it("still opens the group when the pull fails, without its name when that read fails too", async () => {
