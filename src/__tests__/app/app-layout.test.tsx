@@ -11,6 +11,7 @@ import { setDevSignInLanding, takeDevSignInLanding } from "@/lib/session/dev-sig
 import { clearHeldInvite, holdInvite, takeHeldInvite } from "@/lib/session/held-invite";
 import { clearSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
 import { attendance, session } from "@/test-support/attendance";
+import { directoryOrganization } from "@/test-support/directory";
 import { SESSION, VIEWER } from "@/test-support/session";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
@@ -131,6 +132,8 @@ const useSession = authClient.useSession as unknown as jest.Mock;
 const getSession = authClient.getSession as unknown as jest.Mock;
 const serverSignOut = authClient.signOut as unknown as jest.Mock;
 const appState = jest.requireMock("@/lib/app-state").deviceAppState as FakeAppState;
+
+const urls = () => mockFetch.mock.calls.map(([url]) => new URL(String(url)).pathname);
 
 /** The 401 answer the request wrapper hands the store, as the shell wired it. */
 function answerUnauthorized() {
@@ -359,6 +362,55 @@ describe("AppLayout, the My attendance link", () => {
     await waitFor(() => expect(barLabels()).toContain("My attendance"));
     const routes = screen.getAllByTestId("tab-trigger").map((element) => element.props.href);
     expect(routes).toContain("/report-tab");
+  });
+});
+
+describe("AppLayout, the People section", () => {
+  const answerDirectory = (organizations: unknown) =>
+    mockFetch.mockImplementation(async (url: string) =>
+      url.includes("/api/directory/organizations")
+        ? { status: 200, json: async () => organizations }
+        : { status: 404, json: async () => ({}) }
+    );
+
+  async function openMore() {
+    await act(async () => fireEvent.press(await screen.findByTestId("tab-more")));
+  }
+
+  it("lists Directory under People for a viewer in a directory organization", async () => {
+    answerDirectory([
+      directoryOrganization("o-1", { enabled: false }),
+      directoryOrganization("o-2"),
+    ]);
+    await renderShell("signed-in");
+    await openMore();
+
+    expect(await screen.findByTestId("more-directory")).toBeOnTheScreen();
+    expect(screen.getByText("People")).toBeOnTheScreen();
+    expect(screen.getByTestId("more-directory")).toHaveProp("accessibilityLabel", "Directory");
+    await act(async () => fireEvent.press(screen.getByTestId("more-directory")));
+    expect(router.push).toHaveBeenCalledWith("/directory");
+  });
+
+  it("shows no People section on Free or Pro, where no directory is on, and no upsell", async () => {
+    answerDirectory([directoryOrganization("o-1", { enabled: false, role: "OWNER" })]);
+    await renderShell("signed-in");
+    await openMore();
+    await waitFor(() => expect(urls()).toContain("/api/directory/organizations"));
+
+    expect(screen.queryByTestId("more-directory")).toBeNull();
+    expect(screen.queryByText("People")).toBeNull();
+    expect(screen.queryByText(/Enterprise/)).toBeNull();
+  });
+
+  it("marks the Directory row read only once the directory has lapsed", async () => {
+    answerDirectory([directoryOrganization("o-1", { writable: false })]);
+    await renderShell("signed-in");
+    await openMore();
+
+    const row = await screen.findByTestId("more-directory");
+    expect(row).toHaveTextContent("Directoryread only");
+    expect(row).toHaveProp("accessibilityLabel", "Directory, read only");
   });
 });
 

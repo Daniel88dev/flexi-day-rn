@@ -1,0 +1,32 @@
+# Directory, a colleague (T-516): the More sheet's People section opens the directory with no
+# Current/Former switch, the viewer's own row carries You, and search covers names.
+# Signed in as alice@dev.local, a plain member, after the setup in directory-former.yaml:
+#   npm run dev:login:rn -- alice@dev.local --to /dashboard --udid <udid>
+appId: com.flexiday.app
+---
+- openLink: flexiday:///dashboard
+- tapOn:
+    id: tab-more
+- assertVisible: "(?i)people"
+- tapOn:
+    id: more-directory
+- assertVisible:
+    id: "directory-row-.*"
+    text: "Alice Novak.*You"
+- assertVisible:
+    id: "directory-row-.*"
+    text: "Bob Dvorak.*"
+- assertNotVisible:
+    id: directory-segment-former
+- assertNotVisible:
+    id: directory-segment-current
+- takeScreenshot: .maestro/screenshots/directory-colleague
+- tapOn:
+    id: directory-search
+- inputText: "bob"
+- assertVisible:
+    id: "directory-row-.*"
+    text: "Bob Dvorak.*"
+- assertNotVisible:
+    id: "directory-row-.*"
+    text: "Alice Novak.*"

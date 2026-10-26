@@ -55,4 +55,7 @@ export const qk = {
   memberReport: (userId: string, year: number) => ["member-report", userId, year] as const,
   /** Every member report: the prefix the web invalidates after a quota change. */
   memberReports: () => ["member-report"] as const,
+  directoryOrganizations: () => ["directory", "organizations"] as const,
+  directoryPeople: (organizationId: string) => ["directory", "people", organizationId] as const,
+  directoryFormer: (organizationId: string) => ["directory", "former", organizationId] as const,
 };

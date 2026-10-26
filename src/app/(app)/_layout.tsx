@@ -11,6 +11,7 @@ import { MoreSheet } from "@/components/shell/more-sheet";
 import { TabButton } from "@/components/shell/tab-button";
 import { useTranslation } from "@/i18n/use-translation";
 import { useClockRead } from "@/lib/attendance";
+import { directoryEntry } from "@/lib/directory";
 import { openStore } from "@/lib/local-store";
 import {
   attendanceLinkShown,
@@ -19,7 +20,7 @@ import {
   splitForTabBar,
   type NavLink,
 } from "@/lib/navigation/shell-links";
-import { QueryLayer } from "@/lib/query";
+import { QueryLayer, useDirectoryOrganizations } from "@/lib/query";
 import { takeDevSignInLanding } from "@/lib/session/dev-sign-in";
 import { takeHeldInvite } from "@/lib/session/held-invite";
 import { useSessionRevalidation } from "@/lib/session/revalidate-session";
@@ -169,7 +170,7 @@ function barSlot(link: NavLink, onNavigate: (link: NavLink) => void) {
   );
 }
 
-// The bar follows the clock's read, which needs the query layer above it.
+// The bar follows the clock's read and the sheet the directory's, which need the query layer above.
 function ShellLinks({
   children,
 }: {
@@ -177,5 +178,12 @@ function ShellLinks({
 }) {
   const { t } = useTranslation();
   const { view } = useClockRead();
-  return children(splitForTabBar(buildSections(t, { attendanceLink: attendanceLinkShown(view) })));
+  const organizations = useDirectoryOrganizations();
+  // An older backend answers 404 here, and a body of another shape must not take the shell down.
+  const directory = Array.isArray(organizations.data)
+    ? directoryEntry(organizations.data)
+    : undefined;
+  return children(
+    splitForTabBar(buildSections(t, { attendanceLink: attendanceLinkShown(view), directory }))
+  );
 }

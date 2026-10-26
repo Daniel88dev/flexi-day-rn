@@ -29,6 +29,38 @@ describe("buildSections", () => {
   });
 });
 
+describe("buildSections with the directory", () => {
+  const withDirectory = (readOnly: boolean) =>
+    buildSections(en, { attendanceLink: true, directory: { shown: true, readOnly } });
+
+  it("returns a People section with one Directory row for a viewer in a directory organization", () => {
+    const people = withDirectory(false).find((section) => section.id === "people");
+    expect(people?.label).toBe("People");
+    expect(people?.links).toEqual([
+      expect.objectContaining({ key: "directory", label: "Directory", href: "/directory" }),
+    ]);
+    expect(people?.links[0]?.chip).toBeUndefined();
+  });
+
+  it("returns no People section for anyone else, with no upsell", () => {
+    const ids = (directory?: { shown: boolean; readOnly: boolean }) =>
+      buildSections(en, { attendanceLink: true, directory }).map((section) => section.id);
+    expect(ids()).toEqual(["timeOff", "attendance"]);
+    expect(ids({ shown: false, readOnly: false })).toEqual(["timeOff", "attendance"]);
+  });
+
+  it("returns the read only chip on the Directory row once the directory has lapsed", () => {
+    const people = withDirectory(true).find((section) => section.id === "people");
+    expect(people?.links[0]?.chip).toBe("read only");
+  });
+
+  it("keeps the Directory row in the sheet, never on the bar", () => {
+    const { bar, sheet } = splitForTabBar(withDirectory(false));
+    expect(bar.map((link) => link.key)).not.toContain("directory");
+    expect(sheet.map((section) => section.id)).toEqual(["timeOff", "people"]);
+  });
+});
+
 describe("buildUtilityLinks", () => {
   it("returns settings", () => {
     expect(buildUtilityLinks(en).map((link) => link.key)).toEqual(["settings"]);

@@ -22,10 +22,17 @@ function Row({ link, onPress }: { link: NavLink; onPress: (link: NavLink) => voi
     <Pressable
       testID={`more-${link.key}`}
       onPress={() => onPress(link)}
+      accessibilityRole="button"
+      accessibilityLabel={link.chip ? `${link.label}, ${link.chip}` : link.label}
       className="h-12 flex-row items-center gap-3 rounded-2xl px-3 active:opacity-70"
     >
       <Icon icon={link.icon} tone="muted" />
       <Text className="text-[15.5px] font-semibold text-muted-foreground">{link.label}</Text>
+      {link.chip ? (
+        <View className="ml-auto rounded-full bg-warm-soft px-2.5 py-0.5">
+          <Text className="text-[12px] font-semibold text-warm">{link.chip}</Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
