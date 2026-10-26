@@ -1,18 +1,21 @@
 import { router } from "expo-router";
 
 import type { PushPayload } from "@/lib/push/payload";
+import { openWebPage } from "@/lib/web";
 import type { AppNotification } from "@/lib/query";
 
 import { notificationRoute, type NotificationRoute } from "./route";
 
 /**
- * Leaves the notification list for where a notification points. A request stacks over the list,
- * so Back returns to it. My attendance is a tab of the shell under the list, so the list leaves
+ * Leaves the notification list for where a notification points. A request or a group stacks over
+ * the list, so Back returns to it, and a web page opens in a sheet over it. My attendance is a tab of the shell under the list, so the list leaves
  * first: navigating to a tab from a root-stack screen pushes a second shell.
  */
 export function followNotificationRoute(route: NotificationRoute): void {
-  if (route.kind === "request") {
+  if (route.kind === "request" || route.kind === "group") {
     router.push(route.href);
+  } else if (route.kind === "web") {
+    void openWebPage(route.path);
   } else if (route.kind === "attendance") {
     router.back();
     router.navigate(route.href);
@@ -42,8 +45,11 @@ export function openNotification(
  * first, and a link the phone has no screen for opens the notification list.
  */
 export function followPushRoute(route: NotificationRoute): void {
-  if (route.kind === "request") {
+  if (route.kind === "request" || route.kind === "group") {
     router.push(route.href);
+  } else if (route.kind === "web") {
+    router.navigate("/notifications");
+    void openWebPage(route.path);
   } else if (route.kind === "attendance") {
     if (router.canDismiss()) router.dismissAll();
     router.navigate(route.href);

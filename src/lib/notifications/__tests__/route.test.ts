@@ -18,7 +18,35 @@ function attendance(date: string) {
   };
 }
 
+function group(groupId: string) {
+  return {
+    kind: "group",
+    groupId,
+    href: { pathname: "/groups/[groupId]", params: { groupId } },
+  };
+}
+
 describe("notificationRoute", () => {
+  it("returns the group's member list for a manager's account deleted link", () => {
+    expect(notificationRoute("/groups/detail/?groupId=g-1&tab=members")).toEqual(group("g-1"));
+    expect(notificationRoute("https://flexi-day.com/groups/detail?groupId=g%2D2")).toEqual(
+      group("g-2")
+    );
+  });
+
+  it("hands an admin's People card link to the web, where the card lives", () => {
+    expect(notificationRoute("/organization/?organizationId=o-1&employmentId=e-1")).toEqual({
+      kind: "web",
+      path: "/organization/?organizationId=o-1&employmentId=e-1",
+      href: "/notifications",
+    });
+  });
+
+  it("returns the list for a group or organization link without its id", () => {
+    expect(notificationRoute("/groups/detail/?tab=members")).toEqual(LIST);
+    expect(notificationRoute("/organization/")).toEqual(LIST);
+  });
+
   it("returns the request detail for the backend's absolute request link", () => {
     expect(notificationRoute("https://flexi-day.com/requests/?vacationId=v-42")).toEqual(
       request("v-42")
@@ -68,6 +96,7 @@ describe("notificationRoute", () => {
 
   it("returns the list for a page the phone has no screen for", () => {
     expect(notificationRoute("https://flexi-day.com/groups/?groupId=g-1")).toEqual(LIST);
+    expect(notificationRoute("/settings/?groupId=g-1")).toEqual(LIST);
     expect(notificationRoute("/dashboard/")).toEqual(LIST);
     expect(notificationRoute("/requests/new/?vacationId=v-1")).toEqual(LIST);
   });

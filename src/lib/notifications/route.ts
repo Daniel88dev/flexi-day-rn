@@ -3,6 +3,9 @@ import type { Href } from "expo-router";
 export type NotificationRoute =
   | { kind: "request"; vacationId: string; href: Href }
   | { kind: "attendance"; date: string; href: Href }
+  | { kind: "group"; groupId: string; href: Href }
+  /** `href` is where the phone itself stays while the web page opens over it. */
+  | { kind: "web"; path: string; href: Href }
   | { kind: "list"; href: Href };
 
 const LIST: NotificationRoute = { kind: "list", href: "/notifications" };
@@ -40,7 +43,8 @@ function parseWebLink(href: string): WebLink | null {
 
 /**
  * Where a notification's web link opens on the phone: a request link opens its detail, a My
- * attendance link opens that day, and anything else stays on the notification list.
+ * attendance link opens that day, a group's member list opens the group, the People card opens on
+ * the web (the phone has no screen for it), and anything else stays on the notification list.
  */
 export function notificationRoute(href: string | null | undefined): NotificationRoute {
   const link = href ? parseWebLink(href) : null;
@@ -58,6 +62,21 @@ export function notificationRoute(href: string | null | undefined): Notification
   const date = link.params.get("date");
   if (link.path === "/my-attendance" && date && ISO_DAY.test(date)) {
     return { kind: "attendance", date, href: { pathname: "/my-attendance", params: { date } } };
+  }
+
+  const groupId = link.params.get("groupId");
+  if (link.path === "/groups/detail" && groupId) {
+    return { kind: "group", groupId, href: { pathname: "/groups/[groupId]", params: { groupId } } };
+  }
+
+  const organizationId = link.params.get("organizationId");
+  if (link.path === "/organization" && organizationId) {
+    const employmentId = link.params.get("employmentId");
+    const query = [
+      `organizationId=${encodeURIComponent(organizationId)}`,
+      ...(employmentId ? [`employmentId=${encodeURIComponent(employmentId)}`] : []),
+    ].join("&");
+    return { kind: "web", path: `/organization/?${query}`, href: LIST.href };
   }
 
   return LIST;

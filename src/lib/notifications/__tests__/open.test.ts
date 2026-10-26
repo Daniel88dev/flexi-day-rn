@@ -4,6 +4,7 @@ import type { AppNotification } from "@/lib/query";
 
 import { followNotificationRoute, followPushRoute, openNotification, openPushTap } from "../open";
 import { notificationRoute } from "../route";
+import { openWebPage } from "@/lib/web";
 
 jest.mock("expo-router", () => ({
   router: {
@@ -15,7 +16,10 @@ jest.mock("expo-router", () => ({
   },
 }));
 
+jest.mock("@/lib/web", () => ({ openWebPage: jest.fn(() => Promise.resolve()) }));
+
 const push = router.push as jest.Mock;
+const openWeb = openWebPage as jest.Mock;
 const navigate = router.navigate as jest.Mock;
 const back = router.back as jest.Mock;
 const dismissAll = router.dismissAll as jest.Mock;
@@ -106,6 +110,27 @@ describe("followNotificationRoute", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it("pushes the group's member list over the list", () => {
+    const route = notificationRoute("/groups/detail/?groupId=g-1&tab=members");
+
+    followNotificationRoute(route);
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: "/groups/[groupId]",
+      params: { groupId: "g-1" },
+    });
+  });
+
+  it("opens the People card on the web in a sheet over the list", () => {
+    followNotificationRoute(
+      notificationRoute("/organization/?organizationId=o-1&employmentId=e-1")
+    );
+
+    expect(openWeb).toHaveBeenCalledWith("/organization/?organizationId=o-1&employmentId=e-1");
+    expect(push).not.toHaveBeenCalled();
+    expect(back).not.toHaveBeenCalled();
+  });
+
   it("stays on the list for anything else", () => {
     followNotificationRoute({ kind: "list", href: "/notifications" });
 
@@ -165,6 +190,24 @@ describe("followPushRoute", () => {
     followPushRoute(route);
 
     expect(push).toHaveBeenCalledWith(route.href);
+  });
+
+  it("pushes a group's member list over whatever is open", () => {
+    const route = notificationRoute("/groups/detail/?groupId=g-1&tab=members");
+
+    followPushRoute(route);
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: "/groups/[groupId]",
+      params: { groupId: "g-1" },
+    });
+  });
+
+  it("opens the notification list and the People card on the web over it", () => {
+    followPushRoute(notificationRoute("/organization/?organizationId=o-1&employmentId=e-1"));
+
+    expect(navigate).toHaveBeenCalledWith("/notifications");
+    expect(openWeb).toHaveBeenCalledWith("/organization/?organizationId=o-1&employmentId=e-1");
   });
 
   it("opens the notification list for a link the phone has no screen for", () => {

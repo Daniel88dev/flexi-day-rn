@@ -208,6 +208,32 @@ describe("NotificationsScreen", () => {
     await settled();
   });
 
+  it("opens the group's member list from a manager's account deleted notice", async () => {
+    serve([
+      {
+        id: "n-deleted",
+        type: "account_deleted",
+        title: "Jana Nováková deleted their account",
+        body: "Their employment in Acme is still open.",
+        href: "/groups/detail/?groupId=g-1&tab=members",
+        readAt: null,
+        createdAt: ago(HOUR),
+      },
+    ]);
+    await renderScreen();
+
+    expect(await screen.findByText("Jana Nováková deleted their account")).toBeTruthy();
+    expect(screen.getByText("Their employment in Acme is still open.")).toBeTruthy();
+    await fireEvent.press(screen.getByTestId("notification-n-deleted"));
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: "/groups/[groupId]",
+      params: { groupId: "g-1" },
+    });
+    await waitFor(() => expect(calls("POST", "/api/notifications/n-deleted/read")).toHaveLength(1));
+    await settled();
+  });
+
   it("stays on the list for a read notification with nowhere to go, and sends nothing", async () => {
     serve();
     await renderScreen();
