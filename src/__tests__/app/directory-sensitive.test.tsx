@@ -77,7 +77,13 @@ const PRIVATE_PHONE = {
 
 const ALICE: DirectoryProfile = profileOf("alice", "Alice Novak", {
   sections: {
-    card: { level: "READ", jobTitle: "Designer", reportsTo: null },
+    card: {
+      level: "READ",
+      jobTitle: "Designer",
+      reportsTo: null,
+      department: null,
+      location: null,
+    },
     contact: { level: "READ" },
     personal: { level: "READ" },
   },
@@ -242,6 +248,40 @@ describe("Sensitive sections on the profile", () => {
     expect(shows()).toHaveLength(1);
   });
 
+  it("says a refused Show can't open the Section, with no Retry", async () => {
+    answer(showPath("contact"), { status: 403, body: { message: "No read on Contact" } });
+    await renderProfile();
+    await screen.findByText("Alice Novak");
+
+    await fireEvent.press(screen.getByTestId("directory-profile-show-contact"));
+
+    expect(await screen.findByTestId("directory-profile-refused-contact")).toBeOnTheScreen();
+    expect(screen.queryByTestId("directory-profile-retry-contact")).toBeNull();
+    expect(shows()).toHaveLength(1);
+  });
+
+  it("keeps an opened Section when a re-read fails, with the offline line above the profile", async () => {
+    await renderProfile();
+    await screen.findByText("Alice Novak");
+    await fireEvent.press(screen.getByTestId("directory-profile-show-contact"));
+    await section("contact").findByText("+420 777 123 456");
+
+    answer(PROFILE_PATH, "offline");
+    const scroll = screen.getByTestId("directory-profile-scroll");
+    await act(async () => scroll.props.refreshControl.props.onRefresh());
+
+    // A lost answer gets one retry before the read fails.
+    expect(
+      await screen.findByTestId("directory-offline", undefined, { timeout: 4000 })
+    ).toBeOnTheScreen();
+    expect(section("contact").getByText("+420 777 123 456")).toBeOnTheScreen();
+    answer(PROFILE_PATH, { status: 200, body: ALICE });
+    await fireEvent.press(screen.getByTestId("directory-retry"));
+    await waitFor(() => expect(screen.queryByTestId("directory-offline")).toBeNull());
+    expect(section("contact").getByText("+420 777 123 456")).toBeOnTheScreen();
+    expect(shows()).toHaveLength(1);
+  });
+
   it("closes an opened Section on leaving the person, Reports to included", async () => {
     answer(PROFILE_PATH, {
       status: 200,
@@ -253,6 +293,8 @@ describe("Sensitive sections on the profile", () => {
             level: "READ",
             jobTitle: "Designer",
             reportsTo: { employmentId: "e-bob", name: "Bob Boss" },
+            department: null,
+            location: null,
           },
         },
       },

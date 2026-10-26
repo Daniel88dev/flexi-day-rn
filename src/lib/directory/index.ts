@@ -1,4 +1,9 @@
-export { directoryEntry, directoryOrganizations, type DirectoryEntry } from "./entry";
+export {
+  directoryEntry,
+  directoryLapsed,
+  directoryOrganizations,
+  type DirectoryEntry,
+} from "./entry";
 export {
   NO_DIRECTORY_FILTERS,
   directoryFilterOptions,
@@ -8,7 +13,7 @@ export {
   type DirectoryFilters,
   type WorkerTypeFilter,
 } from "./filters";
-export { directoryDate } from "./format";
+export { directoryDate, labelName } from "./format";
 export {
   PROFILE_SECTIONS,
   contactButtons,

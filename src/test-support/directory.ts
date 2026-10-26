@@ -35,8 +35,12 @@ export function directoryPerson(
     employmentId: `e-${id}`,
     name,
     image: null,
+    photoUrl: null,
     user: { id: `u-${id}`, name, initials, avatarColor: "#7c6cf0" },
     markers: [],
+    jobTitle: null,
+    department: null,
+    location: null,
     ...patch,
   };
 }
@@ -51,6 +55,8 @@ export function formerDirectoryPerson(
     ...directoryPerson(id, name),
     startedAt: "2024-01-01T00:00:00.000Z",
     endedAt,
+    nextRemoval: null,
+    hold: false,
     ...patch,
   };
 }

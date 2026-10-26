@@ -30,6 +30,7 @@ const BACKEND_REASONS = [
   "PLAN_LIMIT",
   "ADMIN_ONLY",
   "SESSION_NOT_CHANGED",
+  "EXTERNAL_WORKER",
 ];
 
 const SERVER_TEXT = "The server's own words";

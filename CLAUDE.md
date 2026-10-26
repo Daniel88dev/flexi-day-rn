@@ -212,6 +212,11 @@ throws `ApiError` with the server's message.
   The invite preview, `["invite-preview", token]`, keeps the web's prefix but not its hash of
   the token: this cache is memory only, the phone ships no error reporter, and the read drops
   out of the cache when the Join screen closes (`gcTime` 0).
+  The directory's reads (`src/lib/query/directory.ts`) are never kept either: no Local store
+  table, and `gcTime` 0 drops them once no screen shows them. The values a Show returns never
+  enter the query cache at all; `useShownSections` (`src/lib/directory/shown-sections.ts`) holds
+  them in the profile's own state and drops them when the person leaves it, and while one is open
+  it holds the Privacy cover (`src/lib/privacy-cover.ts`, mounted in `src/app/_layout.tsx`).
 - Nothing polls. Every foreground reads again however fresh the answer, through
   `refetchOnWindowFocus: "always"`, and so do screen focus and the phone's own writes. The one
   exception is `useVacationDetail`: while a file on the open screen is still `UPLOADING`, it reads
@@ -224,8 +229,8 @@ throws `ApiError` with the server's message.
   402, 403 or 409, shows the server's message, reloads the screen's queries and starts a sync
   pull. Any other 4xx shows the server's message. Neither offers Retry, because the same tap
   fails the same way; a 5xx or no answer at all does. It takes a Local store `WriteOutcome` as
-  well as a thrown error. Six sheets, the Join screen, the birthday share switch and the group event
-  editor are exceptions, because the failure belongs where the person is looking. The Clock sheet sorts its writes' failures with
+  well as a thrown error. Six sheets, the Join screen, the birthday share switch, the group event
+  editor and the directory profile's Show are exceptions, because the failure belongs where the person is looking. The Clock sheet sorts its writes' failures with
   `classifyFailure` into notices inside the sheet (`src/lib/attendance/notice.ts`); attendance
   has no sync pull to start. The new-request form shows its failure inline above the entry it kept
   (`submitFailureMessage` in `src/lib/requests/new-request.ts`) and toasts nothing, while a
@@ -246,7 +251,9 @@ throws `ApiError` with the server's message.
   the switch; any other failure goes to the handler. The group event editor words a failed save
   inline (`groupEventFailure` in `src/lib/group-events/failure.ts`), because a toast would sit under
   the sheet, and `useGroupEventWrites` reads the group events again and starts a sync pull on a
-  refusal itself. Deleting a group event goes to the handler.
+  refusal itself. Deleting a group event goes to the handler. A failed Show words its failure inside
+  the Section (`useShownSections`): a refusal or other 4xx says the Section can't be opened, with
+  no Retry, and only a 5xx or no answer offers Retry.
 
 ## Testing
 

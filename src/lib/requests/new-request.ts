@@ -151,6 +151,8 @@ export function submitFailureMessage(failure: WriteFailure, t: Dictionary): stri
   // A lapsed plan makes a group read-only, and a member meets it first here, so the reason is
   // translated rather than left in the server's English.
   if (status === 402 && context?.reason === "READ_ONLY") return labels.readOnlyGroup;
+  if (context?.code === "EXTERNAL_WORKER_ALLOWANCE")
+    return t.request.codes.EXTERNAL_WORKER_ALLOWANCE;
   if (status === 402 && context?.reason === "PLAN_LIMIT") {
     return labels.memberLimitReached(typeof context.limit === "number" ? context.limit : 0);
   }

@@ -85,6 +85,22 @@ describe("createWriteFailureHandler", () => {
     expect(pull).not.toHaveBeenCalled();
   });
 
+  it("words a refusal code the phone knows instead of the server's English", () => {
+    handle(
+      new ApiError(422, "External workers book only leave that draws on no allowance", {
+        code: "EXTERNAL_WORKER_ALLOWANCE",
+      })
+    );
+    handle(
+      new ApiError(403, "External workers don't record attendance", { reason: "EXTERNAL_WORKER" })
+    );
+
+    expect(toast.error.mock.calls).toEqual([
+      [en.request.codes.EXTERNAL_WORKER_ALLOWANCE],
+      [en.request.codes.EXTERNAL_WORKER],
+    ]);
+  });
+
   it("falls back on its own words when a request it could not take carried none", () => {
     handle(new ApiError(404, null));
 

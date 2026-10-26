@@ -323,19 +323,28 @@ function Notices({
 
   if (clock.status === "inactive") {
     const ended = view.state.employmentEnded;
+    const external = !ended && !clock.stranded && view.state.externalWorker === true;
     notices.push(
       <ClockNotice
         key="inactive"
         testID="clock-inactive"
         tone="muted"
         icon={LockSimpleIcon}
-        title={ended ? t.clock.employmentEndedTitle : t.clock.inactiveTitle}
+        title={
+          ended
+            ? t.clock.employmentEndedTitle
+            : external
+              ? t.clock.externalTitle
+              : t.clock.inactiveTitle
+        }
         body={
           ended
             ? t.clock.employmentEndedBody
-            : clock.stranded
-              ? t.clock.inactiveOpenBody
-              : t.clock.inactiveBody
+            : external
+              ? t.clock.externalBody
+              : clock.stranded
+                ? t.clock.inactiveOpenBody
+                : t.clock.inactiveBody
         }
       >
         {clock.stranded ? (

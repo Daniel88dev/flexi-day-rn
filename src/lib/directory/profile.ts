@@ -1,3 +1,4 @@
+import { directoryLapsed } from "./entry";
 import type {
   DirectoryOrganization,
   DirectoryPerson,
@@ -75,7 +76,7 @@ export function selfNotice(
 ): { lapsed: boolean; editPath: string } | null {
   if (!profile.self) return null;
   return {
-    lapsed: organization ? organization.enabled && !organization.writable : false,
+    lapsed: directoryLapsed(organization),
     editPath: profileEditPath(profile.organizationId, profile.employmentId),
   };
 }

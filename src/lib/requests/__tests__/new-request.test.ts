@@ -258,6 +258,17 @@ describe("submitFailureMessage", () => {
     );
   });
 
+  it("returns the External worker allowance refusal in the phone's language", () => {
+    expect(
+      submitFailureMessage(
+        rejected(422, "External workers book only leave that draws on no allowance", {
+          code: "EXTERNAL_WORKER_ALLOWANCE",
+        }),
+        cs
+      )
+    ).toBe(cs.request.codes.EXTERNAL_WORKER_ALLOWANCE);
+  });
+
   it("returns a 409's conflicting days in the phone's own day format", () => {
     expect(
       submitFailureMessage(

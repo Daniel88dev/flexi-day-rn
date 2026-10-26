@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
+import { directoryLapsed, type DirectoryOrganization } from "@/lib/directory";
 
 const ROWS = [0.55, 0.4, 0.62, 0.48, 0.35];
 
@@ -87,13 +88,16 @@ export function DirectoryNote({ testID, message }: { testID: string; message: st
   );
 }
 
+/** Shown only while the organization's plan has lapsed; owners and org admins get a second line. */
 export function LapsedBanner({
-  message,
-  adminLine,
+  organization,
 }: {
-  message: string;
-  adminLine: string | null;
+  organization: DirectoryOrganization | undefined;
 }) {
+  const { t } = useTranslation();
+  if (!organization || !directoryLapsed(organization)) return null;
+  const message = t.directory.lapsed(organization.name);
+  const adminLine = organization.role !== "MEMBER" ? t.directory.lapsedAdmin : null;
   return (
     <View
       testID="directory-lapsed"

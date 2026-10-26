@@ -1,3 +1,9 @@
+import type { DirectoryLabel } from "./types";
+
+/** An archived Department or Location reads as the web shows it, "Name (archived)". */
+export const labelName = (label: DirectoryLabel, archived: (name: string) => string) =>
+  label.archived ? archived(label.name) : label.name;
+
 const CALENDAR_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /**

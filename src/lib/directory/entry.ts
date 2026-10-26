@@ -2,7 +2,10 @@ import type { DirectoryOrganization } from "./types";
 
 export type DirectoryEntry = { shown: boolean; readOnly: boolean };
 
-/** The organizations the phone's directory can open: the ones whose directory is on. */
+/** On, on a plan that no longer passes the directory gate: everything reads, nothing writes. */
+export const directoryLapsed = (organization: DirectoryOrganization | undefined) =>
+  organization !== undefined && organization.enabled && !organization.writable;
+
 export function directoryOrganizations(
   organizations: readonly DirectoryOrganization[]
 ): DirectoryOrganization[] {
@@ -16,5 +19,5 @@ export function directoryOrganizations(
 export function directoryEntry(organizations: readonly DirectoryOrganization[]): DirectoryEntry {
   const open = directoryOrganizations(organizations);
   if (open.length === 0) return { shown: false, readOnly: false };
-  return { shown: true, readOnly: open.every((organization) => !organization.writable) };
+  return { shown: true, readOnly: open.every(directoryLapsed) };
 }

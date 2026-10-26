@@ -189,10 +189,8 @@ function ShellLinks({
   const { t } = useTranslation();
   const { view } = useClockRead();
   const organizations = useDirectoryOrganizations();
-  // An older backend answers 404 here, and a body of another shape must not take the shell down.
-  const directory = Array.isArray(organizations.data)
-    ? directoryEntry(organizations.data)
-    : undefined;
+  // An older backend answers 404 here; the read turns any other shape into a failure.
+  const directory = organizations.data ? directoryEntry(organizations.data) : undefined;
   return children({
     ...splitForTabBar(buildSections(t, { attendanceLink: attendanceLinkShown(view), directory })),
     directory,

@@ -7,6 +7,7 @@ import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
 import {
   directoryDate,
+  labelName,
   rowMarkers,
   rowPicture,
   type DirectoryPerson,
@@ -82,7 +83,6 @@ export function Markers({
   );
 }
 
-/** Opens one spell's profile over the directory. */
 export const openProfile = (organizationId: string, employmentId: string) =>
   router.push({ pathname: "/directory/[employmentId]", params: { employmentId, organizationId } });
 
@@ -139,7 +139,13 @@ export function PersonRow({
   viewerUserId: string | null;
   first: boolean;
 }) {
-  const detail = [person.jobTitle, person.department?.name].filter(Boolean).join(" · ");
+  const { t } = useTranslation();
+  const detail = [
+    person.jobTitle,
+    person.department ? labelName(person.department, t.directory.archived) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <Row
       testID={`directory-row-${person.employmentId}`}
@@ -165,7 +171,7 @@ export function FormerRow({
 }) {
   const { t } = useTranslation();
   const { locale } = t.common;
-  const ended = t.directory.ended(directoryDate(locale, person.endedAt));
+  const ended = person.endedAt ? t.directory.ended(directoryDate(locale, person.endedAt)) : null;
   const lines = [[person.jobTitle, ended].filter(Boolean).join(" · ")];
   const removal = person.nextRemoval;
   if (removal) {

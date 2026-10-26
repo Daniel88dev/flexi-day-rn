@@ -93,6 +93,22 @@ beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 beforeEach(() => jest.clearAllMocks());
 
 describe("ClockWidget", () => {
+  it("tells an External worker there is no attendance for them, not that it is paused", async () => {
+    serve([attendance({ active: false, externalWorker: true })], () => answer(500, {}));
+    await renderWidget();
+
+    expect(await screen.findByText("No attendance for external workers")).toBeTruthy();
+    expect(screen.queryByText("Clocking in is off")).toBeNull();
+    expect(screen.queryByTestId("clock-in")).toBeNull();
+  });
+
+  it("keeps the paused notice for an organization that paused attendance", async () => {
+    serve([attendance({ active: false })], () => answer(500, {}));
+    await renderWidget();
+
+    expect(await screen.findByText("Clocking in is off")).toBeTruthy();
+  });
+
   it("reads /current again on mount, however fresh the cached answer it shows meanwhile", async () => {
     serve([IN], () => answer(500, {}));
 

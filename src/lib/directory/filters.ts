@@ -16,7 +16,7 @@ export const NO_DIRECTORY_FILTERS: DirectoryFilters = {
   type: null,
 };
 
-const COMBINING_MARKS = /[̀-ͯ]/g;
+const COMBINING_MARKS = /[\u0300-\u036f]/g;
 
 /** Lower case without diacritics, so "horakova" finds "Horáková" as it does on the web. */
 function fold(value: string): string {
