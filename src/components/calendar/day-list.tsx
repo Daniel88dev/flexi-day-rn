@@ -3,8 +3,8 @@ import { Pressable, ScrollView, View } from "react-native";
 
 import { BIRTHDAY_PINK } from "@/components/calendar/day-mark";
 import { GroupEventCard } from "@/components/calendar/group-event-card";
-import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { SendingBadge, StatusBadge } from "@/components/requests/badges";
+import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/cn";
 import type { ShownGroupEvent } from "@/lib/group-events/rights";
 import type { CalendarBirthday, CalendarGroupEvent } from "@/lib/local-store";
 import { runDatesLabel } from "@/lib/requests/format";
+import { avatarColor } from "@/lib/viewer/viewer";
 
 function EntryRow({
   entry,
@@ -47,7 +48,7 @@ function EntryRow({
       className="flex-row items-center gap-3 rounded-[16px] px-2 py-2.5 active:bg-muted"
     >
       <View className={cn("h-8 w-[3px] rounded-full", LEAVE_CLASSES[entry.type].fill)} />
-      <PersonAvatar userId={entry.userId} name={entry.userName} size={32} />
+      <Avatar name={entry.userName} color={avatarColor(entry.userId)} size={32} />
       <View className="flex-1">
         <Text className="text-[15px] font-semibold text-foreground" numberOfLines={1}>
           {name}

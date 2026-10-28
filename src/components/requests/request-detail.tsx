@@ -17,12 +17,12 @@ import {
   View,
 } from "react-native";
 
-import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { SendingBadge, StatusBadge, TypeBadge } from "@/components/requests/badges";
 import { AttachmentSection } from "@/components/requests/attachments/attachment-section";
 import { DetailTimeline } from "@/components/requests/detail-timeline";
 import { EditRequestSheet } from "@/components/requests/edit-request-sheet";
 import { askForReason } from "@/components/requests/reason-prompt";
+import { Avatar } from "@/components/ui/avatar";
 import { Icon, useTone } from "@/components/ui/icon";
 import { Notice } from "@/components/ui/notice";
 import { PopoverMenu, type PopoverMenuItem } from "@/components/ui/popover-menu";
@@ -43,6 +43,7 @@ import {
 } from "@/lib/query";
 import { requestLengthLabel, runDatesLabel } from "@/lib/requests/format";
 import { mergeTimeline } from "@/lib/requests/timeline";
+import { avatarColor } from "@/lib/viewer/viewer";
 
 const lengthLabels = (t: Dictionary) => ({
   ...t.common,
@@ -139,7 +140,7 @@ function PersonCard({
   return (
     <View testID="request-detail-person" className="gap-3 rounded-[24px] bg-card px-4 py-3.5">
       <View className="flex-row items-center gap-3">
-        <PersonAvatar userId={userId} name={name} size={40} />
+        <Avatar name={name} color={avatarColor(userId)} size={40} />
         <View className="flex-1">
           <Text className="text-[16px] font-semibold text-foreground" numberOfLines={1}>
             {name ?? "?"}

@@ -1,12 +1,12 @@
 import { ScrollView, View } from "react-native";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
 import type { ReportWindow } from "@/lib/query";
 import { activeRecordTypes, type MemberReport, type ReportPeriod } from "@/lib/report";
 
 import { AllowanceCard } from "./allowance-card";
 import { MemberBookings, MemberChanges, MemberQuotas } from "./member-sections";
-import { ReportAvatar } from "./report-avatar";
 import { PeriodChip } from "./report-filters";
 import { IncompleteNote, ReportStale } from "./report-states";
 
@@ -49,7 +49,13 @@ export function MemberLayout({
       contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 48, gap: 14 }}
     >
       <View className="flex-row items-center gap-3 pt-1">
-        <ReportAvatar user={report.member} color={color} size={52} />
+        <Avatar
+          name={report.member.name}
+          initials={report.member.initials}
+          color={color}
+          size={52}
+          textScale={0.38}
+        />
         <View className="flex-1">
           <Text className="font-display text-[22px] leading-[26px] font-semibold text-foreground">
             {title}

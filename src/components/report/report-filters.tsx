@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 
+import { Avatar } from "@/components/ui/avatar";
 import { useTranslation } from "@/i18n/use-translation";
 import {
   periodChoices,
@@ -19,7 +20,6 @@ import { useToday } from "@/lib/use-today";
 
 import { FilterChip } from "./filter-chip";
 import { OptionSheet, type SheetOption } from "./option-sheet";
-import { ReportAvatar } from "./report-avatar";
 
 export function PeriodChip({
   testID,
@@ -139,7 +139,13 @@ export function ReportFilterBar({
     label: member.name,
     hint: groupNames.join(", "),
     leading: (
-      <ReportAvatar user={member} color={colors[member.id] ?? member.avatarColor} size={30} />
+      <Avatar
+        name={member.name}
+        initials={member.initials}
+        color={colors[member.id] ?? member.avatarColor}
+        size={30}
+        textScale={0.38}
+      />
     ),
   }));
 

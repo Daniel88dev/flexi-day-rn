@@ -1,5 +1,5 @@
 import { MagnifyingGlassIcon, XCircleIcon } from "phosphor-react-native";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 import { FilterChip } from "@/components/report/filter-chip";
@@ -414,36 +414,25 @@ function DirectoryBody() {
   const organizations = useDirectoryOrganizations();
   useRereadDirectoryOnFocus();
 
-  if (organizations.isPending) {
-    return (
-      <View>
-        <Title />
-        <View className="px-4">
-          <DirectorySkeleton />
-        </View>
-      </View>
-    );
+  let body: ReactNode = null;
+  if (organizations.isPending) body = <DirectorySkeleton />;
+  else if (organizations.isError)
+    body = <DirectoryOffline onRetry={() => void organizations.refetch()} />;
+  else {
+    const open = directoryOrganizations(organizations.data);
+    if (open.length > 0) return <Directory organizations={open} />;
   }
-  if (organizations.isError) {
-    return (
-      <View>
-        <Title />
-        <View className="px-4">
-          <DirectoryOffline onRetry={() => void organizations.refetch()} />
-        </View>
-      </View>
-    );
-  }
-  const open = directoryOrganizations(organizations.data);
-  if (open.length === 0) {
-    return (
-      <View>
-        <Title />
+  return (
+    <View>
+      <Title />
+      {body ? (
+        <View className="px-4">{body}</View>
+      ) : (
+        // The note pads itself; inside the frame its line would wrap elsewhere.
         <DirectoryNote testID="directory-unavailable" message={t.directory.unavailable} />
-      </View>
-    );
-  }
-  return <Directory organizations={open} />;
+      )}
+    </View>
+  );
 }
 
 export function DirectoryScreen() {

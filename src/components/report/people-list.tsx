@@ -1,6 +1,7 @@
 import { CaretRightIcon } from "phosphor-react-native";
 import { Pressable, View } from "react-native";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { TABULAR, Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -15,7 +16,6 @@ import {
 } from "@/lib/report";
 
 import { DaysLeftBar } from "./days-left-bar";
-import { ReportAvatar } from "./report-avatar";
 
 function PersonRow({
   row,
@@ -51,7 +51,13 @@ function PersonRow({
         !first && "border-t border-border"
       )}
     >
-      <ReportAvatar user={row.member} color={color} />
+      <Avatar
+        name={row.member.name}
+        initials={row.member.initials}
+        color={color}
+        size={36}
+        textScale={0.38}
+      />
       <View className="flex-1">
         <Text numberOfLines={1} className="text-[15.5px] font-medium text-foreground">
           {row.member.name}

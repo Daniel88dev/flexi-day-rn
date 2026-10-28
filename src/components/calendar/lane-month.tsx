@@ -8,7 +8,7 @@ import {
 } from "@/components/calendar/adjacent-days";
 import { DayMenu } from "@/components/calendar/day-menu";
 import { DayMark, EventRibbons, markLabels } from "@/components/calendar/day-mark";
-import { PersonAvatar } from "@/components/calendar/person-avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { LEAVE_CLASSES } from "@/components/ui/leave-classes";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
@@ -19,7 +19,7 @@ import { monthLabelColumn, monthWeeks } from "@/lib/calendar/month-grid";
 import { cn } from "@/lib/cn";
 import type { DayItems } from "@/lib/group-events/day-menu";
 import { isoDay, type YearMonth } from "@/lib/requests/months";
-import { firstName } from "@/lib/viewer/viewer";
+import { avatarColor, firstName } from "@/lib/viewer/viewer";
 
 const MAX_LANES = 2;
 const CALENDAR_GUTTER = 16;
@@ -114,7 +114,7 @@ function LaneBar({
         <View className="w-[2px]" />
       )}
       {range.userId && width >= AVATAR_MIN_WIDTH ? (
-        <PersonAvatar userId={range.userId} name={range.userName} size={13} />
+        <Avatar name={range.userName} color={avatarColor(range.userId)} size={13} />
       ) : null}
       {!bar.continuesLeft ? (
         <Text

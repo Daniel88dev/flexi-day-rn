@@ -112,20 +112,17 @@ describe("useDirectoryProfile", () => {
   it("returns one profile in the asked language, under a key that carries it", async () => {
     const profile = { employmentId: "e/1", name: "Ada" };
     mockFetch.mockResolvedValue(answer(200, profile));
-    const { result } = await renderHook(() => useDirectoryProfile("o-a", "e/1", "cs"), {
-      wrapper,
-    });
+    const ref = { organizationId: "o-a", employmentId: "e/1" };
+    const { result } = await renderHook(() => useDirectoryProfile(ref, "cs"), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(urls()).toEqual(["/api/directory/o-a/people/e%2F1?language=cs"]);
-    expect(queryClient.getQueryData(qk.directoryProfile("o-a", "e/1", "cs"))).toEqual(profile);
-    expect(queryClient.getQueryData(qk.directoryProfile("o-a", "e/1", "en"))).toBeUndefined();
+    expect(queryClient.getQueryData(["directory", "profile", "o-a", "e/1", "cs"])).toEqual(profile);
+    expect(queryClient.getQueryData(["directory", "profile", "o-a", "e/1", "en"])).toBeUndefined();
   });
 
-  it("returns nothing until both ids are known", async () => {
-    const { result } = await renderHook(() => useDirectoryProfile("o-a", null, "en"), {
-      wrapper,
-    });
+  it("returns nothing until the profile is known", async () => {
+    const { result } = await renderHook(() => useDirectoryProfile(null, "en"), { wrapper });
 
     expect(result.current.fetchStatus).toBe("idle");
     expect(mockFetch).not.toHaveBeenCalled();

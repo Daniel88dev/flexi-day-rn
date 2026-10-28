@@ -1,9 +1,8 @@
-import type { HomeAddress, SensitiveSectionKey } from "./types";
+import type { HomeAddress, ProfileRef, SensitiveSectionKey } from "./types";
 
 /** The only route that carries Contact or Personal values; each call by someone else is logged. */
 export const showSectionPath = (
-  organizationId: string,
-  employmentId: string,
+  { organizationId, employmentId }: ProfileRef,
   section: SensitiveSectionKey,
   language: string
 ) =>

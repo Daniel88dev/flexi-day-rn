@@ -1,6 +1,7 @@
 import { router } from "expo-router";
-import { Image, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
 import type { Dictionary } from "@/i18n";
 import { useTranslation } from "@/i18n/use-translation";
@@ -12,6 +13,7 @@ import {
   rowPicture,
   type DirectoryPerson,
   type FormerDirectoryPerson,
+  type ProfileRef,
   type RowMarker,
 } from "@/lib/directory";
 
@@ -24,36 +26,6 @@ const MARKER_TONE: Record<RowMarker, { surface: string; text: string }> = {
   REJOINED: { surface: "bg-accent", text: "text-primary" },
   YOU: { surface: "bg-ok-soft", text: "text-ok" },
 };
-
-/**
- * The directory's picture: the Profile photo, then the Account picture, then the initials in the
- * person's colour. `uri` overrides the list's small link, as the profile header's full size does.
- */
-export function DirectoryAvatar({
-  person,
-  uri: override,
-  size = 40,
-}: {
-  person: DirectoryPerson;
-  uri?: string | null;
-  size?: number;
-}) {
-  const round = { width: size, height: size, borderRadius: size / 2 };
-  const uri = override === undefined ? rowPicture(person) : override;
-  if (uri) {
-    return <Image source={{ uri }} style={round} accessibilityIgnoresInvertColors />;
-  }
-  return (
-    <View
-      style={{ ...round, backgroundColor: person.user.avatarColor }}
-      className="items-center justify-center"
-    >
-      <Text style={{ fontSize: size * 0.36, color: "#fff" }} className="font-semibold">
-        {person.user.initials || "?"}
-      </Text>
-    </View>
-  );
-}
 
 /** `withTestIDs` only outside a pressable, where iOS would hide them; a row's label reads them. */
 export function Markers({
@@ -83,7 +55,7 @@ export function Markers({
   );
 }
 
-export const openProfile = (organizationId: string, employmentId: string) =>
+export const openProfile = ({ organizationId, employmentId }: ProfileRef) =>
   router.push({ pathname: "/directory/[employmentId]", params: { employmentId, organizationId } });
 
 function Row({
@@ -106,7 +78,7 @@ function Row({
   return (
     <Pressable
       testID={testID}
-      onPress={() => openProfile(organizationId, person.employmentId)}
+      onPress={() => openProfile({ organizationId, employmentId: person.employmentId })}
       accessibilityRole="button"
       accessibilityLabel={label.join(", ")}
       className={cn(
@@ -114,7 +86,14 @@ function Row({
         !first && "border-t border-border"
       )}
     >
-      <DirectoryAvatar person={person} />
+      <Avatar
+        name={person.user.name}
+        initials={person.user.initials}
+        color={person.user.avatarColor}
+        uri={rowPicture(person)}
+        size={40}
+        textScale={0.36}
+      />
       <View className="flex-1">
         <Text className="text-[15.5px] font-semibold text-foreground">{person.name}</Text>
         {lines.map((line) => (
