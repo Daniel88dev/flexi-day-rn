@@ -10,6 +10,7 @@ import { useState, type ReactNode } from "react";
 import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 import { ImageViewer } from "@/components/requests/attachments/image-viewer";
+import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import type { Dictionary } from "@/i18n";
@@ -29,6 +30,7 @@ import {
   type DirectoryLabel,
   type DirectoryOrganization,
   type DirectoryProfile,
+  type ProfileRef,
   type SectionRetention,
 } from "@/lib/directory";
 import {
@@ -40,7 +42,7 @@ import {
 import { useViewer } from "@/lib/viewer/use-viewer";
 import { openWebPage } from "@/lib/web";
 
-import { DirectoryAvatar, Markers, openProfile } from "./directory-row";
+import { Markers, openProfile } from "./directory-row";
 import { DirectoryNote, DirectoryOffline, LapsedBanner } from "./directory-states";
 import { Facts, Section, type Fact } from "./profile-parts";
 import { SensitiveSections } from "./sensitive-sections";
@@ -163,7 +165,16 @@ function Header({
   const subtitle = [card?.jobTitle ?? profile.jobTitle, department && entryName(department, t)]
     .filter(Boolean)
     .join(" · ");
-  const avatar = <DirectoryAvatar person={profile} uri={picture.uri} size={84} />;
+  const avatar = (
+    <Avatar
+      name={profile.user.name}
+      initials={profile.user.initials}
+      color={profile.user.avatarColor}
+      uri={picture.uri}
+      size={84}
+      textScale={0.36}
+    />
+  );
   return (
     <View className="pt-2">
       {picture.viewable ? (
@@ -220,7 +231,11 @@ function CardSection({ profile }: { profile: DirectoryProfile }) {
                 label: copy.reportsTo,
                 value: reportsTo.name,
                 testID: "directory-profile-reports-to",
-                onPress: () => openProfile(profile.organizationId, reportsTo.employmentId),
+                onPress: () =>
+                  openProfile({
+                    organizationId: profile.organizationId,
+                    employmentId: reportsTo.employmentId,
+                  }),
               }
             : { label: copy.reportsTo, value: reportsTo ? copy.reportsHidden : null },
         ]}
@@ -488,21 +503,13 @@ export function ProfileSkeleton() {
   );
 }
 
-export function ProfileBody({
-  organizationId,
-  employmentId,
-  top,
-}: {
-  organizationId: string;
-  employmentId: string;
-  top?: ReactNode;
-}) {
+export function ProfileBody({ profileRef, top }: { profileRef: ProfileRef; top?: ReactNode }) {
   const { t, locale } = useTranslation();
-  const read = useDirectoryProfile(organizationId, employmentId, locale);
+  const read = useDirectoryProfile(profileRef, locale);
   const organizations = useDirectoryOrganizations();
   useRereadDirectoryOnFocus();
   const organization = organizations.data?.find(
-    (candidate) => candidate.organizationId === organizationId
+    (candidate) => candidate.organizationId === profileRef.organizationId
   );
 
   if (read.isPending) {

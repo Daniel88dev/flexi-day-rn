@@ -61,7 +61,7 @@ describe("qk", () => {
     expect(qk.directoryOrganizations()).toEqual(["directory", "organizations"]);
     expect(qk.directoryPeople("o-a")).toEqual(["directory", "people", "o-a"]);
     expect(qk.directoryFormer("o-a")).toEqual(["directory", "former", "o-a"]);
-    expect(qk.directoryProfile("o-a", "e-1", "cs")).toEqual([
+    expect(qk.directoryProfile({ organizationId: "o-a", employmentId: "e-1" }, "cs")).toEqual([
       "directory",
       "profile",
       "o-a",

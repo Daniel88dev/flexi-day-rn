@@ -136,7 +136,7 @@ describe("selfNotice", () => {
 
 describe("profileEditPath", () => {
   it("returns the web edit page with both ids encoded", () => {
-    expect(profileEditPath("o 1", "e&2")).toBe(
+    expect(profileEditPath({ organizationId: "o 1", employmentId: "e&2" })).toBe(
       "/directory/person/edit/?organizationId=o%201&employmentId=e%262"
     );
   });

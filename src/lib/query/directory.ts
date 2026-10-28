@@ -6,6 +6,7 @@ import type {
   DirectoryPeople,
   DirectoryProfile,
   FormerDirectoryPerson,
+  ProfileRef,
 } from "@/lib/directory";
 
 import { qk } from "./keys";
@@ -58,19 +59,16 @@ export function useFormerDirectoryPeople(organizationId: string | null, enabled:
 }
 
 /** `language` names the countries and phone regions in the answer, as the web asks. */
-export function useDirectoryProfile(
-  organizationId: string | null,
-  employmentId: string | null,
-  language: Locale
-) {
+export function useDirectoryProfile(profile: ProfileRef | null, language: Locale) {
+  const ref = profile ?? { organizationId: "", employmentId: "" };
   return useQuery({
-    queryKey: qk.directoryProfile(organizationId ?? "", employmentId ?? "", language),
+    queryKey: qk.directoryProfile(ref, language),
     queryFn: ({ signal }) =>
       apiRequest<DirectoryProfile>(
-        `/api/directory/${encodeURIComponent(organizationId ?? "")}/people/${encodeURIComponent(employmentId ?? "")}?language=${language}`,
+        `/api/directory/${encodeURIComponent(ref.organizationId)}/people/${encodeURIComponent(ref.employmentId)}?language=${language}`,
         { signal }
       ),
-    enabled: organizationId !== null && employmentId !== null,
+    enabled: profile !== null,
     ...NOT_KEPT,
   });
 }

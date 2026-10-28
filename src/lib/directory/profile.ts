@@ -5,6 +5,7 @@ import type {
   DirectoryPhone,
   DirectoryProfile,
   DirectorySectionKey,
+  ProfileRef,
   SectionRetention,
 } from "./types";
 
@@ -66,7 +67,7 @@ export function valueActions(value: ProfileValue): ValueAction[] {
 }
 
 /** The web page that edits one profile. The query string is built by hand: RN's polyfill. */
-export const profileEditPath = (organizationId: string, employmentId: string) =>
+export const profileEditPath = ({ organizationId, employmentId }: ProfileRef) =>
   `/directory/person/edit/?organizationId=${encodeURIComponent(organizationId)}&employmentId=${encodeURIComponent(employmentId)}`;
 
 /** The notice on the viewer's own profile, which sends edits to the web. */
@@ -77,7 +78,7 @@ export function selfNotice(
   if (!profile.self) return null;
   return {
     lapsed: directoryLapsed(organization),
-    editPath: profileEditPath(profile.organizationId, profile.employmentId),
+    editPath: profileEditPath(profile),
   };
 }
 

@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n";
+import type { ProfileRef } from "@/lib/directory";
 import type { ReportFilters } from "@/lib/report";
 
 import { reportFiltersToQuery } from "./report-filters";
@@ -59,6 +60,7 @@ export const qk = {
   directoryOrganizations: () => ["directory", "organizations"] as const,
   directoryPeople: (organizationId: string) => ["directory", "people", organizationId] as const,
   directoryFormer: (organizationId: string) => ["directory", "former", organizationId] as const,
-  directoryProfile: (organizationId: string, employmentId: string, language: Locale) =>
+  /** Takes a `ProfileRef` where the web takes the two ids; the key array is the same. */
+  directoryProfile: ({ organizationId, employmentId }: ProfileRef, language: Locale) =>
     ["directory", "profile", organizationId, employmentId, language] as const,
 };

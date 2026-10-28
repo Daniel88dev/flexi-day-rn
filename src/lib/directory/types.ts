@@ -120,6 +120,9 @@ export type ProfileRetention = {
 
 export type DirectoryAccountStatus = "ACTIVE" | "NO_ACCOUNT" | "DELETED";
 
+/** Which profile: one spell in one organization's directory. A `DirectoryProfile` is one too. */
+export type ProfileRef = { organizationId: string; employmentId: string };
+
 /**
  * `GET /api/directory/{organizationId}/people/{employmentId}`. A Section key is present only when
  * the viewer reads it; Contact and Personal never carry values here.

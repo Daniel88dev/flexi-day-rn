@@ -1,7 +1,7 @@
 import { Fragment, useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
-import { PersonAvatar } from "@/components/calendar/person-avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
 import { useTranslation } from "@/i18n/use-translation";
 import { cn } from "@/lib/cn";
@@ -14,6 +14,7 @@ import {
 import { clockTime } from "@/lib/format";
 import { tabReadState, type Read } from "@/lib/groups/read-state";
 import type { GroupMember, UserYearQuota } from "@/lib/query";
+import { avatarColor } from "@/lib/viewer/viewer";
 
 import { Pill, RetryNotice } from "./parts";
 
@@ -120,7 +121,7 @@ function MemberRow({ member, managerUserId }: { member: GroupMember; managerUser
   const deleted = member.accountDeleted === true;
   return (
     <View testID={`group-member-${member.userId}`} className="flex-row gap-3 px-4 py-3.5">
-      <PersonAvatar userId={member.userId} name={member.user.name} size={36} />
+      <Avatar name={member.user.name} color={avatarColor(member.userId)} size={36} />
       <View className="flex-1">
         <Text className="text-[15.5px] font-semibold text-foreground" numberOfLines={1}>
           {member.user.name}
@@ -171,7 +172,7 @@ function QuotaRow({
   return (
     <View testID={`group-quota-${member.userId}`} className="px-4 py-3.5">
       <View className="flex-row items-center gap-3">
-        <PersonAvatar userId={member.userId} name={member.user.name} size={28} />
+        <Avatar name={member.user.name} color={avatarColor(member.userId)} size={28} />
         <Text className="flex-1 text-[15.5px] font-semibold text-foreground" numberOfLines={1}>
           {member.user.name}
         </Text>

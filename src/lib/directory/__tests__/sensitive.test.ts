@@ -2,7 +2,7 @@ import { addressLines, showSectionPath } from "@/lib/directory";
 
 describe("showSectionPath", () => {
   it("returns the Show route of one Section in the given language", () => {
-    expect(showSectionPath("o a", "e/1", "personal", "cs")).toBe(
+    expect(showSectionPath({ organizationId: "o a", employmentId: "e/1" }, "personal", "cs")).toBe(
       "/api/directory/o%20a/people/e%2F1/show/personal?language=cs"
     );
   });

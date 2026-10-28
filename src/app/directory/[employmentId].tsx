@@ -4,6 +4,7 @@ import { Redirect, useLocalSearchParams } from "expo-router";
 import { ProfileBody } from "@/components/directory/profile-screen";
 import { StackScreen } from "@/components/shell/stack-screen";
 import { useTranslation } from "@/i18n/use-translation";
+import type { ProfileRef } from "@/lib/directory";
 import { useShellUnderneath } from "@/lib/navigation/use-shell-underneath";
 import { queryClient } from "@/lib/query";
 import { useRootRoute } from "@/lib/session/root-route-context";
@@ -12,10 +13,7 @@ import { useRootRoute } from "@/lib/session/root-route-context";
 export default function DirectoryProfileRoute() {
   const route = useRootRoute();
   const { t } = useTranslation();
-  const { employmentId, organizationId } = useLocalSearchParams<{
-    employmentId: string;
-    organizationId: string;
-  }>();
+  const { employmentId, organizationId } = useLocalSearchParams<ProfileRef>();
   const orphaned = useShellUnderneath({
     pathname: "/directory/[employmentId]",
     params: { employmentId, organizationId },
@@ -27,7 +25,9 @@ export default function DirectoryProfileRoute() {
   return (
     <QueryClientProvider client={queryClient}>
       <StackScreen testID="directory-profile" backLabel={t.directory.title}>
-        <ProfileBody organizationId={organizationId ?? ""} employmentId={employmentId ?? ""} />
+        <ProfileBody
+          profileRef={{ organizationId: organizationId ?? "", employmentId: employmentId ?? "" }}
+        />
       </StackScreen>
     </QueryClientProvider>
   );

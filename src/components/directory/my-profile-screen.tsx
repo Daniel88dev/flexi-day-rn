@@ -52,8 +52,10 @@ function MyProfile({ organizations }: { organizations: DirectoryOrganization[] }
     return (
       <ProfileBody
         key={own.employmentId}
-        organizationId={organization.organizationId}
-        employmentId={own.employmentId}
+        profileRef={{
+          organizationId: organization.organizationId,
+          employmentId: own.employmentId,
+        }}
         top={top}
       />
     );

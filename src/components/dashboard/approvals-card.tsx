@@ -2,10 +2,10 @@ import { CheckCircleIcon, CheckIcon, ClockIcon } from "phosphor-react-native";
 import type { ReactNode } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
-import { PersonAvatar } from "@/components/calendar/person-avatar";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { SendingBadge } from "@/components/requests/badges";
 import { askForReason } from "@/components/requests/reason-prompt";
+import { Avatar } from "@/components/ui/avatar";
 import { Icon, useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import type { Dictionary } from "@/i18n/en";
@@ -22,6 +22,7 @@ import {
 } from "@/lib/query";
 import { runDatesLabel } from "@/lib/requests/format";
 import type { RequestRun } from "@/lib/requests/runs";
+import { avatarColor } from "@/lib/viewer/viewer";
 
 function datedRange(range: { from: string; to: string }, t: Dictionary): string {
   const label = runDatesLabel(range, t.requests.runDates);
@@ -55,7 +56,7 @@ function ApprovalItem({
 
   return (
     <View testID={`approval-${key}`} className="flex-row items-start gap-3">
-      <PersonAvatar userId={item.user.id} name={item.user.name} size={38} />
+      <Avatar name={item.user.name} color={avatarColor(item.user.id)} size={38} />
       <View className="flex-1">
         <Pressable
           testID={`approval-${key}-open`}

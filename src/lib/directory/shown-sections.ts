@@ -36,7 +36,8 @@ const SECTIONS: SensitiveSectionKey[] = ["contact", "personal"];
  * person's own Sections open by themselves, since reading them writes nothing.
  */
 export function useShownSections(profile: DirectoryProfile, language: Locale) {
-  const person = `${profile.organizationId}/${profile.employmentId}`;
+  const { organizationId, employmentId } = profile;
+  const person = `${organizationId}/${employmentId}`;
   const [shown, setShown] = useState<Shown>({ person, opened: {}, asking: {} });
   const [focused, setFocused] = useState(true);
   // Bumped on leaving, so a Show that answers after the person left is dropped.
@@ -68,7 +69,7 @@ export function useShownSections(profile: DirectoryProfile, language: Locale) {
         });
       update((state) => ({ ...state, asking: { ...state.asking, [section]: "pending" } }));
       apiRequest<ShownSection>(
-        showSectionPath(profile.organizationId, profile.employmentId, section, language),
+        showSectionPath({ organizationId, employmentId }, section, language),
         { method: "POST" }
       ).then(
         (answer) =>
@@ -86,7 +87,7 @@ export function useShownSections(profile: DirectoryProfile, language: Locale) {
         }
       );
     },
-    [person, profile.organizationId, profile.employmentId, language]
+    [person, organizationId, employmentId, language]
   );
 
   const open = SECTIONS.some((section) => current.opened[section] !== undefined);

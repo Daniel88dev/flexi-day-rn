@@ -49,6 +49,7 @@ export type {
   EmergencyContact,
   HomeAddress,
   PersonalValues,
+  ProfileRef,
   SensitiveSectionKey,
   ShownSection,
   FormerDirectoryPerson,

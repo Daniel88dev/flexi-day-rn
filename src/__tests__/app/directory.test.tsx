@@ -265,6 +265,34 @@ describe("Directory screen", () => {
     });
   });
 
+  it("shows the title over the skeleton while the organizations load", async () => {
+    answer("/api/directory/organizations", "hold");
+
+    await renderDirectory();
+
+    expect(await screen.findByTestId("directory-loading")).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Directory" })).toBeOnTheScreen();
+  });
+
+  it("shows the title over Retry when the organizations can't be read", async () => {
+    answer("/api/directory/organizations", "offline");
+
+    await renderDirectory();
+
+    expect(await screen.findByTestId("directory-offline", {}, { timeout: 5000 })).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Directory" })).toBeOnTheScreen();
+  });
+
+  it("shows the title over the unavailable note when no organization has the directory", async () => {
+    answer("/api/directory/organizations", { status: 200, body: [] });
+
+    await renderDirectory();
+
+    expect(await screen.findByTestId("directory-unavailable")).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Directory" })).toBeOnTheScreen();
+    expect(paths()).not.toContain("/api/directory/o-acme/people");
+  });
+
   it("says the directory is read live and offers Retry when the server can't be reached", async () => {
     answer("/api/directory/o-acme/people", "offline");
 
