@@ -24,14 +24,14 @@
     }
   },
   "dependencies": {
-    "@better-auth/expo": "^1.7.11",
+    "@better-auth/expo": "^1.7.13",
     "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
     "@expo-google-fonts/hanken-grotesk": "^0.4.3",
     "@expo-google-fonts/instrument-serif": "^0.4.1",
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-google-signin/google-signin": "^16.1.5",
     "@tailwindcss/postcss": "4.1.12",
-    "@tanstack/react-query": "^5.104.4",
+    "@tanstack/react-query": "^5.105.0",
     "better-auth": "^1.7.4",
     "drizzle-orm": "^0.45.4",
     "expo": "~57.0.30",
@@ -49,10 +49,10 @@
     "expo-image-picker": "~57.0.20",
     "expo-linking": "~57.0.11",
     "expo-localization": "~57.0.2",
-    "expo-location": "~57.0.21",
-    "expo-network": "~57.0.2",
-    "expo-notifications": "~57.0.23",
-    "expo-router": "~57.0.28",
+    "expo-location": "~57.0.22",
+    "expo-network": "~57.0.3",
+    "expo-notifications": "~57.0.24",
+    "expo-router": "~57.0.29",
     "expo-secure-store": "~57.0.4",
     "expo-sqlite": "~57.0.4",
     "expo-status-bar": "~57.0.1",
@@ -76,7 +76,7 @@
     "tailwindcss": "4.1.12"
   },
   "devDependencies": {
-    "@eslint-react/eslint-plugin": "^5.28.2",
+    "@eslint-react/eslint-plugin": "^5.28.8",
     "@testing-library/react-native": "^14.1.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/jest": "29.5.14",
@@ -92,7 +92,7 @@
     "prettier": "3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.71.2"
+    "typescript-eslint": "^8.72.0"
   },
   "jest": {
     "preset": "jest-expo",
