@@ -73,10 +73,9 @@ starts Metro. `pnpm start` alone is enough once the dev client is installed.
 
 Xcode 27 links against the iOS 27 SDK, and iOS 27 terminates any such app at launch unless it
 adopts the UIKit scene lifecycle: the icon opens and the app closes at once, no dialog. The
-iOS 26.5 simulator does not enforce this, so the simulator can work while the phone does not. Expo
-57.0.23 supports the scene lifecycle behind an opt-in, set in `app.json` through
-`expo-build-properties` as `ios.enableSceneSupport: true`. Keep it on; prebuild then writes the
-`UIApplicationSceneManifest` and the scene delegate into the generated project.
+iOS 26.5 simulator does not enforce this, so the simulator can work while the phone does not. Since
+SDK 58, prebuild writes the `UIApplicationSceneManifest` and the scene delegate into the generated
+project by default, with no opt-in in `app.json`.
 
 ## Reading a launch crash on the phone
 

@@ -125,7 +125,7 @@ describe("Two-factor sheet", () => {
   });
 
   it("enables with an authenticator link, the secret and a code, then says it is on", async () => {
-    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     await renderRoute();
     expect(screen.getByText(copy.enable)).toBeOnTheScreen();
 
@@ -165,7 +165,9 @@ describe("Two-factor sheet", () => {
   });
 
   it("copies and shares the backup codes, one per line", async () => {
-    const share = jest.spyOn(Share, "share").mockResolvedValue({ action: "sharedAction" });
+    const share = jest
+      .spyOn(Share, "share")
+      .mockResolvedValue({ action: "sharedAction", activityType: undefined });
     await renderRoute();
     await enterPassword();
 

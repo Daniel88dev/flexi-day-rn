@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "scheme": "flexiday",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.flexiday.app",
       "icon": "./assets/icon.png",
@@ -23,14 +22,6 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "enableSceneSupport": true
-          }
-        }
-      ],
       [
         "expo-font",
         {

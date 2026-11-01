@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { createRef, type ReactNode } from "react";
-import { DeviceEventEmitter, ScrollView, StyleSheet, TextInput } from "react-native";
+import { DeviceEventEmitter, StyleSheet, TextInput, type ScrollViewInstance } from "react-native";
 
 import { DatesField } from "@/components/requests/fields/dates-field";
 import { HalfDayField } from "@/components/requests/fields/half-day-field";
@@ -148,7 +148,7 @@ describe("NoteField", () => {
         getNativeScrollRef: () => ({
           measureInWindow: (answer: (...frame: number[]) => void) => answer(0, 116, 402, 700),
         }),
-      } as unknown as ScrollView,
+      } as unknown as ScrollViewInstance,
     };
     const showKeyboard = () =>
       act(() => {

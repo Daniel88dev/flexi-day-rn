@@ -1,6 +1,6 @@
 import { CheckIcon, LockKeyIcon, LockKeyOpenIcon } from "phosphor-react-native";
 import { useRef } from "react";
-import { KeyboardAvoidingView, ScrollView, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, ScrollView, View, type TextInputInstance } from "react-native";
 
 import { StackScreen } from "@/components/shell/stack-screen";
 import { Button } from "@/components/ui/button";
@@ -40,8 +40,8 @@ function Changed({ onDone }: { onDone: () => void }) {
 export function ChangePasswordScreen({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation();
   const form = useChangePassword();
-  const nextRef = useRef<TextInput>(null);
-  const confirmRef = useRef<TextInput>(null);
+  const nextRef = useRef<TextInputInstance>(null);
+  const confirmRef = useRef<TextInputInstance>(null);
   const copy = t.settings.password;
 
   return (

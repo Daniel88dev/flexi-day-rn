@@ -202,7 +202,7 @@ export function NotificationsScreen() {
             ) : null}
           </View>
         }
-        ListEmptyComponent={query.isPending ? <Loading /> : failedEmpty ? null : <Empty />}
+        ListEmptyComponent={query.isPending ? <Loading /> : failedEmpty ? undefined : <Empty />}
         refreshControl={
           <RefreshControl refreshing={refreshing} tintColor={primary} onRefresh={refresh} />
         }

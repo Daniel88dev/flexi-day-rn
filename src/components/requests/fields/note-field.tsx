@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { Keyboard, ScrollView, TextInput, View } from "react-native";
+import {
+  Keyboard,
+  TextInput,
+  View,
+  type TextInputInstance,
+  type ScrollViewInstance,
+} from "react-native";
 
 import { FieldLabel } from "@/components/requests/fields/field-label";
 import { useTone } from "@/components/ui/icon";
@@ -13,8 +19,8 @@ import { noteScrollOffset } from "@/lib/requests/note-scroll";
  * differences of window coordinates are used, so the sheet's inset drops out.
  */
 function useScrollAboveKeyboard(
-  scrollRef: RefObject<ScrollView | null>,
-  inputRef: RefObject<TextInput | null>
+  scrollRef: RefObject<ScrollViewInstance | null>,
+  inputRef: RefObject<TextInputInstance | null>
 ) {
   const focusedRef = useRef(false);
 
@@ -80,13 +86,13 @@ export function NoteField({
   value: string;
   onChange: (note: string) => void;
   required: boolean;
-  scrollRef: RefObject<ScrollView | null>;
+  scrollRef: RefObject<ScrollViewInstance | null>;
 }) {
   const { t } = useTranslation();
   const faint = useTone("faint");
   const primary = useTone("primary");
   const [focused, setFocused] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const aboveKeyboard = useScrollAboveKeyboard(scrollRef, inputRef);
 
   return (

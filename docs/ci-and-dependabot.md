@@ -18,18 +18,16 @@ git commit -am "Align SDK-pinned packages with pnpm expo install --fix"
 git push
 ```
 
-SDK upgrades stay by hand: `pnpm expo install expo@^58 --fix`.
+SDK upgrades stay by hand: `pnpm expo install expo@^<sdk>`, then `pnpm expo install --fix`.
 
-## Expo patches and the trust policy
+## Expo patches and the age gate
 
-Expo publishes SDK 57 patches without provenance, while its SDK 58 releases carry it, so pnpm's
-`trustPolicy: no-downgrade` rejects every new 57.x version as a possible takeover
-(`ERR_PNPM_TRUST_DOWNGRADE`). `trustPolicyExclude` in `pnpm-workspace.yaml` lists each one by
-exact version, so an `expo-sdk` patch bump fails its install until the new versions join the list.
-Before adding one, check that `pnpm view <pkg>@<version> _npmUser` names a maintainer that
-`pnpm view <pkg> maintainers` lists. Then add the versions the error names. The error shows at
-most 20, so run `pnpm install` again until it passes. A plain install also drops the versions the
-lockfile no longer holds (`trustPolicyExcludePrune`). If Dependabot cannot open the PR at all, make
-the same patch bump by hand on a branch.
+`pnpm expo install --fix` asks Expo's servers for the newest patch of each package, and Expo
+publishes a batch of patches at once. Any of them younger than the 3-day `minimumReleaseAge` fails
+the install (`ERR_PNPM_NO_MATURE_MATCHING_VERSION`). Install the newest mature patch of each one
+with `pnpm add <pkg>@~<version>` instead, and leave the rest to the next `expo-sdk` PR.
+`pnpm expo install --check` and `expo-doctor` report the gap as a patch mismatch until then.
 
-The move to SDK 58 removes the whole list.
+`typescript` is excluded from Expo's version checks (`expo.install.exclude` in `package.json`).
+It is an alias for `@typescript/typescript6`, whose versions do not follow the `typescript` patches
+Expo asks for, and `typecheck` runs TypeScript 7 through `@typescript/native`.
