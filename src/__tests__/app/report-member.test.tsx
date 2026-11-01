@@ -291,7 +291,9 @@ describe("Member report route", () => {
     await renderMember();
     await screen.findByTestId("member-report");
 
-    expect(screen.getAllByTestId(/^quota-chart-VACATION-col-\d+$/)).toHaveLength(12);
+    await waitFor(() =>
+      expect(screen.getAllByTestId(/^quota-chart-VACATION-col-\d+$/)).toHaveLength(12)
+    );
     expect(screen.queryByTestId("allowance-VACATION-expand")).toBeNull();
     expect(screen.queryByTestId(/^quota-chart-SICK_DAY/)).toBeNull();
     const expand = screen.getByTestId("allowance-SICK_DAY-expand");
