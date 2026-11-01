@@ -18,7 +18,6 @@ import {
   formerDirectoryPerson,
 } from "@/test-support/directory";
 import { fakeFiles } from "@/test-support/fake-file-system";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 import packageJson from "../../../package.json";
 
@@ -144,8 +143,6 @@ const ANSWERS: Record<string, unknown> = {
 let folder: string;
 let storeFile: string;
 const kvWrites = jest.spyOn(SQLiteStorage.prototype, "setItemSync");
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(async () => {
   folder = mkdtempSync(join(tmpdir(), "directory-not-kept-"));

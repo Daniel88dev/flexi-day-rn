@@ -7,7 +7,6 @@ import { TranslationProvider } from "@/i18n/use-translation";
 import { clearHeldInvite, heldInvite, holdInvite } from "@/lib/session/held-invite";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { openWebPage } from "@/lib/web";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -26,8 +25,6 @@ jest.mock("expo-localization", () => ({ getLocales: jest.fn(() => [{ languageCod
 
 const openPage = openWebPage as jest.MockedFunction<typeof openWebPage>;
 const back = router.back as jest.Mock;
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

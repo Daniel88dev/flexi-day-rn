@@ -11,7 +11,6 @@ import { queryClient, type AdministeredGroup } from "@/lib/query";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { administeredGroup } from "@/test-support/groups";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -80,8 +79,6 @@ const never = () => new Promise<Answer>(() => undefined);
 
 const administeredRequests = () =>
   mockFetch.mock.calls.filter(([url]) => ADMINISTERED.test(String(url))).length;
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeAll(() => {
   // A read that got no answer is tried once more; without the wait, so failures settle at once.

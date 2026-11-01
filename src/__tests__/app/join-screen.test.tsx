@@ -27,7 +27,6 @@ import {
 } from "@/lib/session/signed-out-notice";
 import { openWebPage } from "@/lib/web";
 import { groupDetail, invitePreview, joinedMembership } from "@/test-support/groups";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -156,8 +155,6 @@ function storeGroup(id: string): MyGroup {
 const openWith = (patch: Partial<InvitePreview> = {}) => {
   previewReply = () => answer(200, invitePreview(patch));
 };
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

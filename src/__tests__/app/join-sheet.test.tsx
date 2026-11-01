@@ -12,7 +12,6 @@ import { qk, queryClient } from "@/lib/query";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { groupDetail, joinedMembership } from "@/test-support/groups";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -64,8 +63,6 @@ const DETAIL = /\/api\/group\/group-1$/;
 let writeReply: () => Answer | Promise<Answer>;
 
 const writes = () => mockFetch.mock.calls.filter(([url]) => WRITE.test(String(url)));
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

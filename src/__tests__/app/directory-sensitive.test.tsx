@@ -15,7 +15,6 @@ import {
   directoryOrganization as org,
   directoryProfile as profileOf,
 } from "@/test-support/directory";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockBlurs = new Set<() => void>();
@@ -143,8 +142,6 @@ afterEach(() => {
   queryClient.clear();
   jest.restoreAllMocks();
 });
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 async function renderProfile() {
   return render(

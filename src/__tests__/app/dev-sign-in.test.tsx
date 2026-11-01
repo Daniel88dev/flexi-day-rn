@@ -11,7 +11,6 @@ import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider, useRootRoute } from "@/lib/session/root-route-context";
 import { clearSignedOutNotice, signedOutNoticeShowing } from "@/lib/session/signed-out-notice";
 import { VIEWER } from "@/test-support/session";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockNavigation = { getState: jest.fn(), reset: jest.fn() };
 
@@ -50,8 +49,6 @@ const replace = router.replace as jest.Mock;
 
 const SHELL = { key: "app-1", name: "(app)" };
 const HERE = { key: "dev-sign-in-1", name: "dev-sign-in" };
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

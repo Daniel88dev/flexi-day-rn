@@ -13,7 +13,6 @@ import {
 } from "@/lib/local-store";
 import { authClient } from "@/lib/session/auth-client";
 import { SESSION, VIEWER } from "@/test-support/session";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 jest.mock("@/lib/local-store", () => ({
   pull: jest.fn(),
@@ -86,8 +85,6 @@ let choose: (index: number) => void = () => {};
 jest.spyOn(ActionSheetIOS, "showActionSheetWithOptions").mockImplementation((_options, cb) => {
   choose = cb;
 });
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

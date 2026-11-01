@@ -6,7 +6,6 @@ import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { pull } from "@/lib/local-store";
 import { queryClient, type BirthdaySettings as Settings } from "@/lib/query";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 
@@ -81,8 +80,6 @@ async function renderCard() {
   await renderBare();
   await waitFor(() => expect(screen.getByTestId("settings-birthday")).toBeEnabled());
 }
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

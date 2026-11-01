@@ -4,9 +4,6 @@ import { useState } from "react";
 import { Pressable, Text } from "react-native";
 
 import { PopoverMenu, type PopoverMenuItem } from "@/components/ui/popover-menu";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 function Harness({ items }: { items: PopoverMenuItem[] }) {
   const [open, setOpen] = useState(false);
