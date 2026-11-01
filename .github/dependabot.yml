@@ -10,6 +10,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    # Matches minimumReleaseAge in pnpm-workspace.yaml, so a routine bump never proposes a version
+    # the install would reject as too new.
+    cooldown:
+      default-days: 3
     groups:
       expo-sdk:
         patterns:

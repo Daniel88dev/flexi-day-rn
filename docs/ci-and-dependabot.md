@@ -19,3 +19,17 @@ git push
 ```
 
 SDK upgrades stay by hand: `pnpm expo install expo@^58 --fix`.
+
+## Expo patches and the trust policy
+
+Expo publishes SDK 57 patches without provenance, while its SDK 58 releases carry it, so pnpm's
+`trustPolicy: no-downgrade` rejects every new 57.x version as a possible takeover
+(`ERR_PNPM_TRUST_DOWNGRADE`). `trustPolicyExclude` in `pnpm-workspace.yaml` lists each one by
+exact version, so an `expo-sdk` patch bump fails its install until the new versions join the list.
+Before adding one, check that `pnpm view <pkg>@<version> _npmUser` names a maintainer that
+`pnpm view <pkg> maintainers` lists. Then add the versions the error names. The error shows at
+most 20, so run `pnpm install` again until it passes. A plain install also drops the versions the
+lockfile no longer holds (`trustPolicyExcludePrune`). If Dependabot cannot open the PR at all, make
+the same patch bump by hand on a branch.
+
+The move to SDK 58 removes the whole list.
