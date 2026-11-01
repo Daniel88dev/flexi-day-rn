@@ -10,7 +10,6 @@ import { queryClient } from "@/lib/query";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { signOut } from "@/lib/session/sign-out";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -87,8 +86,6 @@ function answer(status: number, body?: unknown) {
 
 let status: unknown;
 let deleted: () => ReturnType<typeof answer>;
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

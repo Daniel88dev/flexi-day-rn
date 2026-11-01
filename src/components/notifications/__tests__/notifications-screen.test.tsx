@@ -9,7 +9,6 @@ import { cs } from "@/i18n/cs";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { queryClient, type AppNotification } from "@/lib/query";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 
@@ -153,8 +152,6 @@ queryClient.setDefaultOptions({
   ...defaults,
   mutations: { ...defaults.mutations, gcTime: Infinity },
 });
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

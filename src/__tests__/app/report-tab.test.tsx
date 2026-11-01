@@ -7,7 +7,6 @@ import { TranslationProvider } from "@/i18n/use-translation";
 import { queryClient } from "@/lib/query";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { ownerOverview, ownerScope } from "@/test-support/report";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => false);
@@ -55,8 +54,6 @@ async function renderTab() {
     </QueryClientProvider>
   );
 }
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

@@ -16,7 +16,6 @@ import {
 } from "@/lib/local-store/test-support/sync-fixtures";
 import { openTestStore } from "@/lib/local-store/test-support/test-store";
 import { useApprovalDecisions, useMyApprovals, type PendingApproval } from "@/lib/query";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
 jest.mock("expo-haptics", () => ({
@@ -75,8 +74,6 @@ async function pullIn(page: Partial<SyncEnvelope>) {
     store.write((transaction) => applyPage(transaction, syncPage(page), 1));
   });
 }
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(async () => {
   jest.useFakeTimers({

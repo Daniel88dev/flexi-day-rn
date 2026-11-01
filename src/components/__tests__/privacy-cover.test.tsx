@@ -3,11 +3,8 @@ import { AppState, type AppStateStatus } from "react-native";
 
 import { PrivacyCover } from "@/components/privacy-cover";
 import { holdPrivacyCover } from "@/lib/privacy-cover";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 let changeTo: (state: AppStateStatus) => void = () => undefined;
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.spyOn(AppState, "addEventListener").mockImplementation((_event, listener) => {

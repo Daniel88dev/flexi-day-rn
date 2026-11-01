@@ -25,7 +25,6 @@ import {
   useMySettings,
   type MySettings,
 } from "@/lib/query";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockWrites = {
   create: jest.fn(async () => {}),
@@ -98,8 +97,6 @@ async function pullIn(page: Partial<SyncEnvelope>) {
     store.write((transaction) => applyPage(transaction, syncPage(page), 1));
   });
 }
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(async () => {
   jest.useFakeTimers({

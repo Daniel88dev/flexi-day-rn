@@ -19,7 +19,6 @@ import {
   reportScope,
 } from "@/test-support/report";
 import { pressableProblems } from "@/test-support/accessibility";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -130,8 +129,6 @@ async function renderReport(route: RootRoute = "signed-in") {
     </RootRouteProvider>
   );
 }
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   jest.clearAllMocks();

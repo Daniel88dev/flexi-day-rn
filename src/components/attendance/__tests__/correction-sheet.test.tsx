@@ -6,7 +6,6 @@ import { CorrectionSheet } from "@/components/attendance/correction-sheet";
 import { TranslationProvider } from "@/i18n/use-translation";
 import type { AttendanceEvent, AttendanceSession, AttendanceState } from "@/lib/attendance";
 import { attendance, attendanceMonth, pause, session } from "@/test-support/attendance";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockGuard = jest.fn();
@@ -135,8 +134,6 @@ const setTime = (testID: string, hours: number, minutes: number) =>
   );
 
 const saveButton = () => screen.getByTestId("correction-save");
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeEach(() => {
   // Sunday 27 September 2026, 18:19 in Prague.

@@ -106,6 +106,9 @@
     "setupFiles": [
       "<rootDir>/jest/modal-dismiss.js"
     ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest/warm-up.js"
+    ],
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/ios/",

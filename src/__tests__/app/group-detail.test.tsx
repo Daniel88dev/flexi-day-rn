@@ -9,7 +9,6 @@ import { queryClient, type GroupDetail } from "@/lib/query";
 import type { RootRoute } from "@/lib/session/root-route";
 import { RootRouteProvider } from "@/lib/session/root-route-context";
 import { GROUP_ACCESS, groupDetail, groupMember, userYearQuota } from "@/test-support/groups";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -117,8 +116,6 @@ function serve() {
 // Jest's 5 s default is wall-clock. It bounds how long the worker may be starved, not the tens of
 // milliseconds of work these tests do, and T-547 reads as a stall that wide.
 jest.setTimeout(20_000);
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeAll(() => {
   // A read that got no answer is tried once more; without the wait, so failures settle at once.

@@ -12,7 +12,6 @@ import {
   directoryPerson as person,
   formerDirectoryPerson as former,
 } from "@/test-support/directory";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -96,8 +95,6 @@ beforeEach(() => {
 });
 
 afterEach(() => queryClient.clear());
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 const paths = () => mockFetch.mock.calls.map(([url]) => new URL(String(url)).pathname);
 

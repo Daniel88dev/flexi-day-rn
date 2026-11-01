@@ -15,7 +15,6 @@ import {
   directoryOrganization as org,
   directoryProfile as profileOf,
 } from "@/test-support/directory";
-import { WARM_UP_TIMEOUT, warmUpReactNative } from "@/test-support/warm-up";
 
 const mockFetch = jest.fn();
 const mockCanGoBack = jest.fn(() => true);
@@ -150,8 +149,6 @@ beforeEach(() => {
 });
 
 afterEach(() => queryClient.clear());
-
-beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 async function renderProfile(
   employmentId: string,
