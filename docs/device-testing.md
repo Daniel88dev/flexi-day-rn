@@ -15,12 +15,12 @@ the APNs sandbox; see [Push on a dev client](#push-on-a-dev-client).
   does not matter.
 - A UTF-8 locale in the shell that runs `pod install`. Without one CocoaPods dies with
   `Unicode Normalization not appropriate for ASCII-8BIT`. Terminal.app sets `LANG` by default; a
-  shell that does not needs `export LANG=en_US.UTF-8`; `npm run ios:device` sets it for the
+  shell that does not needs `export LANG=en_US.UTF-8`; `pnpm run ios:device` sets it for the
   commands it runs.
 - The Apple ID added under Xcode › Settings › Accounts, as a member of the paid team. Xcode creates
   an "Apple Development" certificate the first time it signs. The team id lives in `app.json` as
   `ios.appleTeamId`, so `expo prebuild` stamps it into the generated project and
-  `npm run ios:device` passes it to `xcodebuild`; nothing has to be clicked in Xcode after a
+  `pnpm run ios:device` passes it to `xcodebuild`; nothing has to be clicked in Xcode after a
   regeneration. The id is the `OU` of the certificate subject, not the value in
   parentheses in its name:
 
@@ -31,12 +31,12 @@ the APNs sandbox; see [Push on a dev client](#push-on-a-dev-client).
 ## Simulator
 
 ```bash
-npm run ios
+pnpm run ios
 ```
 
 Generates `ios/` if missing, runs `pod install`, builds, installs on the default simulator and
-starts Metro. `npm start` alone is enough once the dev client is installed.
-`npm run prebuild` regenerates `ios/` from scratch, pods included, so the next `npm run ios` runs
+starts Metro. `pnpm start` alone is enough once the dev client is installed.
+`pnpm run prebuild` regenerates `ios/` from scratch, pods included, so the next `pnpm run ios` runs
 `pod install` again.
 
 ## Phone, first time
@@ -49,17 +49,18 @@ starts Metro. `npm start` alone is enough once the dev client is installed.
 4. Build, install and launch:
 
    ```bash
-   npm run ios:device
+   pnpm run ios:device
    ```
 
    With one connected iPhone the script picks it; paired phones that are locked away or out of
    reach are skipped. With more than one, name it with
-   `npm run ios:device -- --device <udid|name>` (`xcrun devicectl list devices` lists them). It
-   generates `ios/` first if it is missing, and reruns `pod install` when `package-lock.json` is
+   `pnpm run ios:device --device <udid|name>` (`xcrun devicectl list devices` lists them). It
+   generates `ios/` first if it is missing, and reruns `pod install` when `pnpm-lock.yaml` is
    newer than `ios/Pods/Manifest.lock`, which is when a dependency change can add or bump a native
-   module. A change to `app.json` or a config plugin still needs `npm run prebuild` first. It
+   module. That `pod install` also rewrites the `node_modules/.pnpm/` paths in `Podfile.lock`,
+   which move with every dependency change. A change to `app.json` or a config plugin still needs `pnpm run prebuild` first. It
    then signs with the team from `app.json` and registers the device with it. The default
-   is a Debug dev client, which loads its JavaScript from Metro, so keep `npm start` running.
+   is a Debug dev client, which loads its JavaScript from Metro, so keep `pnpm start` running.
    The launch needs the phone unlocked; if it was locked, the install still lands and the script
    prints the `devicectl` command that launches it.
 
@@ -116,7 +117,7 @@ machine.
 ## When the profile changes
 
 A development profile on the paid team lasts a year, and a capability added to the App ID makes it
-stale before then. Either way, run `npm run ios:device` again, with the same `--configuration` as
+stale before then. Either way, run `pnpm run ios:device` again, with the same `--configuration` as
 the build on the phone. The script lets Xcode create a new profile whether the store is empty or
 not; no Xcode UI needed. A new profile may have to be trusted again on the phone (step 5 above)
 before the app opens.
@@ -139,13 +140,13 @@ backend:
 2. Build, install and launch:
 
    ```bash
-   npm run ios:device -- --configuration Release
+   pnpm run ios:device --configuration Release
    ```
 
 3. After each new profile the phone asks for trust again: Settings › General › VPN & Device
    Management › the Apple ID under Developer App › Trust.
 4. Put `.env` back the way step 1 found it: restore the old contents, or delete the file if step 1
-   created it. Otherwise every later Debug build and `npm start` targets production too.
+   created it. Otherwise every later Debug build and `pnpm start` targets production too.
 
 A Release build is still signed with a development profile, so its push token is a sandbox one,
 whatever `__DEV__` says.
@@ -195,7 +196,7 @@ ID invalid, so regenerate each one:
    Tick **Associated Domains** under Capabilities, press **Save**, then **Confirm**. With automatic
    signing Xcode can usually enable the capability on the App ID by itself, so this tick is the
    sure path rather than a hard requirement.
-2. `npm run prebuild`, then `npm run ios:device`. The script passes `-allowProvisioningUpdates`,
+2. `pnpm run prebuild`, then `pnpm run ios:device`. The script passes `-allowProvisioningUpdates`,
    so Xcode replaces the development profile with one that carries the capability.
    `expo run:ios --device` would not, and its build fails with "Provisioning profile … doesn't
    include the com.apple.developer.associated-domains entitlement"; see
@@ -205,7 +206,7 @@ ID invalid, so regenerate each one:
 3. The App Store profile is EAS's to refresh; see "Associated Domains" in
    [`releasing.md`](releasing.md).
 
-The simulator needs no profile, so `npm run prebuild` and `npm run ios` are enough there.
+The simulator needs no profile, so `pnpm run prebuild` and `pnpm run ios` are enough there.
 
 Check what a Debug build is signed with. A Release build lands in
 `ios/build/Build/Products/Release-iphoneos/` instead.
@@ -234,8 +235,8 @@ Test the `https` link end to end on a TestFlight build.
 ## Google, Microsoft and Apple sign-in
 
 `@react-native-google-signin/google-signin` and `expo-apple-authentication` ship native code and a
-config plugin each, so they reach the dev client only through `npm run prebuild` and a rebuild with
-`npm run ios` or `npm run ios:device`. Microsoft needs neither; Metro alone picks it up. Google
+config plugin each, so they reach the dev client only through `pnpm run prebuild` and a rebuild with
+`pnpm run ios` or `pnpm run ios:device`. Microsoft needs neither; Metro alone picks it up. Google
 and Microsoft open their sheets on the simulator. Apple needs a real phone, because the simulator
 has no Apple Account signed in. The portal side and the first interactive `eas build` are in
 [`native-sign-in-setup.md`](native-sign-in-setup.md).
@@ -243,7 +244,7 @@ has no Apple Account signed in. The portal side and the first interactive `eas b
 ### Google needs a rebuild
 
 `@react-native-google-signin/google-signin` ships native code, so the rule in
-[`CLAUDE.md`](../CLAUDE.md) for such packages applies: `npm run prebuild`, then a dev-client
+[`CLAUDE.md`](../CLAUDE.md) for such packages applies: `pnpm run prebuild`, then a dev-client
 rebuild. Its config plugin registers the reversed iOS client id from `app.json` (`iosUrlScheme`) as
 a URL scheme. That is not a capability, so no provisioning profile changes.
 
@@ -264,8 +265,8 @@ and closing it comes back as "Sign-in was cancelled."
 
 `expo-apple-authentication` ships native code, and `ios.usesAppleSignIn` in `app.json` adds the
 `com.apple.developer.applesignin` entitlement. Both reach the dev client only through
-`npm run prebuild` and a rebuild. Sign in with Apple is a capability, so the phone's development
-profile goes stale when it is added: `npm run ios:device` refreshes it, as it does for Associated
+`pnpm run prebuild` and a rebuild. Sign in with Apple is a capability, so the phone's development
+profile goes stale when it is added: `pnpm run ios:device` refreshes it, as it does for Associated
 Domains. The App ID already carries the capability, and the App Store profile is EAS's to refresh
 on the first interactive `eas build` (section 5.2 of
 [`native-sign-in-setup.md`](native-sign-in-setup.md#52-the-first-eas-build-once)). The simulator

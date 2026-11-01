@@ -149,11 +149,11 @@ describe("needsPodInstall", () => {
     expect(needsPodInstall(null, null)).toBe(true);
   });
 
-  it("returns true when package-lock.json is newer than the Pods manifest", () => {
+  it("returns true when pnpm-lock.yaml is newer than the Pods manifest", () => {
     expect(needsPodInstall(100, 200)).toBe(true);
   });
 
-  it("returns false when the Pods manifest is as new as package-lock.json or newer", () => {
+  it("returns false when the Pods manifest is as new as pnpm-lock.yaml or newer", () => {
     expect(needsPodInstall(200, 200)).toBe(false);
     expect(needsPodInstall(300, 200)).toBe(false);
     expect(needsPodInstall(300, null)).toBe(false);

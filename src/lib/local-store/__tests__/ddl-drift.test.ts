@@ -32,9 +32,9 @@ describe("STORE_DDL", () => {
     const out = mkdtempSync(join(tmpdir(), "flexi-ddl-"));
     try {
       execFileSync(
-        "npx",
+        "pnpm",
         // prettier-ignore
-        ["drizzle-kit", "generate", "--dialect", "sqlite", "--driver", "expo",
+        ["exec", "drizzle-kit", "generate", "--dialect", "sqlite", "--driver", "expo",
          "--schema", SCHEMA, "--out", out, "--name", "store"],
         { cwd: REPO_ROOT, stdio: "pipe" }
       );

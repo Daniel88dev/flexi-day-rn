@@ -42,9 +42,12 @@ build, so App Store Connect never sees the same one twice. `eas build:version:ge
 `EXPO_PUBLIC_API_URL=https://api.flexi-day.com`; `EXPO_PUBLIC_WEB_URL` falls back to
 `https://flexi-day.com` in code. A new `EXPO_PUBLIC_*` variable needs a production value there too.
 
-The profile pins Node to an exact version (`"node"` in `eas.json`), not `.nvmrc`'s `24`, because
-the builder runs `npm ci` with the npm that ships with that Node, and `package-lock.json` only
-installs cleanly under the npm major that wrote it. Move the pin together with the local Node.
+The profile pins Node to an exact version (`"node"` in `eas.json`), not `.nvmrc`'s `24`, so the
+builder runs the Node the app was tested on rather than whatever its image ships. Move the pin
+together with the local Node. A profile that pins `node` gets the image's own pnpm unless it names
+one too, so `"pnpm"` in `eas.json` repeats the version in `packageManager` and changes with it.
+EAS picks the package manager by lockfile and checks for
+`package-lock.json` before `pnpm-lock.yaml`, so a stray `package-lock.json` makes it build with npm.
 
 ## Export compliance
 
@@ -70,7 +73,7 @@ capability; [`device-testing.md`](device-testing.md) has the whole setup. A capa
 App ID makes the App Store profile EAS holds invalid, so the first build after it needs a new one.
 
 `eas build` syncs the App ID's capabilities with the entitlements in the introspected config
-(`npx expo config --type introspect`), then checks the profile against the App ID. Run that first
+(`pnpm expo config --type introspect`), then checks the profile against the App ID. Run that first
 build interactively, without `--non-interactive`, and sign in to Apple when it asks. EAS enables
 Associated Domains if the portal step was skipped, and offers to replace the invalid profile.
 `eas credentials -p ios` shows the profile and can remove it before the build, which then creates
