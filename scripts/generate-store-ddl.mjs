@@ -16,7 +16,7 @@ const generatedModule = join(root, "src/lib/local-store/ddl.generated.ts");
 rmSync(migrationsDir, { recursive: true, force: true });
 mkdirSync(migrationsDir, { recursive: true });
 
-execFileSync("npx", ["drizzle-kit", "generate", "--name", "store"], {
+execFileSync("pnpm", ["exec", "drizzle-kit", "generate", "--name", "store"], {
   cwd: root,
   stdio: "inherit",
 });
@@ -38,7 +38,7 @@ const statements = sql
 writeFileSync(
   generatedModule,
   [
-    `// Generated from src/lib/local-store/drizzle by \`npm run store:ddl\`. Do not edit by hand.`,
+    `// Generated from src/lib/local-store/drizzle by \`pnpm run store:ddl\`. Do not edit by hand.`,
     ``,
     `export const STORE_DDL: readonly string[] = [`,
     ...statements.map((statement) => `${JSON.stringify(statement)},`),
@@ -47,6 +47,9 @@ writeFileSync(
   ].join("\n")
 );
 
-execFileSync("npx", ["prettier", "--write", generatedModule], { cwd: root, stdio: "inherit" });
+execFileSync("pnpm", ["exec", "prettier", "--write", generatedModule], {
+  cwd: root,
+  stdio: "inherit",
+});
 
 console.log(`wrote ${statements.length} statements from ${files[0]}`);

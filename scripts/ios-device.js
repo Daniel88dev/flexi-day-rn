@@ -7,7 +7,7 @@ const { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } =
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 
-const USAGE = `Usage: npm run ios:device -- [--configuration Debug|Release] [--device <udid|name>]
+const USAGE = `Usage: pnpm run ios:device [--configuration Debug|Release] [--device <udid|name>]
 
   --configuration  Debug (default) loads JavaScript from Metro; Release embeds the bundle.
   --device         UDID, devicectl identifier or name. Optional with a single connected iPhone.`;
@@ -173,17 +173,17 @@ function main() {
 
   const iosDir = join(root, "ios");
   if (!existsSync(iosDir)) {
-    run("npx", ["expo", "prebuild", "--platform", "ios"], { cwd: root, env });
+    run("pnpm", ["run", "prebuild"], { cwd: root, env });
   } else if (
     needsPodInstall(
       mtime(join(iosDir, "Pods", "Manifest.lock")),
-      mtime(join(root, "package-lock.json"))
+      mtime(join(root, "pnpm-lock.yaml"))
     )
   ) {
     run("pod", ["install"], { cwd: iosDir, env });
   }
   const workspace = readdirSync(iosDir).find((f) => f.endsWith(".xcworkspace"));
-  if (!workspace) throw new Error("ios/ has no .xcworkspace; run npm run prebuild");
+  if (!workspace) throw new Error("ios/ has no .xcworkspace; run pnpm run prebuild");
   const scheme = workspace.replace(/\.xcworkspace$/, "");
   const derivedDataPath = join(iosDir, "build");
 
@@ -222,7 +222,7 @@ function main() {
     );
   }
   if (options.configuration === "Debug") {
-    console.log("\nA Debug build loads its JavaScript from Metro: keep `npm start` running.");
+    console.log("\nA Debug build loads its JavaScript from Metro: keep `pnpm start` running.");
   }
 }
 

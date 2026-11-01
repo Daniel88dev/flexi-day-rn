@@ -7,6 +7,7 @@
   "build": {
     "production": {
       "node": "24.21.0",
+      "pnpm": "12.16.1",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.flexi-day.com"

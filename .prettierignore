@@ -4,4 +4,4 @@ android
 .expo
 coverage
 dist
-package-lock.json
+pnpm-lock.yaml

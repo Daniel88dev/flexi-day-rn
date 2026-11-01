@@ -34,7 +34,7 @@ mode follows the system; the app never calls `Appearance.setColorScheme`.
 ## Consequences
 
 - The pins stay exact until NativeWind v5 goes stable. Lifting them is its own issue in this repo.
-- The `latest` npm tag will not move during the RC, so `npm install nativewind` without a version
+- The `latest` npm tag will not move during the RC, so `pnpm add nativewind` without a version
   would downgrade to v4. Always install with the exact version.
 - Retreat path if the RC misbehaves: `nativewind@4.2.7` with `tailwindcss@~3.4`, tokens as a hex
   table in `tailwind.config.js` (the research doc carries the converted table), `darkMode` left

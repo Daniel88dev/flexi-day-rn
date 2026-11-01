@@ -2,6 +2,7 @@
   "name": "flexi-day-rn",
   "version": "0.0.0",
   "private": true,
+  "packageManager": "pnpm@12.16.1+sha512.091d1dee7927575661b25dab3c2ae31cafc1c54d6b71ed6a6600cf0c1cb10434a447eae14015f1b23e2e6bedeed79df94a932e2164d2832280dce3fb32f656d1",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start --dev-client",
@@ -17,12 +18,6 @@
     "test:watch": "jest --watch"
   },
   "license": "MIT",
-  "//": "eslint-plugin-expo declares eslint as a dependency rather than a peer, which pins a second ESLint 9 in the tree. It never requires eslint at runtime — its rules are built on @typescript-eslint/utils — so it reads the root one instead.",
-  "overrides": {
-    "eslint-plugin-expo": {
-      "eslint": "$eslint"
-    }
-  },
   "dependencies": {
     "@better-auth/expo": "^1.7.13",
     "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
@@ -81,6 +76,7 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.4",
+    "@types/react-test-renderer": "^19.3.0",
     "better-sqlite3": "^13.0.3",
     "drizzle-kit": "^0.31.11",
     "eslint": "^10.13.0",
@@ -91,6 +87,7 @@
     "jest-expo": "~57.0.6",
     "prettier": "3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "react-test-renderer": "19.2.3",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.0"
   },

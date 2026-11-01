@@ -27,7 +27,7 @@ The store is a cache and never migrates. A schema change deletes the file and re
   creates it again from the generated DDL, and stamps the new version. A stored user id that is
   not the session's is treated the same way, which also covers a half-failed wipe.
 - The DDL is one committed migration file, `src/lib/local-store/drizzle/0000_store.sql`.
-  `npm run store:ddl` (`scripts/generate-store-ddl.mjs`) deletes that folder, runs
+  `pnpm run store:ddl` (`scripts/generate-store-ddl.mjs`) deletes that folder, runs
   `drizzle-kit generate` with the expo driver from `drizzle.config.ts`, deletes `meta/` and
   `migrations.js` again, splits the SQL on drizzle's statement breakpoints, and writes the
   statements into `ddl.generated.ts`. Neither file is edited by hand.
@@ -36,7 +36,7 @@ The store is a cache and never migrates. A schema change deletes the file and re
 - `__tests__/ddl-drift.test.ts` asserts that the drizzle folder holds exactly one `.sql` file,
   that `STORE_DDL` equals its statements, and that `drizzle-kit generate` into a temp directory
   produces the same statements from the current `schema.ts`. A schema change that skips
-  `npm run store:ddl` fails there.
+  `pnpm run store:ddl` fails there.
 
 The file also carries no encryption beyond what iOS gives it. SQLCipher was considered and
 declined:
@@ -50,7 +50,7 @@ declined:
 
 ## Consequences
 
-- A schema change is three steps: edit `schema.ts`, run `npm run store:ddl`, bump `STORE_VERSION`.
+- A schema change is three steps: edit `schema.ts`, run `pnpm run store:ddl`, bump `STORE_VERSION`.
   Forgetting the second fails the drift test; forgetting the third ships a file the app opens with
   the wrong tables.
 - The first launch after such an update pulls a full snapshot. The store is empty while it runs, so

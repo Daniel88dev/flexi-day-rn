@@ -115,7 +115,7 @@ through and the status is **In production**.
 
 ### 1.3 What goes into the app
 
-- `npx expo install @react-native-google-signin/google-signin` (16.1.5 at research time, new
+- `pnpm expo install @react-native-google-signin/google-signin` (16.1.5 at research time, new
   architecture supported, pod `GoogleSignIn ~> 9.0`).
 - The config plugin in `app.json`, in its no-Firebase mode. It takes one option and validates that
   it starts with `com.googleusercontent.apps.`:
@@ -137,7 +137,7 @@ through and the status is **In production**.
 - Both ids are public and end up in the binary either way, so they live as committed constants in
   `src/lib/auth/provider-config.ts` (`GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`), shared by
   every environment. No `EXPO_PUBLIC_*` variable carries them and `eas.json` holds nothing for them.
-- Then `LANG=en_US.UTF-8 npm run prebuild` and `npm run ios` or `npm run ios:device`. A URL scheme
+- Then `LANG=en_US.UTF-8 pnpm run prebuild` and `pnpm run ios` or `pnpm run ios:device`. A URL scheme
   is not a capability, so this does not touch provisioning profiles.
 
 ## 2. Entra
@@ -184,7 +184,7 @@ own `tid`, which is how Microsoft shapes `iss` for work and for personal account
 
 ### 2.3 What goes into the app
 
-- `npx expo install expo-auth-session`. No config plugin, no native code, no rebuild; it rides on the
+- `pnpm expo install expo-auth-session`. No config plugin, no native code, no rebuild; it rides on the
   `flexiday` scheme and on `expo-crypto` and `expo-web-browser`, both installed.
 - `fetchDiscoveryAsync("https://login.microsoftonline.com/common/v2.0")` and an `AuthRequest` with
   the redirect `flexiday://auth`, scopes `openid profile email` and a random `nonce`. Without
@@ -296,7 +296,7 @@ they arrive only once this is done.
 
 ### 3.5 What goes into the app
 
-- `npx expo install expo-apple-authentication`.
+- `pnpm expo install expo-apple-authentication`.
 - In `app.json`: `"usesAppleSignIn": true` under `ios`, and `"expo-apple-authentication"` in
   `plugins`.
 - `signInAsync` takes a `nonce` and returns `identityToken`, `authorizationCode`, `email`,
@@ -388,13 +388,13 @@ After sections 1.3, 2.3 and 3.5 the `app.json` diff is: the Google plugin with `
 nothing.
 
 ```bash
-LANG=en_US.UTF-8 npm run prebuild
-npm run ios:device
+LANG=en_US.UTF-8 pnpm run prebuild
+pnpm run ios:device
 ```
 
 The device script passes `-allowProvisioningUpdates`, so Xcode replaces the development profile with
 one that carries the new capability, as it did for Associated Domains
-([`device-testing.md`](device-testing.md), "Invite links open the app"). `npm run ios` for the
+([`device-testing.md`](device-testing.md), "Invite links open the app"). `pnpm run ios` for the
 simulator.
 
 ### 5.2 The first `eas build`, once
@@ -476,7 +476,7 @@ sign-in that the table below does not explain starts there.
 
 | Symptom                                                                                                  | Cause                                                                                      | Fix                                                                                                     |
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| App fails at the import with a missing native module                                                     | `google-signin` or `expo-apple-authentication` installed without a dev-client rebuild      | `npm run prebuild`, then `npm run ios` or `npm run ios:device`                                          |
+| App fails at the import with a missing native module                                                     | `google-signin` or `expo-apple-authentication` installed without a dev-client rebuild      | `pnpm run prebuild`, then `pnpm run ios` or `pnpm run ios:device`                                       |
 | "failed to determine clientID - GoogleService-Info.plist was not found and iosClientId was not provided" | `GoogleSignin.configure` called without `iosClientId`                                      | Pass the iOS client id from 1.1                                                                         |
 | Prebuild rejects `iosUrlScheme`                                                                          | It must start with `com.googleusercontent.apps.`                                           | Copy the "iOS URL scheme" from the client's page, not the client id                                     |
 | 401 `INVALID_TOKEN` on Google                                                                            | Token `aud` is not the backend's `GOOGLE_CLIENT_ID`                                        | `GOOGLE_WEB_CLIENT_ID` in `src/lib/auth/provider-config.ts` must equal the backend's `GOOGLE_CLIENT_ID` |

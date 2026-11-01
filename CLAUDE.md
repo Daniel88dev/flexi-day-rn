@@ -22,8 +22,8 @@ sync cursor, tombstone, sync reset, pending change, provisional row); use them, 
 
 ## Continuous native generation
 
-`ios/` is generated, gitignored, and never committed. `npm run prebuild` regenerates it from
-`app.json`; `npm run ios` builds and runs the dev client through Xcode. A native change goes into
+`ios/` is generated, gitignored, and never committed. `pnpm run prebuild` regenerates it from
+`app.json`; `pnpm run ios` builds and runs the dev client through Xcode. A native change goes into
 `app.json` or a config plugin, never into `ios/` by hand. Android is untouched for now: the code
 stays cross-platform, but nothing is configured or tested there.
 
@@ -35,8 +35,8 @@ signs with the paid Apple Developer Program team, whose id sits in `app.json` as
 TestFlight through `eas submit`; the loop, the credentials and the App Store Connect ids are in
 [`docs/releasing.md`](docs/releasing.md). Dev-client builds stay on Xcode; the phone setup and how
 the app finds the backend are in
-[`docs/device-testing.md`](docs/device-testing.md). `npm run ios` targets the simulator,
-`npm run ios:device` the phone. The latter is `scripts/ios-device.js`, not `expo run:ios --device`:
+[`docs/device-testing.md`](docs/device-testing.md). `pnpm run ios` targets the simulator,
+`pnpm run ios:device` the phone. The latter is `scripts/ios-device.js`, not `expo run:ios --device`:
 Expo drops `-allowProvisioningUpdates` whenever the project names a team, so it cannot refill an
 empty profile store. The script passes the flags itself. `--configuration Release` embeds the bundle
 and reads the backend URL from `.env`; see "Production build" in the same doc.
@@ -54,11 +54,20 @@ built with Xcode 27 that lacks it, and only a real phone shows that.
 
 Adding a package that ships native iOS code (most `expo-*` modules, and
 `@react-native-community/datetimepicker`; `package.json` lists the ones already here) means
-`npm run prebuild` and then `npm run ios` or `npm run ios:device` to rebuild the dev client. Metro
+`pnpm run prebuild` and then `pnpm run ios` or `pnpm run ios:device` to rebuild the dev client. Metro
 alone cannot load them, and the JavaScript fails at the import with a missing native module until
 the rebuild lands. `expo-file-system` is a direct dependency as well, but `expo` itself already
 links it, so it needs no rebuild. A non-interactive shell has no UTF-8 `LANG`, and CocoaPods quits
-without one, so run `LANG=en_US.UTF-8 npm run prebuild` there.
+without one, so run `LANG=en_US.UTF-8 pnpm run prebuild` there.
+
+The repo uses pnpm on its default isolated linker, pinned by `packageManager` in `package.json`.
+`pnpm-workspace.yaml` denies the `esbuild` and `@tailwindcss/oxide` build scripts and fails an
+install that brings a new one. `Podfile.lock` records pod paths inside
+`node_modules/.pnpm/<peer hash>/`, which move whenever a dependency does, so after any dependency
+change run `pnpm run prebuild` before building the dev client with `pnpm run ios`.
+`pnpm run ios:device` reruns `pod install` itself when `pnpm-lock.yaml` is newer than the pods,
+which refreshes the same paths. `eas.json` pins the same pnpm version as `packageManager`; see
+[`docs/releasing.md`](docs/releasing.md).
 
 The backend base URL comes from `src/lib/api.ts`: `EXPO_PUBLIC_API_URL` when set, otherwise the
 Metro host on port 8080. Never hardcode `localhost`; a phone cannot reach it.
@@ -162,9 +171,9 @@ unexported.
 
 It is a cache, so it never migrates
 ([`docs/adr/0002`](docs/adr/0002-local-store-is-a-cache-never-migrated.md)). `drizzle-kit generate`
-writes the one migration file in `src/lib/local-store/drizzle/`, and `npm run store:ddl`
+writes the one migration file in `src/lib/local-store/drizzle/`, and `pnpm run store:ddl`
 regenerates it and copies it into `ddl.generated.ts`; neither is edited by hand. A schema change
-is: edit `schema.ts`, run `npm run store:ddl`, which deletes that folder and regenerates it, then
+is: edit `schema.ts`, run `pnpm run store:ddl`, which deletes that folder and regenerates it, then
 bump `STORE_VERSION` in `version.ts`. On open, a `STORE_VERSION` that differs from
 `PRAGMA user_version` deletes the file and creates it again, and the next sync pull refills it
 from a snapshot. `__tests__/ddl-drift.test.ts` fails on a schema changed without a regeneration,
@@ -257,7 +266,7 @@ throws `ApiError` with the server's message.
 
 ## Testing
 
-- Jest with `jest-expo` and `@testing-library/react-native`: `npm run test`, `npm run test:watch`.
+- Jest with `jest-expo` and `@testing-library/react-native`: `pnpm run test`, `pnpm run test:watch`.
 - Tests live next to their source in a `__tests__/` folder, except for anything under `src/app/`:
   Expo Router would turn a test file there into a route. Route files stay thin and their tests
   go in `src/__tests__/app/`.
@@ -273,7 +282,7 @@ throws `ApiError` with the server's message.
 
 `.claude/settings.json` runs `prettier --write` after every Write and Edit, so files reformat
 immediately after you touch them. Take the reformatted version as current rather than re-editing
-to restore your own spacing. A file written through Bash skips that hook; run `npm run format`.
+to restore your own spacing. A file written through Bash skips that hook; run `pnpm run format`.
 
 ## Branching
 

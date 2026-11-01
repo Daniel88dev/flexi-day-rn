@@ -7,7 +7,7 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Continuous native generation: `npm run prebuild` regenerates these, never commit them.
+# Continuous native generation: `pnpm run prebuild` regenerates these, never commit them.
 /ios
 /android
 

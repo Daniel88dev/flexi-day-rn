@@ -1,9 +1,10 @@
 version: 2
 
 updates:
-  # Expo pins the versions of the packages it ships with the SDK, and Dependabot cannot run
-  # `npx expo install --fix`. So Expo moves by patch only, in one group, and whoever handles that
-  # PR runs `npx expo install --fix` on its branch (see README). SDK upgrades are by hand.
+  # The npm ecosystem also covers pnpm and reads pnpm-lock.yaml. Expo pins the versions of the
+  # packages it ships with the SDK, and Dependabot cannot run `pnpm expo install --fix`. So Expo
+  # moves by patch only, in one group, and whoever handles that PR runs `pnpm expo install --fix`
+  # on its branch (see README). SDK upgrades are by hand.
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -31,10 +32,11 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: jest-expo
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
-      # Exact SDK pins: only `npx expo install --fix` moves these.
+      # Exact SDK pins: only `pnpm expo install --fix` moves these.
       - dependency-name: react
       - dependency-name: react-dom
       - dependency-name: react-native
+      - dependency-name: react-test-renderer
       - dependency-name: react-native-reanimated
       - dependency-name: react-native-worklets
       - dependency-name: "@react-native-community/datetimepicker"

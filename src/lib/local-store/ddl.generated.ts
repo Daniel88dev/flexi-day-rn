@@ -1,4 +1,4 @@
-// Generated from src/lib/local-store/drizzle by `npm run store:ddl`. Do not edit by hand.
+// Generated from src/lib/local-store/drizzle by `pnpm run store:ddl`. Do not edit by hand.
 
 export const STORE_DDL: readonly string[] = [
   "CREATE TABLE `bankHolidays` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`date` text NOT NULL,\n\t`name` text NOT NULL,\n\t`country` text NOT NULL,\n\t`region` text,\n\t`createdAt` text NOT NULL,\n\t`updatedAt` text NOT NULL,\n\t`generation` integer DEFAULT 0 NOT NULL\n);",
