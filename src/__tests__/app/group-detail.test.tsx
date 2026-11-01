@@ -114,6 +114,10 @@ function serve() {
   });
 }
 
+// Jest's 5 s default is wall-clock. It bounds how long the worker may be starved, not the tens of
+// milliseconds of work these tests do, and T-547 reads as a stall that wide.
+jest.setTimeout(20_000);
+
 beforeAll(warmUpReactNative, WARM_UP_TIMEOUT);
 
 beforeAll(() => {
