@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local test data for Groups, run after `npm run dev:reset` and `npm run dev:scenario` from the
+# Local test data for Groups, run after `pnpm run dev:reset` and `pnpm run dev:scenario` from the
 # workspace root, and nina.marek@dev.local seeded with no team (the flexi-dev MCP server's
 # dev_seed_user without teamName; `dev:seed` always adds one). `dev:reset` wipes it again.
 #

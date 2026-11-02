@@ -2,7 +2,7 @@
 # opens the notice from the notification list onto their own directory profile.
 # Setup: an Enterprise organization with the member in a group, then the owner enables with
 #   {"agreementVersion": 1, "tellMembers": true}
-#   npm run dev:login:rn -- <member email> --to /notifications --udid <udid>
+#   pnpm run dev:login:rn <member email> --to /notifications --udid <udid>
 appId: com.flexiday.app
 ---
 - openLink: flexiday:///notifications

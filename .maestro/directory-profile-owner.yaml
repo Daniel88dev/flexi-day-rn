@@ -5,7 +5,7 @@
 #   Alice: job title, Reports to Bob, work email and phone; Bob: work phone, no work email;
 #   Frank ended with a work email and phone (Work contact 30 days) and a Photo retention purge;
 #   Erin ended under a retention hold.
-#   npm run dev:login:rn -- owner@dev.local --to /directory --udid <udid>
+#   pnpm run dev:login:rn owner@dev.local --to /directory --udid <udid>
 appId: com.flexiday.app
 ---
 - openLink: flexiday:///directory

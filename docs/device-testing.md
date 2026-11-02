@@ -167,7 +167,7 @@ Native requests carry no `Origin` header, so the backend's CORS list does not ap
 better-auth's `trustedOrigins` still has to include the `flexiday://` scheme for the sign-in flow;
 that lands with the native session work.
 
-Sign-in on the phone uses the real flow against the LAN backend. `npm run dev:scenario` at the
+Sign-in on the phone uses the real flow against the LAN backend. `pnpm run dev:scenario` at the
 workspace root seeds users and prints their password.
 
 On the simulator a dev build skips the form: `flexiday://dev-sign-in?ticket=…&to=/path` redeems a
