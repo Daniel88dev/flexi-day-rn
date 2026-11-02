@@ -87,7 +87,7 @@ jest.spyOn(ActionSheetIOS, "showActionSheetWithOptions").mockImplementation((opt
 
 let alert: { title: string; buttons: AlertButton[] } | null = null;
 jest.spyOn(Alert, "alert").mockImplementation((title, _message, buttons) => {
-  alert = { title, buttons: (buttons ?? []) as AlertButton[] };
+  alert = { title: title ?? "", buttons: (buttons ?? []) as AlertButton[] };
 });
 const openSettings = jest.spyOn(Linking, "openSettings").mockResolvedValue(undefined);
 

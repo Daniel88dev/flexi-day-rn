@@ -14,7 +14,9 @@ const covered = (state: AppStateStatus | null) => state === "inactive" || state 
  */
 export function PrivacyCover() {
   const held = usePrivacyCoverHeld();
-  const [state, setState] = useState<AppStateStatus | null>(AppState.currentState);
+  const [state, setState] = useState<AppStateStatus | null>(
+    (AppState.currentState as AppStateStatus | null | undefined) ?? null
+  );
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", setState);

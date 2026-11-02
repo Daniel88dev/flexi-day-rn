@@ -1,5 +1,12 @@
 import { useRef, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  View,
+  type ScrollViewInstance,
+} from "react-native";
 
 import { HalfDayField } from "@/components/requests/fields/half-day-field";
 import { NoteField } from "@/components/requests/fields/note-field";
@@ -38,7 +45,7 @@ export function EditRequestSheet({
   const primary = useTone("primary");
   const [values, setValues] = useState<EditValues>(() => editValuesOf(detail));
   const group = useGroupDetail(open ? detail.groupId : null).data;
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const set = (patch: Partial<EditValues>) => setValues((current) => ({ ...current, ...patch }));
   const patch = editPatch(detail, values);

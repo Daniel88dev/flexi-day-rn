@@ -1,7 +1,7 @@
 # flexi-day-rn
 
 The iPhone app for [Flexi Day](https://flexi-day.com), a vacation and day-off management product.
-Expo SDK 57, Expo Router, TypeScript, NativeWind v5. It talks to
+Expo SDK 58, Expo Router, TypeScript, NativeWind v5. It talks to
 [flexi-day-be](https://github.com/Daniel88dev/flexi-day-be) and lives alongside the other repos in
 [flexi-day-workspace](https://github.com/Daniel88dev/flexi-day-workspace).
 
@@ -21,7 +21,7 @@ Expo SDK 57, Expo Router, TypeScript, NativeWind v5. It talks to
 | `pnpm run ios:device` | build, install and launch on a paired iPhone ([docs](docs/device-testing.md)) |
 | `pnpm run prebuild`   | regenerate `ios/` from `app.json` (continuous native gen)                     |
 | `pnpm run lint`       | eslint, with warnings failing the run                                         |
-| `pnpm run typecheck`  | `tsc --noEmit`                                                                |
+| `pnpm run typecheck`  | `tsc --noEmit` on TypeScript 7                                                |
 | `pnpm run format`     | prettier over the repo                                                        |
 | `pnpm run test`       | jest                                                                          |
 

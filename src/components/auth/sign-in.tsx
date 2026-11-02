@@ -1,6 +1,6 @@
 import { ArrowRightIcon, EnvelopeIcon, LockKeyIcon } from "phosphor-react-native";
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, ScrollView, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, ScrollView, View, type TextInputInstance } from "react-native";
 
 import { ProviderButton } from "@/components/auth/provider-button";
 import { ScreenHeader } from "@/components/auth/screen-header";
@@ -27,7 +27,7 @@ export function SignIn({
   const { t } = useTranslation();
   const form = useSignIn();
   const social = useSocialSignIn();
-  const passwordRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
   const [emailOpen, setEmailOpen] = useState(() => Boolean(heldInvite()?.invitedEmail));
   const [lastTried, setLastTried] = useState<"email" | "social">("email");
 

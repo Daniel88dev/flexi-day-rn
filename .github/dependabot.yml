@@ -44,12 +44,18 @@ updates:
       - dependency-name: react-native-reanimated
       - dependency-name: react-native-worklets
       - dependency-name: "@react-native-community/datetimepicker"
+      - dependency-name: react-native-svg
+      - dependency-name: "@types/jest"
       # SDK tilde ranges: patches only.
       - dependency-name: react-native-screens
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: react-native-gesture-handler
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: react-native-safe-area-context
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: jest
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@types/react"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       # Pinned exactly by docs/adr/0001-nativewind-v5-release-candidate.md.
       - dependency-name: nativewind

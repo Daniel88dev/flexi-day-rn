@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { Pressable, TextInput, View, type TextInputInstance } from "react-native";
 
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/cn";
@@ -22,7 +22,7 @@ export function CodeBoxes({
   disabled?: boolean;
   testID?: string;
 }) {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const [focused, setFocused] = useState(false);
   const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH);
 

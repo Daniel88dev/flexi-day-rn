@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Guidance for Claude Code working in `flexi-day-rn`, the iPhone app of Flexi Day, a vacation/day-off
-management product. Expo SDK 57 with Expo Router, React Native 0.86, TypeScript, NativeWind v5
+management product. Expo SDK 58 with Expo Router, React Native 0.88, TypeScript, NativeWind v5
 (Tailwind v4 on native), expo-sqlite + Drizzle for the local store, better-auth's `expo` plugin
 for the native session.
 
@@ -49,8 +49,8 @@ capability invalidates the App ID's profiles, and the refresh is the user's; see
 open the app" in [`docs/device-testing.md`](docs/device-testing.md).
 Setting a purpose string to `false` can pass every local build and still fail App Store processing
 (ITMS-90683); see "When Apple rejects an upload" in [`docs/releasing.md`](docs/releasing.md).
-Scene support (`expo-build-properties`, `ios.enableSceneSupport`) stays on: iOS 27 kills an app
-built with Xcode 27 that lacks it, and only a real phone shows that.
+Since SDK 58, prebuild writes the `UIApplicationSceneManifest` and the scene delegate by default.
+iOS 27 kills an app built with Xcode 27 that lacks them, and only a real phone shows that.
 
 Adding a package that ships native iOS code (most `expo-*` modules, and
 `@react-native-community/datetimepicker`; `package.json` lists the ones already here) means
@@ -61,10 +61,10 @@ links it, so it needs no rebuild. A non-interactive shell has no UTF-8 `LANG`, a
 without one, so run `LANG=en_US.UTF-8 pnpm run prebuild` there.
 
 The repo uses pnpm on its default isolated linker, pinned by `packageManager` in `package.json`.
-`pnpm-workspace.yaml` denies the `esbuild` and `@tailwindcss/oxide` build scripts and fails an
-install that brings a new one. `Podfile.lock` records pod paths inside
-`node_modules/.pnpm/<peer hash>/`, which move whenever a dependency does, so after any dependency
-change run `pnpm run prebuild` before building the dev client with `pnpm run ios`.
+`pnpm-workspace.yaml` denies the `esbuild`, `@tailwindcss/oxide`, `@parcel/watcher` and
+`unrs-resolver` build scripts and fails an install that brings a new one. `Podfile.lock` records
+pod paths inside `node_modules/.pnpm/<peer hash>/`, which move whenever a dependency does, so after
+any dependency change run `pnpm run prebuild` before building the dev client with `pnpm run ios`.
 `pnpm run ios:device` reruns `pod install` itself when `pnpm-lock.yaml` is newer than the pods,
 which refreshes the same paths. `eas.json` pins the same pnpm version as `packageManager`; see
 [`docs/releasing.md`](docs/releasing.md).
@@ -296,8 +296,8 @@ PR only.
 entry needs a comment saying what the script does and why the package fails without it, plus a
 call-out in the PR. `minimumReleaseAgeExclude` and `trustPolicyExclude` entries are exact-version
 (`pkg@1.2.3`), and each GHSA waiver in `.github/dependency-review-config.yml` names its reason and
-Fenro task. Every Expo patch bump has to update `trustPolicyExclude`; see "Expo patches and the
-trust policy" in [`docs/ci-and-dependabot.md`](docs/ci-and-dependabot.md). Policy: T-561.
+Fenro task. An Expo patch younger than the age gate is skipped, not excluded; see "Expo patches and
+the age gate" in [`docs/ci-and-dependabot.md`](docs/ci-and-dependabot.md). Policy: T-561.
 
 ## Merging pull requests
 

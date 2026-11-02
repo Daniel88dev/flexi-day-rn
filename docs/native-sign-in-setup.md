@@ -425,8 +425,8 @@ cannot.
   points at; no redirect URI is involved, so a LAN backend needs nothing in Google Cloud. The
   `GOOGLE_WEB_CLIENT_ID` baked into the app must equal the `GOOGLE_CLIENT_ID` of the backend it
   talks to, otherwise the audience check fails. The sheet opens on the iOS 27 simulator
-  ([`device-testing.md`][dt-sign-in]). Check it on a real phone too, because `enableSceneSupport`
-  is on and nothing read covers the SDK under a scene-based app.
+  ([`device-testing.md`][dt-sign-in]). Check it on a real phone too, because the app runs the scene
+  lifecycle and nothing read covers the SDK under a scene-based app.
 - **Microsoft.** The redirect goes to the app (`flexiday://auth`), not to the backend, so the LAN
   backend needs nothing in Entra beyond section 2.1. The sheet opens on the iOS 27 simulator and
   loads Microsoft's sign-in page. A completed sign-in there is the release gate in 2.4.

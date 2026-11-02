@@ -1,7 +1,13 @@
 import { Stack, router, useIsFocused } from "expo-router";
 import { CaretUpDownIcon } from "phosphor-react-native";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  View,
+  type ScrollViewInstance,
+} from "react-native";
 import { toast } from "sonner-native";
 
 import { AttachmentsHeading } from "@/components/requests/attachments/attachment-section";
@@ -90,7 +96,7 @@ export function NewRequestForm({ date, end }: { date?: string; end?: string }) {
   const primary = useTone("primary");
   const viewerId = useViewer()?.id ?? null;
   const online = useOnline();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const today = useToday();
   const bookable = bookableWindow(today);

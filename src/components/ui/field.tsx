@@ -1,6 +1,13 @@
 import { EyeIcon, EyeSlashIcon, type Icon as PhosphorIcon } from "phosphor-react-native";
 import { useEffect, useState, type ReactNode, type Ref } from "react";
-import { AccessibilityInfo, Pressable, TextInput, View, type TextInputProps } from "react-native";
+import {
+  AccessibilityInfo,
+  Pressable,
+  TextInput,
+  View,
+  type TextInputProps,
+  type TextInputInstance,
+} from "react-native";
 
 import { Icon, useTone } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -13,7 +20,7 @@ export type FieldProps = TextInputProps & {
   icon?: PhosphorIcon;
   secure?: boolean;
   error?: string | null;
-  inputRef?: Ref<TextInput>;
+  inputRef?: Ref<TextInputInstance>;
   className?: string;
 };
 
