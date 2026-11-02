@@ -6,7 +6,7 @@ CI. A native change is checked by hand in the simulator (`pnpm run ios`) before 
 
 ## Dependabot and the Expo SDK
 
-`.github/dependabot.yml` groups `expo`, `expo-*`, `@expo/*` and `jest-expo` into one patch-only
+`.github/dependabot.yml` groups `expo`, `expo-*`, `@expo/*`, `jest-expo` and `babel-preset-expo` into one patch-only
 `expo-sdk` PR, and ignores the packages whose versions the SDK or ADR 0001 pins. Dependabot cannot
 run `pnpm expo install --fix`, and an Expo patch can move those pins. On every `expo-sdk` PR:
 
