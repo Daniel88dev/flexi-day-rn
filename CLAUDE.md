@@ -33,8 +33,9 @@ is rendered from `assets/icon.svg`, the web's `app/icon.svg` without the corner 
 signs with the paid Apple Developer Program team, whose id sits in `app.json` as
 `ios.appleTeamId` so prebuild signs without Xcode clicks. Release builds run on EAS Build and reach
 TestFlight through `eas submit`; the loop, the credentials and the App Store Connect ids are in
-[`docs/releasing.md`](docs/releasing.md). Dev-client builds stay on Xcode; the phone setup and how
-the app finds the backend are in
+[`docs/releasing.md`](docs/releasing.md). eas-cli is a devDependency, so `pnpm run release:ios` runs
+the loop and any other EAS command is `pnpm exec eas`, never a global `eas`. Dev-client builds stay
+on Xcode; the phone setup and how the app finds the backend are in
 [`docs/device-testing.md`](docs/device-testing.md). `pnpm run ios` targets the simulator,
 `pnpm run ios:device` the phone. The latter is `scripts/ios-device.js`, not `expo run:ios --device`:
 Expo drops `-allowProvisioningUpdates` whenever the project names a team, so it cannot refill an
@@ -61,13 +62,13 @@ links it, so it needs no rebuild. A non-interactive shell has no UTF-8 `LANG`, a
 without one, so run `LANG=en_US.UTF-8 pnpm run prebuild` there.
 
 The repo uses pnpm on its default isolated linker, pinned by `packageManager` in `package.json`.
-`pnpm-workspace.yaml` denies the `esbuild`, `@tailwindcss/oxide`, `@parcel/watcher` and
-`unrs-resolver` build scripts and fails an install that brings a new one. `Podfile.lock` records
-pod paths inside `node_modules/.pnpm/<peer hash>/`, which move whenever a dependency does, so after
-any dependency change run `pnpm run prebuild` before building the dev client with `pnpm run ios`.
-`pnpm run ios:device` reruns `pod install` itself when `pnpm-lock.yaml` is newer than the pods,
-which refreshes the same paths. `eas.json` pins the same pnpm version as `packageManager`; see
-[`docs/releasing.md`](docs/releasing.md).
+`pnpm-workspace.yaml` denies the `esbuild`, `@tailwindcss/oxide`, `@parcel/watcher`,
+`unrs-resolver`, `dtrace-provider` and `protobufjs` build scripts and fails an install that brings a
+new one. `Podfile.lock` records pod paths inside `node_modules/.pnpm/<peer hash>/`, which move
+whenever a dependency does, so after any dependency change run `pnpm run prebuild` before building
+the dev client with `pnpm run ios`. `pnpm run ios:device` reruns `pod install` itself when
+`pnpm-lock.yaml` is newer than the pods, which refreshes the same paths. `eas.json` pins the same
+pnpm version as `packageManager`; see [`docs/releasing.md`](docs/releasing.md).
 
 Every preset or plugin `babel.config.js` names must be a direct dependency. Babel resolves them from
 the project root, where the isolated linker puts only what `package.json` declares. A local bundle
