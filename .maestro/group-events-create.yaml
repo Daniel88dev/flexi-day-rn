@@ -1,7 +1,7 @@
 # Group events, create (T-363): long-press a day, New group event from the native menu, save a
 # weekly group event, and see it on three weeks. Runs on 18 October 2026 on an iPhone 17 Pro,
 # signed in as owner@dev.local (lanes view, Mine scope) after dev:scenario:
-#   npm run dev:login:rn -- owner@dev.local --to /dashboard --udid <udid>
+#   pnpm run dev:login:rn owner@dev.local --to /dashboard --udid <udid>
 # Expo Router's Link.Menu mounts each day cell inside a zero-size native view, which keeps the cells
 # out of the accessibility tree XCUITest walks, so the days and the menu rows are tapped by point.
 # The points fit the October page with the dashboard scrolled by the second swipe below.

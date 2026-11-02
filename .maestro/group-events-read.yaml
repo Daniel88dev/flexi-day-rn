@@ -2,7 +2,7 @@
 # lock line for a viewer who cannot change them, and a card opens the event's detail. Runs on
 # 18 October 2026 on an iPhone 17 Pro, signed in as alice@dev.local (lanes view, Mine scope) after
 # dev:scenario: Bob's one-off "Quarterly planning" sits on 21 October beside Alice's own booking.
-#   npm run dev:login:rn -- alice@dev.local --to /dashboard --udid <udid>
+#   pnpm run dev:login:rn alice@dev.local --to /dashboard --udid <udid>
 # The points were measured on the October 2026 grid of an iPhone 17 Pro, so the flow first checks
 # that October 2026 is showing. T-364 restores tree-based taps.
 appId: com.flexiday.app

@@ -1,7 +1,7 @@
 # Birthdays (T-354): set a birthday with a year, see the age on the user's own day, remove the
 # year and see the age go. Runs in October 2026, signed in as owner@dev.local (lanes view), whose
 # birthday the dev scenario seeds on 25 October:
-#   npm run dev:login:rn -- owner@dev.local --to /dashboard --udid <udid>
+#   pnpm run dev:login:rn owner@dev.local --to /dashboard --udid <udid>
 # The flow removes a stored year first. Without one, the wheel offers 2000.
 # Day cells sit in the day menu's native view, out of the accessibility tree, so 25 October is
 # tapped by screen point, measured on the October 2026 grid of an iPhone 17 Pro. T-364 restores

@@ -4,7 +4,7 @@
 # write two rows, and the pull-to-refresh writes none.
 # Signed in as owner@dev.local on the setup in directory-profile-owner.yaml, with Alice's Contact
 # (private phone, private email, emergency contact 1) and Personal filled on the web:
-#   npm run dev:login:rn -- owner@dev.local --to /directory --udid <udid>
+#   pnpm run dev:login:rn owner@dev.local --to /directory --udid <udid>
 # The app-switcher cover is checked by hand: press Home with a Section open and convert the
 # newest `Library/SplashBoard/Snapshots/**/*.ktx` in the app's data container with `sips`.
 appId: com.flexiday.app

@@ -5,7 +5,7 @@
 # Local mail is suppressed, so give the open invite a known secret:
 #   update invite_link set link_secret_hash = encode(sha256('t530-directory-invite-0000000000000000000000'), 'hex')
 #   where employment_id = '<emp>' and revoked_at is null;
-# Then sign the invitee in: npm run dev:login:rn -- <invitee> --udid <udid>
+# Then sign the invitee in: pnpm run dev:login:rn <invitee> --udid <udid>
 appId: com.flexiday.app
 ---
 - extendedWaitUntil:

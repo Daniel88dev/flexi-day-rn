@@ -5,7 +5,7 @@
 #   dev_set_plan ENTERPRISE, POST /api/organization/directory/enable { "agreementVersion": 1 },
 #   DELETE /api/group-user/<Dev Support>/<Frank>
 #   as the owner: PUT /api/directory/<org>/roles/<Alice's employment> { "roles": ["HR"] }
-#   npm run dev:login:rn -- alice@dev.local --to /dashboard --udid <udid>
+#   pnpm run dev:login:rn alice@dev.local --to /dashboard --udid <udid>
 appId: com.flexiday.app
 ---
 - openLink: flexiday:///dashboard

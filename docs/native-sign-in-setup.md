@@ -435,9 +435,9 @@ cannot.
   because Apple refuses `localhost` return URLs. The simulator has no Apple Account signed in, so
   its sheet stops at the system's "Sign in to your Apple Account" prompt. A full Apple sign-in runs
   on a real phone against the LAN backend ([`device-testing.md`][dt-sign-in]).
-- **Seeded users.** `npm run dev:scenario` at the workspace root seeds `@dev.local` accounts; a
+- **Seeded users.** `pnpm run dev:scenario` at the workspace root seeds `@dev.local` accounts; a
   social sign-in with a real provider account creates a fresh, unverified user instead, and
-  `npm run dev:reset` does not remove it. Delete those rows by hand or through the account-deletion
+  `pnpm run dev:reset` does not remove it. Delete those rows by hand or through the account-deletion
   flow.
 
 ## 7. Verification
