@@ -69,6 +69,11 @@ any dependency change run `pnpm run prebuild` before building the dev client wit
 which refreshes the same paths. `eas.json` pins the same pnpm version as `packageManager`; see
 [`docs/releasing.md`](docs/releasing.md).
 
+Every preset or plugin `babel.config.js` names must be a direct dependency. Babel resolves them from
+the project root, where the isolated linker puts only what `package.json` declares. A local bundle
+can still find a missing one, but EAS's clean install fails at "Bundle React Native code and
+images" with `Cannot find module 'babel-preset-expo'`.
+
 The backend base URL comes from `src/lib/api.ts`: `EXPO_PUBLIC_API_URL` when set, otherwise the
 Metro host on port 8080. Never hardcode `localhost`; a phone cannot reach it.
 
