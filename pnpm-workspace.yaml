@@ -24,3 +24,9 @@ allowBuilds:
 pmOnFail: ignore
 skills:
   dirs: []
+# eas-cli 27.2.0 and @expo/eas-json pin joi at exactly 17.11.0, which carries GHSA-6h2x-m376-mqjq
+# and GHSA-4528-x5fx-h6hg (both high). 17.13.9 fixes both, and eas-cli's other packages already run
+# it. Drop these once eas-cli ships a fixed joi.
+overrides:
+  eas-cli>joi: ^17.13.9
+  "@expo/eas-json>joi": ^17.13.9
