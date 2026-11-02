@@ -17,8 +17,13 @@ App Store Connect through EAS Submit. Dev-client builds stay on Xcode
 ## The loop
 
 ```bash
-eas build --platform ios --profile production --auto-submit
+pnpm run release:ios
 ```
+
+The script runs `eas build --platform ios --profile production --auto-submit` with the repo's own
+eas-cli, a devDependency the lockfile pins. Any other EAS command goes through `pnpm exec eas`. A
+global `eas` is no longer needed: nvm keeps global packages per Node version, so one installed
+globally disappears with every Node update.
 
 1. EAS uploads the working tree, minus everything `.gitignore` lists, builds it and submits the
    `.ipa` to App Store Connect (`submit.production.ios.ascAppId` in `eas.json`).
@@ -34,7 +39,8 @@ because both are `com.flexiday.app`.
 
 `version` in `app.json` is the marketing version; raise it by hand for a release. The build number
 lives on EAS (`cli.appVersionSource: remote`) and the production profile increments it on every
-build, so App Store Connect never sees the same one twice. `eas build:version:get -p ios` reads it.
+build, so App Store Connect never sees the same one twice. `pnpm exec eas build:version:get -p ios`
+reads it.
 
 ## Environment
 
@@ -43,11 +49,13 @@ build, so App Store Connect never sees the same one twice. `eas build:version:ge
 `https://flexi-day.com` in code. A new `EXPO_PUBLIC_*` variable needs a production value there too.
 
 The profile pins Node to an exact version (`"node"` in `eas.json`), not `.nvmrc`'s `24`, so the
-builder runs the Node the app was tested on rather than whatever its image ships. Move the pin
-together with the local Node. A profile that pins `node` gets the image's own pnpm unless it names
-one too, so `"pnpm"` in `eas.json` repeats the version in `packageManager` and changes with it.
-EAS picks the package manager by lockfile and checks for
-`package-lock.json` before `pnpm-lock.yaml`, so a stray `package-lock.json` makes it build with npm.
+builder runs a known Node rather than whatever its image ships. EAS rejects anything but an exact
+version there, so no range can follow Node 24 on its own. The weekly dependency job moves the pin to
+the newest Node 24 release past the 3-day age gate instead; keep the local Node on the latest 24 too
+(`nvm install 24`). A profile that pins `node` gets the image's own pnpm unless it names one too, so
+`"pnpm"` in `eas.json` repeats the version in `packageManager` and changes with it. EAS picks the
+package manager by lockfile and checks for `package-lock.json` before `pnpm-lock.yaml`, so a stray
+`package-lock.json` makes it build with npm.
 
 ## Export compliance
 
@@ -58,8 +66,8 @@ until someone answers by hand. Adding encryption of its own means revisiting thi
 ## Credentials
 
 EAS holds the Apple distribution certificate, the App Store provisioning profile and an App Store
-Connect API key, all created on the first `eas build` and `eas submit`. `eas credentials -p ios`
-shows and rotates them. Later builds ask no Apple questions.
+Connect API key, all created on the first `eas build` and `eas submit`.
+`pnpm exec eas credentials -p ios` shows and rotates them. Later builds ask no Apple questions.
 
 The APNs key (`.p8`) is not an EAS credential and EAS should not create one: the backend sends push
 straight to APNs with its own key, which lives in 1Password. `cli.promptToConfigurePushNotifications`
@@ -76,8 +84,8 @@ App ID makes the App Store profile EAS holds invalid, so the first build after i
 (`pnpm expo config --type introspect`), then checks the profile against the App ID. Run that first
 build interactively, without `--non-interactive`, and sign in to Apple when it asks. EAS enables
 Associated Domains if the portal step was skipped, and offers to replace the invalid profile.
-`eas credentials -p ios` shows the profile and can remove it before the build, which then creates
-a new one.
+`pnpm exec eas credentials -p ios` shows the profile and can remove it before the build, which then
+creates a new one.
 
 `--non-interactive` never syncs capabilities, because the sync needs an Apple sign-in. Since
 eas-cli 24.10 it does try the App Store Connect API key EAS stores for submissions and can repair
@@ -99,7 +107,7 @@ turned Push Notifications off on the App ID. The first build with the entitlemen
 which makes the App Store profile invalid. Run that build interactively, the same step as
 [section 5.2 of the sign-in runbook](native-sign-in-setup.md#52-the-first-eas-build-once):
 
-1. `eas build --platform ios --profile production --auto-submit`, without `--non-interactive`.
+1. `pnpm run release:ios`, which leaves out `--non-interactive`.
 2. Sign in to Apple when it asks. The sync enables Push Notifications on `com.flexiday.app`.
 3. Accept when EAS offers to repair or replace the invalid profile.
 4. If EAS offers to create a push key, decline. `eas.json` should stop it asking.
