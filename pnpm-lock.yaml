@@ -31,8 +31,8 @@ importers:
         specifier: 9.2.1
         version: 9.2.1(expo@58.0.21)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       '@react-native-google-signin/google-signin':
-        specifier: ^16.2.0
-        version: 16.2.0(expo@58.0.21)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
+        specifier: ^17.0.0
+        version: 17.0.0(expo@58.0.21)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       '@tailwindcss/postcss':
         specifier: 4.1.12
         version: 4.1.12
@@ -2334,8 +2334,8 @@ packages:
       react-native-windows:
         optional: true
 
-  '@react-native-google-signin/google-signin@16.2.0':
-    resolution: {integrity: sha512-Rbc7kpvF79hPmRy2C4KLV3BapqXStNxcLKckJv2JWgWqE1CuhNByQTSxT2ixWMZTF25IXcBBwptcRdRvmJSdtg==}
+  '@react-native-google-signin/google-signin@17.0.0':
+    resolution: {integrity: sha512-FAnq5tkoq01np7jCzGjBYK1QPS61hJxjLJHJyJjQN3gaTwAZiGll18Xn3nygITMsZ/WoJ0jmskuHSG/oknUskQ==}
     peerDependencies:
       expo: '>=52.0.40'
       react: '*'
@@ -9335,7 +9335,7 @@ snapshots:
     optionalDependencies:
       expo: 58.0.21(@babel/core@7.29.7(supports-color@8.1.1))(@expo/metro-runtime@58.0.15)(@typescript/typescript6@6.0.2)(expo-router@58.0.28)(react-dom@19.3.0(react@19.3.0))(react-native-worklets@0.13.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)
 
-  '@react-native-google-signin/google-signin@16.2.0(expo@58.0.21)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)':
+  '@react-native-google-signin/google-signin@17.0.0(expo@58.0.21)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)':
     dependencies:
       react: 19.3.0
       react-native: 0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
