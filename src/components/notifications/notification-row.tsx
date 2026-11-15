@@ -4,6 +4,8 @@ import {
   BellIcon,
   CalendarXIcon,
   ChatCircleTextIcon,
+  PlugsConnectedIcon,
+  SparkleIcon,
   StampIcon,
   TimerIcon,
   TrashIcon,
@@ -34,6 +36,8 @@ const KIND_ICON: Record<string, PhosphorIcon> = {
   balance_low: BatteryLowIcon,
   account_deleted: UserMinusIcon,
   directory_enabled: AddressBookIcon,
+  assistant_enabled: SparkleIcon,
+  ai_connections_enabled: PlugsConnectedIcon,
 };
 
 function DeleteAction({

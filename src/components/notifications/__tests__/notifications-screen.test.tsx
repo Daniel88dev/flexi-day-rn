@@ -9,6 +9,7 @@ import { cs } from "@/i18n/cs";
 import { en } from "@/i18n/en";
 import { TranslationProvider } from "@/i18n/use-translation";
 import { queryClient, type AppNotification } from "@/lib/query";
+import { openWebPage } from "@/lib/web";
 
 const mockFetch = jest.fn();
 
@@ -42,6 +43,18 @@ jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   };
 });
 
+// RNTL only sees host elements, so each icon renders a View named after it.
+jest.mock("phosphor-react-native", () => {
+  const actual = jest.requireActual("phosphor-react-native");
+  const { View } = jest.requireActual("react-native");
+  return Object.fromEntries(
+    Object.keys(actual).map((name) => [
+      name,
+      name.endsWith("Icon") ? () => <View testID={`icon-${name}`} /> : actual[name],
+    ])
+  );
+});
+
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), navigate: jest.fn(), back: jest.fn() },
   useFocusEffect: () => undefined,
@@ -49,6 +62,10 @@ jest.mock("expo-router", () => ({
 jest.mock("@/lib/session/auth-client", () => ({ sessionCookie: async () => "" }));
 jest.mock("@/lib/session/client-headers", () => ({ currentClientHeaders: () => ({}) }));
 jest.mock("@/lib/local-store", () => ({ pull: jest.fn().mockResolvedValue({ ok: true }) }));
+jest.mock("@/lib/web", () => ({
+  ...jest.requireActual("@/lib/web"),
+  openWebPage: jest.fn(() => Promise.resolve()),
+}));
 jest.mock("sonner-native", () => ({ toast: { error: jest.fn() } }));
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageCode: "en" }] }));
 jest.mock("expo-haptics", () => ({
@@ -62,6 +79,7 @@ jest.mock("expo-haptics", () => ({
 const toastError = toast.error as unknown as jest.Mock;
 const push = router.push as jest.Mock;
 const navigate = router.navigate as jest.Mock;
+const webPage = openWebPage as jest.Mock;
 const alert = jest.spyOn(Alert, "alert");
 
 const HOUR = 3_600_000;
@@ -257,6 +275,86 @@ describe("NotificationsScreen", () => {
       expect(calls("POST", "/api/notifications/n-directory/read")).toHaveLength(1)
     );
     await settled();
+  });
+
+  it("shows the Assistant notice with a sparkle, and marks it read on tap without leaving the list", async () => {
+    serve([
+      {
+        id: "n-assistant",
+        type: "assistant_enabled",
+        title: "Acme turned on the Assistant.",
+        body: "Ask it about your balances and requests.",
+        href: null,
+        readAt: null,
+        createdAt: ago(HOUR),
+      },
+    ]);
+    await renderScreen();
+
+    const row = await screen.findByTestId("notification-n-assistant");
+    expect(screen.getByText("Acme turned on the Assistant.")).toBeTruthy();
+    expect(screen.getByText("Ask it about your balances and requests.")).toBeTruthy();
+    expect(within(row).getByTestId("icon-SparkleIcon")).toBeTruthy();
+    expect(within(row).queryByTestId("icon-BellIcon")).toBeNull();
+
+    await fireEvent.press(row);
+
+    expect(push).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(webPage).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(calls("POST", "/api/notifications/n-assistant/read")).toHaveLength(1)
+    );
+    await settled();
+  });
+
+  it("shows the AI connections notice with plugs, and marks it read on tap without leaving the list", async () => {
+    serve([
+      {
+        id: "n-connections",
+        type: "ai_connections_enabled",
+        title: "Acme allows AI connections.",
+        body: "Connect an AI app to Flexi Day in Settings.",
+        href: "/settings/",
+        readAt: null,
+        createdAt: ago(HOUR),
+      },
+    ]);
+    await renderScreen();
+
+    const row = await screen.findByTestId("notification-n-connections");
+    expect(screen.getByText("Acme allows AI connections.")).toBeTruthy();
+    expect(screen.getByText("Connect an AI app to Flexi Day in Settings.")).toBeTruthy();
+    expect(within(row).getByTestId("icon-PlugsConnectedIcon")).toBeTruthy();
+    expect(within(row).queryByTestId("icon-BellIcon")).toBeNull();
+
+    await fireEvent.press(row);
+
+    expect(push).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(webPage).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(calls("POST", "/api/notifications/n-connections/read")).toHaveLength(1)
+    );
+    await settled();
+  });
+
+  it("shows the bell for a notification type the app does not know", async () => {
+    serve([
+      {
+        id: "n-unknown",
+        type: "something_new",
+        title: "Something new happened",
+        body: "Details on the web.",
+        href: null,
+        readAt: null,
+        createdAt: ago(HOUR),
+      },
+    ]);
+    await renderScreen();
+
+    const row = await screen.findByTestId("notification-n-unknown");
+    expect(within(row).getByTestId("icon-BellIcon")).toBeTruthy();
   });
 
   it("stays on the list for a read notification with nowhere to go, and sends nothing", async () => {
